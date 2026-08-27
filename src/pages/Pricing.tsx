@@ -14,7 +14,7 @@ export default function Pricing() {
             Simple pricing
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-[15px] text-charcoal/65">
-            Try Pallet Preview free with 5 previews to explore the product. Unlock Pro when you're ready for the full toolkit.
+            Try Pallet Preview free with 15 previews to explore the product. Unlock Pro when you're ready for the full toolkit.
           </p>
         </div>
 
@@ -29,7 +29,7 @@ export default function Pricing() {
               <p className="mt-1 text-[13px] text-charcoal/55">Enough to properly try Pallet Preview.</p>
             </div>
             <ul className="flex flex-col gap-2 text-[14px] text-charcoal/75">
-              <Feat>5 free previews to explore</Feat>
+              <Feat>15 free previews to explore</Feat>
               <Feat>Full colour palette editor (HEX, RGB, HSL, picker)</Feat>
               <Feat>WCAG contrast checks</Feat>
               <Feat>Randomise, lock colours, Undo &amp; Redo</Feat>

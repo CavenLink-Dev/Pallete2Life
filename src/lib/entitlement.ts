@@ -11,7 +11,7 @@
 
 const KEY = "pallet-preview:ent:v1"
 
-export const FREE_PREVIEW_LIMIT = 5
+export const FREE_PREVIEW_LIMIT = 15
 
 export type Entitlement = {
   isPro: boolean

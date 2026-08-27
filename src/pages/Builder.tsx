@@ -114,7 +114,7 @@ export default function Builder() {
   useEffect(() => { saveEntitlement(ent) }, [ent])
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
   const remaining = freeRemaining(ent)
-  const remainingLabel = ent.isPro ? null : `${remaining} free preview${remaining === 1 ? "" : "s"} left`
+  const remainingLabel = ent.isPro ? null : `${remaining} preview${remaining === 1 ? "" : "s"} left`
 
   useStored("palette", palette)
   useStored("assignments", assignments)
