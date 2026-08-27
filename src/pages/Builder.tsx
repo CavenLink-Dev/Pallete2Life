@@ -19,10 +19,21 @@ import {
 } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
 import BrandUpload from "../components/BrandUpload"
-import { useNav } from "../lib/router"
+import { useNav, useRoute } from "../lib/router"
 import { useToast } from "../components/Toast"
 import ConfirmDialog from "../components/ConfirmDialog"
 import IntroTour, { markIntroSeen, shouldShowIntro } from "../components/IntroTour"
+import PaywallOverlay from "../components/PaywallOverlay"
+import {
+  FREE_PREVIEW_LIMIT,
+  freeRemaining,
+  loadEntitlement,
+  needsPaywall,
+  previewKey,
+  recordSwitch,
+  saveEntitlement,
+  type Entitlement,
+} from "../lib/entitlement"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -60,6 +71,7 @@ const MAX_HISTORY = 40
 
 export default function Builder() {
   const navHome = useNav()
+  const [, navigate] = useRoute()
   const toast = useToast()
 
   const [palette, setPalette] = useState<Swatch[]>(() => loadStored("palette", initialPalette))
@@ -80,6 +92,32 @@ export default function Builder() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+
+  // Free/Pro entitlement — persisted locally.
+  const [ent, setEnt] = useState<Entitlement>(loadEntitlement)
+  useEffect(() => { saveEntitlement(ent) }, [ent])
+  const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
+  const remaining = freeRemaining(ent)
+  const remainingLabel = ent.isPro ? null : `${remaining} free preview${remaining === 1 ? "" : "s"} left`
+
+  const goPro = () => { setPaywall({ open: false }); navigate("/pricing") }
+  const dismissPaywall = () => setPaywall({ open: false })
+
+  /**
+   * Attempt to switch the preview. Consumes one free preview only when the
+   * (group, sub) pair is new to the user. Never touches the palette or design.
+   * Returns true when the switch happened, false when the paywall was opened.
+   */
+  const trySelectPreview = useCallback((next: Selection): boolean => {
+    const key = previewKey(next.group, next.sub)
+    if (needsPaywall(ent, key)) {
+      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
+      return false
+    }
+    setSel(next)
+    setEnt((e) => recordSwitch(e, key))
+    return true
+  }, [ent])
 
   // Undo/Redo history for the palette
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
@@ -239,6 +277,18 @@ export default function Builder() {
         </a>
 
         <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
+          {remainingLabel && (
+            <button
+              type="button"
+              onClick={() => navigate("/pricing")}
+              title="You're on the Free tier — click to see Pro"
+              className="hidden items-center gap-1.5 rounded-full border border-softgrey bg-white px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-charcoal/55 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] sm:inline-flex"
+              aria-label={`${remainingLabel}. Open pricing.`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: remaining > 0 ? BRAND.brand : "#C22F2F" }} />
+              {remainingLabel}
+            </button>
+          )}
           <ChipButton
             onClick={() => setPreviewPickerOpen(true)}
             title="Change what you're previewing"
@@ -367,20 +417,32 @@ export default function Builder() {
                 <div className="flex flex-col gap-1">
                   {g.subs.map((s) => {
                     const on = sel.group === g.key && sel.sub === s.key
+                    const key = previewKey(g.key, s.key)
+                    const locked = needsPaywall(ent, key)
                     return (
                       <button
                         key={s.key}
                         type="button"
                         onClick={() => {
-                          setSel({ group: g.key, sub: s.key })
                           setPreviewPickerOpen(false)
-                          toast.push(`Now previewing ${g.label} · ${s.label}`)
+                          const ok = trySelectPreview({ group: g.key, sub: s.key })
+                          if (ok) toast.push(`Now previewing ${g.label} · ${s.label}`)
                         }}
-                        className="rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+                        className="flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
                         style={on ? { background: withAlpha(BRAND.brand, 0.12), color: BRAND.brandDark } : { color: BRAND.medgrey }}
                         aria-current={on ? "true" : undefined}
                       >
-                        {s.label}
+                        <span>{s.label}</span>
+                        {locked && (
+                          <span
+                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
+                            style={{ background: `${BRAND.brand}18`, color: BRAND.brandDark }}
+                            aria-label="Pro feature"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                            Pro
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -526,6 +588,14 @@ export default function Builder() {
         destructive
         onConfirm={doReset}
         onCancel={() => setConfirmReset(false)}
+      />
+
+      {/* ---------- Pro paywall (over the preview, non-destructive) ---------- */}
+      <PaywallOverlay
+        open={paywall.open}
+        reason={paywall.reason}
+        onUnlock={goPro}
+        onLater={dismissPaywall}
       />
     </div>
   )

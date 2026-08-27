@@ -18,7 +18,7 @@ export default function Terms() {
           <p>Anything you upload (logos, symbols) stays on your device. You retain all rights to your work. Colours you create belong to you — palettes cannot be copyrighted.</p>
 
           <h2 className="mt-4 text-[17px] font-bold" style={{ fontFamily: "var(--font-display)" }}>No warranty</h2>
-          <p>Pallet Preview is provided as-is while in beta. We work hard to make it reliable, but we cannot guarantee it will always be available or free of bugs. Do not rely on it as your only source of truth.</p>
+          <p>Pallet Preview is provided as-is. We work hard to make it reliable, but we cannot guarantee it will always be available or free of bugs. Do not rely on it as your only source of truth.</p>
 
           <h2 className="mt-4 text-[17px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Changes</h2>
           <p>These terms may change as the product evolves. Any material change will be highlighted inside the product before it takes effect.</p>

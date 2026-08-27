@@ -87,7 +87,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
               className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
               style={{ background: BRAND.brand }}
             >
-              Start Creating
+              Try for Free
             </a>
           </>
         )}

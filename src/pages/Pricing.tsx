@@ -8,60 +8,89 @@ export default function Pricing() {
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-14 sm:py-20">
-        <div>
-          <h1 className="text-[32px] font-bold sm:text-[42px]" style={{ fontFamily: "var(--font-display)" }}>Simple, honest pricing</h1>
-          <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-            Pallet Preview is free while in beta. When paid tiers arrive, everything you can do today will still be free.
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-14 sm:py-20">
+        <div className="text-center">
+          <h1 className="text-[32px] font-bold sm:text-[46px]" style={{ fontFamily: "var(--font-display)" }}>
+            Simple pricing
+          </h1>
+          <p className="mx-auto mt-3 max-w-xl text-[15px] text-charcoal/65">
+            Try Pallet Preview free with 5 previews to explore the product. Unlock Pro when you're ready for the full toolkit.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Plan
-            title="Free"
-            price="$0"
-            note="forever · no card"
-            featured
-            features={[
-              "Full colour palette editor with WCAG contrast checks",
-              "All live previews (websites, mobile apps, components)",
-              "Six button styles including 3D, Glass and Gradient",
-              "Edit Mode to reassign colours element-by-element",
-              "Upload your own logo and app icon",
-              "Local browser saves — no account required",
-            ]}
-            cta={{ label: "Start Creating", to: "/builder" }}
-            nav={nav}
-          />
-          <Plan
-            title="Pro"
-            price="Coming soon"
-            note="lifetime option planned"
-            features={[
-              "Export palettes as CSS, SCSS, JSON, Tailwind",
-              "Save unlimited named palettes to your account",
-              "Custom font uploads",
-              "Higher-resolution export of previews",
-              "Priority support",
-            ]}
-          />
-          <Plan
-            title="Teams"
-            price="Talk to us"
-            note="for design systems teams"
-            features={[
-              "Shared team palettes and roles",
-              "Design token sync (Figma, Tailwind, style-dictionary)",
-              "Seat-based billing",
-              "SSO / SAML on request",
-            ]}
-            cta={{ label: "Contact us", to: "/contact" }}
-            nav={nav}
-          />
+        <div className="mx-auto grid w-full max-w-3xl gap-4 md:grid-cols-2">
+          {/* Free */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-softgrey bg-white p-6">
+            <div>
+              <h2 className="text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Free</h2>
+              <p className="mt-2 flex items-baseline gap-1">
+                <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$0</span>
+              </p>
+              <p className="mt-1 text-[13px] text-charcoal/55">Enough to properly try Pallet Preview.</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-[14px] text-charcoal/75">
+              <Feat>5 free previews to explore</Feat>
+              <Feat>Full colour palette editor (HEX, RGB, HSL, picker)</Feat>
+              <Feat>WCAG contrast checks</Feat>
+              <Feat>Randomise, lock colours, Undo &amp; Redo</Feat>
+              <Feat>Basic Edit Mode</Feat>
+              <Feat>Full Screen preview</Feat>
+              <Feat>Your palette saved locally in your browser</Feat>
+            </ul>
+            <a
+              href="/builder"
+              onClick={nav("/builder")}
+              className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+            >
+              Try for Free
+            </a>
+          </div>
+
+          {/* Pro */}
+          <div
+            className="relative flex flex-col gap-4 rounded-2xl border-2 bg-white p-6"
+            style={{ borderColor: BRAND.brand, boxShadow: `0 12px 34px ${BRAND.brand}25` }}
+          >
+            <span
+              className="absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+              style={{ background: BRAND.brand }}
+            >
+              Recommended
+            </span>
+            <div>
+              <h2 className="text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Pro</h2>
+              <p className="mt-2 flex items-baseline gap-1">
+                <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$9.99</span>
+                <span className="text-[14px] font-semibold text-charcoal/60">USD / month</span>
+              </p>
+              <p className="mt-1 text-[13px] text-charcoal/55">Everything in Free, without limits.</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-[14px] text-charcoal/85">
+              <Feat><b>Unlimited previews</b> — palettes, templates, styles</Feat>
+              <Feat>Every website, mobile app and component preview</Feat>
+              <Feat>All templates and every button style (Flat, 3D, Elevated, Outline, Glass, Gradient)</Feat>
+              <Feat>Full Edit Mode with custom colour roles</Feat>
+              <Feat>Company logo and app icon upload</Feat>
+              <Feat>Advanced accessibility tools</Feat>
+              <Feat>Full Screen Preview</Feat>
+              <Feat>Coming soon: CSS, Tailwind and JSON export, custom fonts, more templates</Feat>
+            </ul>
+            <a
+              href="/builder"
+              onClick={nav("/builder")}
+              className="mt-auto inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+              style={{ background: BRAND.brand }}
+            >
+              Unlock Pro — $9.99/mo
+            </a>
+            <p className="text-center text-[11px] text-charcoal/45">
+              Accounts and payments will be enabled shortly. For now, start with the Free tier.
+            </p>
+          </div>
         </div>
 
-        <p className="text-[13px] text-charcoal/50">
-          We'll never charge for something you already use for free today. If pricing ever changes, existing users are grandfathered.
+        <p className="text-center text-[13px] text-charcoal/55">
+          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how Pallet Preview works</a>.
         </p>
       </main>
       <PublicFooter />
@@ -69,60 +98,11 @@ export default function Pricing() {
   )
 }
 
-function Plan({
-  title,
-  price,
-  note,
-  features,
-  featured,
-  cta,
-  nav,
-}: {
-  title: string
-  price: string
-  note: string
-  features: string[]
-  featured?: boolean
-  cta?: { label: string; to: "/builder" | "/contact" }
-  nav?: ReturnType<typeof useNav>
-}) {
+function Feat({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      className="flex flex-col gap-4 rounded-2xl border bg-white p-5"
-      style={{ borderColor: featured ? BRAND.brand : "#E7E9ED", boxShadow: featured ? `0 10px 26px ${BRAND.brand}25` : "none" }}
-    >
-      <div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-[19px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
-          {featured && (
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ background: `${BRAND.brand}22`, color: BRAND.brandDark }}>
-              Available now
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-[24px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{price}</p>
-        <p className="text-[12px] text-charcoal/55">{note}</p>
-      </div>
-      <ul className="flex flex-col gap-2 text-[13.5px] text-charcoal/75">
-        {features.map((f) => (
-          <li key={f} className="flex gap-2">
-            <span aria-hidden style={{ color: BRAND.brand }}>✓</span>
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-      {cta && nav && (
-        <a
-          href={cta.to}
-          onClick={nav(cta.to)}
-          className="mt-2 inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-opacity hover:opacity-90"
-          style={featured
-            ? { background: BRAND.brand, color: "#fff" }
-            : { background: "#fff", color: BRAND.charcoal, border: `1px solid ${BRAND.softgrey}` }}
-        >
-          {cta.label}
-        </a>
-      )}
-    </div>
+    <li className="flex gap-2">
+      <span aria-hidden style={{ color: BRAND.brand }}>✓</span>
+      <span>{children}</span>
+    </li>
   )
 }

@@ -18,7 +18,7 @@ export default function Home() {
               style={{ fontFamily: "var(--font-display)" }}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.brand }} />
-              No account · No download
+              No account needed to try
             </span>
             <h1
               className="mt-5 text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
@@ -36,20 +36,24 @@ export default function Home() {
                 className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
                 style={{ background: BRAND.brand }}
               >
-                Start Creating
+                Try for Free
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
               </a>
               <a
-                href="/help"
-                onClick={nav("/help")}
-                className="inline-flex items-center gap-2 rounded-xl border border-softgrey bg-white px-5 py-3 text-[15px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+                href="/pricing"
+                onClick={nav("/pricing")}
+                className="inline-flex items-center gap-2 rounded-xl border-2 bg-white px-5 py-3 text-[15px] font-semibold transition-colors hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+                style={{ borderColor: BRAND.brand, color: BRAND.brandDark }}
               >
-                How it works
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                </svg>
+                Unlock Pro
               </a>
             </div>
-            <p className="mt-4 text-[13px] text-charcoal/45">Free while in beta · your palette is saved in your browser.</p>
+            <p className="mt-4 text-[13px] text-charcoal/45">5 free previews · no card needed to start · your palette stays on your device.</p>
           </div>
 
           {/* Hero mock */}
@@ -93,14 +97,24 @@ export default function Home() {
           <p className="mx-auto mt-3 max-w-md text-[15px] text-charcoal/65">
             No account. No install. Just paint your ideas and watch them come to life.
           </p>
-          <a
-            href="/builder"
-            onClick={nav("/builder")}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5"
-            style={{ background: BRAND.brand }}
-          >
-            Open the Builder
-          </a>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="/builder"
+              onClick={nav("/builder")}
+              className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5"
+              style={{ background: BRAND.brand }}
+            >
+              Try for Free
+            </a>
+            <a
+              href="/pricing"
+              onClick={nav("/pricing")}
+              className="inline-flex items-center gap-2 rounded-xl border-2 bg-white px-5 py-3 text-[15px] font-semibold transition-colors hover:bg-offwhite"
+              style={{ borderColor: BRAND.brand, color: BRAND.brandDark }}
+            >
+              Unlock Pro
+            </a>
+          </div>
         </section>
       </main>
 
