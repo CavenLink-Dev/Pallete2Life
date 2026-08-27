@@ -5,7 +5,7 @@ export default function PublicFooter() {
   return (
     <footer className="border-t border-softgrey bg-white/70 px-6 py-8 text-[13px] text-charcoal/60">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <p>© {new Date().getFullYear()} Pallet Preview. Made for designers who want to see it, not imagine it.</p>
+        <p>© {new Date().getFullYear()} Pallet Preview</p>
         <nav aria-label="Footer" className="flex flex-wrap gap-4">
           <a href="/pricing" onClick={nav("/pricing")} className="hover:text-charcoal">Pricing</a>
           <a href="/help" onClick={nav("/help")} className="hover:text-charcoal">Help</a>
