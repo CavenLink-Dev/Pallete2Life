@@ -29,7 +29,7 @@ export default function Contact() {
         <div className="rounded-2xl border border-softgrey bg-white p-6">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-charcoal/45">Report a bug</p>
           <p className="mt-2 text-[14px] leading-relaxed text-charcoal/75">
-            The Builder saves your palette locally. If something breaks, try refreshing first — your work should still be there. If it persists, email us with the steps you took.
+            The Palette Generator saves your colours locally. If something breaks, try refreshing first — your work should still be there. If it persists, email us with the steps you took.
           </p>
         </div>
       </main>

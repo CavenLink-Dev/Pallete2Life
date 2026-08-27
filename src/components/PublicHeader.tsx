@@ -3,7 +3,7 @@ import { BRAND } from "../lib/color"
 import { useNav, useRoute, type Route } from "../lib/router"
 
 const NAV: { to: Route; label: string }[] = [
-  { to: "/builder", label: "Builder" },
+  { to: "/builder", label: "Palette Generator" },
   { to: "/pricing", label: "Pricing" },
   { to: "/help", label: "Help" },
 ]
@@ -30,7 +30,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
         href="/"
         onClick={nav("/")}
         className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-        aria-label="Pallet Preview — home"
+        aria-label="Palette Preview — home"
       >
         <img
           src="/app-icon-64.png"
@@ -40,7 +40,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
           className={compact ? "h-[26px] w-[26px] rounded-md" : "h-7 w-7 rounded-md"}
         />
         <span className="text-[13px] font-bold tracking-tight sm:text-[14px]" style={{ fontFamily: "var(--font-display)" }}>
-          Pallet <span style={{ color: BRAND.brand }}>Preview</span>
+          Palette <span style={{ color: BRAND.brand }}>Preview</span>
         </span>
       </a>
 

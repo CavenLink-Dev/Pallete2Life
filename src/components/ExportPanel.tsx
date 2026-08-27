@@ -235,6 +235,6 @@ function makePaletteSvg(palette: Swatch[]): string {
 <svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <rect width="${w}" height="${h}" fill="#F8F8F6" />
   ${swatches}
-  <text x="${gap}" y="${h - 12}" font-family="Inter, system-ui" font-size="11" fill="#7A818B">Made with Pallet Preview</text>
+  <text x="${gap}" y="${h - 12}" font-family="Inter, system-ui" font-size="11" fill="#7A818B">Made with Palette Preview</text>
 </svg>`
 }

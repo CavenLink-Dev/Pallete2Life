@@ -3,13 +3,14 @@ import { useEffect, useState } from "react"
 export type Route =
   | "/"
   | "/builder"
+  | "/preview"
   | "/pricing"
   | "/help"
   | "/privacy"
   | "/terms"
   | "/contact"
 
-const KNOWN: Route[] = ["/", "/builder", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const KNOWN: Route[] = ["/", "/builder", "/preview", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
 function currentPath(): Route {

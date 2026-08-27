@@ -12,26 +12,26 @@ export default function Help() {
         <div>
           <h1 className="text-[32px] font-bold sm:text-[42px]" style={{ fontFamily: "var(--font-display)" }}>Help & guide</h1>
           <p className="mt-3 text-[15px] text-charcoal/65">
-            Everything you need to know about Pallet Preview, in plain language.
+            Everything you need to know about Palette Preview, in plain language.
           </p>
         </div>
 
-        <Section title="How Pallet Preview works">
-          <p>Pallet Preview has three parts: a small colour palette at the top, a big live preview below, and a small set of buttons at the top-right for common actions. When you change a colour, every preview updates instantly. That's it.</p>
+        <Section title="How Palette Preview works">
+          <p>Palette Preview starts with the free Palette Generator: a simple toolbar above large colour columns. Create and export as many palettes as you like, then open Preview when you want to apply one to a real design.</p>
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
-            <li><b>Choose your colours.</b> Click any swatch in the palette to open the colour editor. You'll see the visual picker, HEX, RGB, HSL and a contrast check.</li>
-            <li><b>Choose what to preview.</b> Click the <b>Preview</b> button in the top right and pick from Websites, Mobile apps, or Components.</li>
-            <li><b>Click elements to customise.</b> Click <b>Edit</b> in the top right, then click any button, heading or background in the preview to reassign its colour to a role from your palette.</li>
+            <li><b>Create your colours.</b> Click any large colour column to edit HEX, RGB or HSL. Lock colours you want Randomise to keep.</li>
+            <li><b>Export for free.</b> Copy your HEX, RGB or HSL values, or download a basic palette file.</li>
+            <li><b>Preview when useful.</b> Press <b>Preview</b> to apply the current palette to Websites, Mobile Apps or Components.</li>
           </ol>
         </Section>
 
-        <Section title="The palette bar">
+        <Section title="The Palette Generator">
           <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
-            <li><b>Click a swatch</b> to open the full editor (HEX, RGB, HSL, colour picker, contrast checker).</li>
-            <li><b>Rename a colour</b> to define a role — Primary, Background, Text, Accent, Border, whatever fits your project.</li>
+            <li><b>Click a colour</b> to open its HEX, RGB and HSL editor.</li>
             <li><b>Lock a colour</b> so Randomise keeps it while the others change.</li>
             <li><b>Randomise</b> generates new colours for anything not locked.</li>
-            <li><b>+</b> adds a new colour. Remove a colour from inside its editor.</li>
+            <li><b>Add colour</b> adds another column. Remove a colour from inside its editor.</li>
+            <li><b>Export</b> copies or downloads your real colour values without using a preview.</li>
           </ul>
         </Section>
 
@@ -48,7 +48,7 @@ export default function Help() {
         </Section>
 
         <Section title="Undo, Redo and Reset">
-          <p>Pallet Preview keeps a history of your palette changes. Use <b>Undo</b> and <b>Redo</b> to walk back and forth. <b>Reset palette</b> starts over — it asks for confirmation because your work would be lost.</p>
+          <p>Palette Preview keeps a history of your palette changes. Use <b>Undo</b> and <b>Redo</b> to walk back and forth. <b>Reset palette</b> starts over — it asks for confirmation because your work would be lost.</p>
         </Section>
 
         <Section title="Accessibility">

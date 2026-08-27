@@ -30,18 +30,27 @@ export default function IntroTour({ open, onClose }: { open: boolean; onClose: (
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="animate-pop-in w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="animate-pop-in relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
       >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md text-xl font-light text-charcoal/45 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          aria-label="Dismiss help"
+          title="Dismiss help"
+        >
+          ×
+        </button>
         <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.brand }}>Welcome</p>
         <h2 id="intro-title" className="mt-1 text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Four quick steps
+          Preview workspace
         </h2>
         <ol className="mt-5 flex flex-col gap-3.5">
           {[
-            { t: "Choose your colours", b: "Click any swatch in the palette to edit its HEX, RGB or HSL — or use Randomise beside the palette." },
-            { t: "Choose your preview", b: "Use the Preview and Templates buttons in the main tools row to switch between websites, mobile apps and components." },
-            { t: "Edit Elements", b: "Turn on Edit Elements, then click any button or heading in the preview to reassign its colour to a role from your palette." },
-            { t: "Export your palette", b: "Open Export to copy HEX/RGB/HSL, grab CSS or Tailwind, or download a project file to reopen later." },
+            { t: "Browse previews below", b: "Use the arrow buttons under the canvas to move through websites, mobile apps and components." },
+            { t: "Choose a template", b: "The template row appears below the preview browser with options for the current design." },
+            { t: "Edit Elements", b: "Turn on Edit Elements, then click a heading, button or surface to assign a palette colour." },
+            { t: "Return to your palette", b: "Click the Palette Preview logo whenever you want to keep creating or export your colours for free." },
           ].map((s, i) => (
             <li key={i} className="flex gap-3">
               <span

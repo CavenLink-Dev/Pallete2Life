@@ -14,7 +14,7 @@ export default function Pricing() {
             Simple pricing
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-[15px] text-charcoal/65">
-            15 free previews to try it. Unlock Pro when you want the full toolkit.
+            Create and export palettes for free. Preview 15 designs, then unlock the full workspace.
           </p>
         </div>
 
@@ -26,15 +26,14 @@ export default function Pricing() {
               <p className="mt-2 flex items-baseline gap-1">
                 <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$0</span>
               </p>
-              <p className="mt-1 text-[13px] text-charcoal/55">For trying it out.</p>
+              <p className="mt-1 text-[13px] text-charcoal/55">A useful palette tool, not a trial.</p>
             </div>
             <ul className="flex flex-col gap-2 text-[14px] text-charcoal/75">
-              <Feat>15 free previews</Feat>
-              <Feat>Full colour palette editor</Feat>
-              <Feat>WCAG contrast checks</Feat>
-              <Feat>Randomise, lock, Undo &amp; Redo</Feat>
-              <Feat>Basic Edit Mode</Feat>
-              <Feat>Full Screen preview</Feat>
+              <Feat>Unlimited palette generation and editing</Feat>
+              <Feat>Randomise, lock, add and remove colours</Feat>
+              <Feat>Copy HEX, RGB and HSL</Feat>
+              <Feat>Download your palette</Feat>
+              <Feat>15 preview uses across websites, apps and components</Feat>
             </ul>
             <a
               href="/builder"
@@ -62,7 +61,7 @@ export default function Pricing() {
                 <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$9.99</span>
                 <span className="text-[14px] font-semibold text-charcoal/60">USD / month</span>
               </p>
-              <p className="mt-1 text-[13px] text-charcoal/55">Everything in Free, unlimited.</p>
+              <p className="mt-1 text-[13px] text-charcoal/55">Unlimited previews and advanced tools.</p>
             </div>
             <ul className="flex flex-col gap-2 text-[14px] text-charcoal/85">
               <Feat><b>Unlimited previews</b></Feat>
@@ -70,7 +69,7 @@ export default function Pricing() {
               <Feat>All button styles (Flat, 3D, Elevated, Outline, Glass, Gradient)</Feat>
               <Feat>Full Edit Mode with custom colour roles</Feat>
               <Feat>Company logo and app icon upload</Feat>
-              <Feat>Advanced accessibility tools</Feat>
+              <Feat>Advanced accessibility and export tools</Feat>
               <Feat>Full Screen Preview</Feat>
             </ul>
             <a
@@ -88,7 +87,7 @@ export default function Pricing() {
         </div>
 
         <p className="text-center text-[13px] text-charcoal/55">
-          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how Pallet Preview works</a>.
+          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how Palette Preview works</a>.
         </p>
       </main>
       <PublicFooter />

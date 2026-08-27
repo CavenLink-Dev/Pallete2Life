@@ -2,8 +2,8 @@
  * Free/Pro entitlement, tracked locally in the browser.
  * Palette data lives elsewhere (see Builder). This file only tracks:
  *   – whether the viewer is Pro,
- *   – how many free preview switches they've used,
- *   – which previews they've already visited (so switching back doesn't re-charge).
+ *   – how many free preview/template combinations they've used,
+ *   – which combinations they've already applied (so switching back doesn't re-charge).
  *
  * Nothing here talks to a server. When accounts/subscriptions ship the
  * `isPro` boolean will be sourced from the account instead of local state.
@@ -15,9 +15,9 @@ export const FREE_PREVIEW_LIMIT = 15
 
 export type Entitlement = {
   isPro: boolean
-  /** how many DIFFERENT previews the user has switched to (Free tier only) */
+  /** how many DIFFERENT preview/template combinations the user has applied */
   freeSwitchesUsed: number
-  /** the set of "group/sub" preview keys the user has already visited */
+  /** the set of "group/sub/template" preview keys already applied */
   seen: string[]
 }
 
@@ -46,8 +46,8 @@ export function saveEntitlement(e: Entitlement) {
   }
 }
 
-export function previewKey(group: string, sub: string): string {
-  return `${group}/${sub}`
+export function previewKey(group: string, sub: string, template?: string): string {
+  return template ? `${group}/${sub}/${template}` : `${group}/${sub}`
 }
 
 /** How many free previews the viewer has left. Pro users always see Infinity. */

@@ -17,10 +17,10 @@ export default function Home() {
               className="text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              See your colours on a <span style={{ color: BRAND.brand }}>real</span> website, app and buttons.
+              Create a palette for free. Preview it when you are ready.
             </h1>
             <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
-              Build a colour palette and instantly test it on landing pages, mobile apps, buttons, cards and forms.
+              Generate, edit and export your colours without limits, then apply them to websites, mobile apps and components.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
@@ -54,9 +54,9 @@ export default function Home() {
         {/* Steps */}
         <section className="border-y border-softgrey bg-white px-6 py-16 sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
-            <Step n={1} title="Choose your colours" body="Pick a palette or randomise one. Lock the colours you love and keep exploring the rest." />
-            <Step n={2} title="Choose what to preview" body="Landing pages, mobile app screens, buttons, cards, forms — one click swaps the whole preview." />
-            <Step n={3} title="Click elements to customise" body="Turn on Edit Mode and click any button, heading or background to reassign its colour." />
+            <Step n={1} title="Create your palette" body="Randomise, edit and lock colours in the free Palette Generator." />
+            <Step n={2} title="Export your colours" body="Copy HEX, RGB or HSL values, or download the palette whenever you need it." />
+            <Step n={3} title="Preview the result" body="Apply your palette to a website, mobile app or component when you want real-world context." />
           </div>
         </section>
 
@@ -81,7 +81,7 @@ export default function Home() {
         {/* CTA */}
         <section className="border-t border-softgrey bg-white px-6 py-20 text-center sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            Ready to see your colours in action?
+            Start with the colours.
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a

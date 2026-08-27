@@ -1,6 +1,7 @@
 import { useRoute } from "./lib/router"
 import { ToastProvider } from "./components/Toast"
 import Home from "./pages/Home"
+import Generator from "./pages/Generator"
 import Builder from "./pages/Builder"
 import Pricing from "./pages/Pricing"
 import Help from "./pages/Help"
@@ -13,7 +14,8 @@ export default function App() {
 
   let page: React.ReactNode
   switch (route) {
-    case "/builder":  page = <Builder />;  break
+    case "/builder":  page = <Generator />;  break
+    case "/preview":  page = <Builder />;  break
     case "/pricing":  page = <Pricing />;  break
     case "/help":     page = <Help />;     break
     case "/privacy":  page = <Privacy />;  break

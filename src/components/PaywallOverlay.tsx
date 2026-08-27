@@ -33,17 +33,17 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
     >
       <div className="animate-pop-in w-full max-w-[440px] rounded-2xl bg-white p-6 shadow-2xl">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.brand }}>
-          Pallet Preview Pro
+          Palette Preview Pro
         </p>
         <h2 id="paywall-title" className="mt-1 text-[26px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-          Unlock Pallet Preview Pro
+          Unlock Palette Preview Pro
         </h2>
         <p className="mt-2 flex items-baseline gap-1">
           <span className="text-[28px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$9.99</span>
           <span className="text-[14px] font-semibold text-charcoal/60">USD / month</span>
         </p>
         <p className="mt-3 text-[14px] leading-relaxed text-charcoal/70">
-          Continue creating with unlimited previews and the full Pallet Preview toolkit. Your current palette and design stay right where they are.
+          Keep creating palettes for free, or unlock unlimited previews and the full Palette Preview toolkit. Your current work stays exactly where it is.
         </p>
         {reason && (
           <p className="mt-3 rounded-lg bg-offwhite px-3 py-2 text-[12.5px] text-charcoal/60">{reason}</p>
@@ -51,7 +51,7 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
 
         <ul className="mt-5 flex flex-col gap-2 text-[13.5px] text-charcoal/75">
           {[
-            "Unlimited palettes and previews",
+            "Unlimited previews",
             "Every website, mobile app and component preview",
             "All templates and every button style",
             "Full Edit Mode and custom colour roles",

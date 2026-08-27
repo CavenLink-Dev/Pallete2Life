@@ -104,6 +104,36 @@ export function hslString(hex: string): string {
   return `${h}°, ${s}%, ${l}%`
 }
 
+export function colorName(hex: string): string {
+  const { h, s, l } = hexToHsl(hex)
+
+  if (s < 10) {
+    if (l < 16) return "Near Black"
+    if (l < 34) return "Charcoal Grey"
+    if (l < 58) return "Stone Grey"
+    if (l < 82) return "Silver Grey"
+    return "Soft White"
+  }
+
+  const tone = l < 24 ? "Deep" : l < 40 ? "Dark" : l > 82 ? "Pale" : l > 68 ? "Soft" : ""
+  const family =
+    h < 12 || h >= 348 ? "Red" :
+    h < 38 ? "Coral" :
+    h < 62 ? "Gold" :
+    h < 82 ? "Lime" :
+    h < 150 ? "Green" :
+    h < 178 ? "Mint" :
+    h < 202 ? "Teal" :
+    h < 224 ? "Sky Blue" :
+    h < 252 ? "Blue" :
+    h < 278 ? "Indigo" :
+    h < 305 ? "Violet" :
+    h < 330 ? "Magenta" :
+    "Rose"
+
+  return `${tone} ${family}`.trim()
+}
+
 export function randomHex(): string {
   // Pleasant, saturated-but-not-neon random colors
   const h = Math.random() * 360
