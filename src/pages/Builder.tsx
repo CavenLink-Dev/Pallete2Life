@@ -20,7 +20,7 @@ import BrandUpload from "../components/BrandUpload"
 import { useNav, useRoute } from "../lib/router"
 import { useToast } from "../components/Toast"
 import ConfirmDialog from "../components/ConfirmDialog"
-import IntroTour, { markIntroSeen } from "../components/IntroTour"
+import IntroTour, { markIntroSeen, shouldShowIntro } from "../components/IntroTour"
 import PaywallOverlay from "../components/PaywallOverlay"
 import {
   FREE_PREVIEW_LIMIT,
@@ -43,16 +43,16 @@ const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary"
  * swatches keep their custom name. Buttons use STYLE_META (per style). */
 const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
   // Websites
-  "website/landing":  ["Page Background", "Surface", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/saas":     ["Page Background", "Surface", "Brand Primary", "Accent", "Heading Text", "Body Text"],
-  "website/ecom":     ["Page Background", "Surface", "Brand Primary", "Sale Accent", "Heading Text", "Body Text"],
+  "website/landing":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "website/saas":     ["Page Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Body Text"],
+  "website/ecom":     ["Page Background", "Secondary Background", "Brand Primary", "Sale Accent", "Heading Text", "Body Text"],
   "website/signin":   ["Page Background", "Card", "Brand Primary", "Input Border", "Heading Text", "Body Text"],
   "website/paywall":  ["Page Background", "Card", "Brand Primary", "Highlight", "Heading Text", "Body Text"],
   // Mobile
-  "mobile/standard":  ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
-  "mobile/dashboard": ["App Background", "Card", "Brand Primary", "Chart Accent", "Heading Text", "Muted Text"],
-  "mobile/cards":     ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
-  "mobile/profile":   ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/standard":  ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/dashboard": ["App Background", "Secondary Background", "Brand Primary", "Chart Accent", "Heading Text", "Muted Text"],
+  "mobile/cards":     ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/profile":   ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
   // Components (non-button)
   "components/cards":      ["Card Background", "Card Border", "Heading Text", "Body Text", "Accent"],
   "components/forms":      ["Form Background", "Input Fill", "Input Border", "Label Text", "Primary Button"],
@@ -112,7 +112,7 @@ export default function Builder() {
   // Overlays
   const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(shouldShowIntro)
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
 

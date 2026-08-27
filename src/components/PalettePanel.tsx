@@ -66,10 +66,10 @@ export default function PalettePanel({
           onClick={onAdd}
           aria-label="Add colour"
           title="Add colour"
-          className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-dashed text-charcoal/50 transition-colors hover:border-charcoal/40 hover:text-charcoal"
+          className="ml-1 flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-dashed px-3 text-[11.5px] font-semibold text-charcoal/55 transition-colors hover:border-charcoal/40 hover:text-charcoal"
           style={{ borderColor: withAlpha("#0E1821", 0.18) }}
         >
-          <PlusIcon />
+          <PlusIcon /> Add colour
         </button>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -192,7 +192,7 @@ function ColorEditor({
     <div
       className="animate-pop-in absolute left-0 right-0 top-full z-30 mt-2 flex flex-col gap-4 rounded-2xl border border-softgrey bg-white p-4 shadow-xl sm:flex-row sm:items-center"
       role="dialog"
-      aria-label="Colour editor"
+      aria-label={`Edit ${role ?? swatch.name}`}
     >
       {/* big picker swatch */}
       <label
@@ -216,6 +216,8 @@ function ColorEditor({
       </label>
 
       <div className="min-w-0 flex-1">
+        <p className="mb-2 text-[10px] font-semibold uppercase text-charcoal/45">Editing</p>
+        <p className="mb-3 text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</p>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <input
             ref={nameRef}
@@ -233,8 +235,7 @@ function ColorEditor({
           <datalist id="hueframe-role-suggestions">
             {ROLE_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
           </datalist>
-          {role && <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: withAlpha("#20B9FA", 0.12), color: "#05A9F0" }}>{role}</span>}
-          <span className="text-[10px] text-charcoal/40">rename to create a custom role</span>
+          <span className="text-[10px] text-charcoal/40">Palette colour name</span>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* HEX (editable) */}
