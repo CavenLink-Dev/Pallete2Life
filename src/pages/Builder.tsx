@@ -271,15 +271,6 @@ export default function Builder() {
         </a>
 
         <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
-          {/* Save status */}
-          <span
-            className="hidden items-center gap-1.5 text-[11px] font-medium text-charcoal/55 sm:inline-flex"
-            title="Your palette is saved in your browser"
-            aria-label="Saved locally in your browser"
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#0E8A4E" }} />
-            Saved locally
-          </span>
           {/* Free-preview counter */}
           {remainingLabel && (
             <button
@@ -341,13 +332,16 @@ export default function Builder() {
             active={editMode}
             title={editMode ? "Turn off Edit Elements" : "Click elements in the preview to change their colour"}
           />
+          <span className="mx-1 hidden h-5 w-px bg-softgrey sm:inline-block" aria-hidden />
           <ToolButton
+            subtle
             onClick={() => setBrandOpen(true)}
             icon={<BrandIcon />}
             label="Brand"
             title="Company name, logo, app icon and typography"
           />
           <ToolButton
+            subtle
             onClick={() => setA11yOpen(true)}
             icon={<A11yIcon />}
             label="Accessibility"
@@ -355,6 +349,7 @@ export default function Builder() {
             valueLabel={cbMode !== "off" ? `Sim: ${cbMode}` : undefined}
           />
           <ToolButton
+            subtle
             onClick={() => setExportOpen(true)}
             icon={<ExportIcon />}
             label="Export"
@@ -622,7 +617,7 @@ export default function Builder() {
 /* ---------- shared components ---------- */
 
 function ToolButton({
-  onClick, icon, label, valueLabel, title, active,
+  onClick, icon, label, valueLabel, title, active, subtle,
 }: {
   onClick: () => void
   icon: React.ReactNode
@@ -630,7 +625,10 @@ function ToolButton({
   valueLabel?: string
   title?: string
   active?: boolean
+  subtle?: boolean
 }) {
+  const iconColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.55)" : BRAND.brand
+  const textColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.7)" : BRAND.charcoal
   return (
     <button
       type="button"
@@ -640,9 +638,11 @@ function ToolButton({
       className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1"
       style={active
         ? { background: BRAND.brand, color: "#fff", border: `1px solid ${BRAND.brand}` }
+        : subtle
+        ? { background: "transparent", color: textColor, border: "1px solid transparent" }
         : { background: "#fff", color: BRAND.charcoal, border: `1px solid ${BRAND.softgrey}` }}
     >
-      <span className="flex h-4 w-4 items-center justify-center" aria-hidden style={{ color: active ? "#fff" : BRAND.brand }}>{icon}</span>
+      <span className="flex h-4 w-4 items-center justify-center" aria-hidden style={{ color: iconColor }}>{icon}</span>
       <span>{label}</span>
       {valueLabel && !active && (
         <>
