@@ -62,7 +62,7 @@ export default function BrandUpload({
         />
 
         <p className="mt-5 text-[11px] leading-relaxed text-charcoal/45">
-          HueFrame never bundles proprietary logos, fonts or icon systems. Defaults use web-safe fonts and generic icons — upload your own supported files to see real branding.
+          Pallet Preview never bundles proprietary logos, fonts or icon systems. Defaults use web-safe fonts and generic icons — upload your own supported files to see real branding.
         </p>
       </div>
     </div>

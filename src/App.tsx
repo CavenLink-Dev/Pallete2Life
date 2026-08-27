@@ -73,7 +73,7 @@ export default function App() {
   const trio = useMemo(() => paletteToTrio(palette), [palette])
 
   // Brand assets shown inside previews (logo / app icon), editable via the Brand modal.
-  const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "HueFrame", logo: null, symbol: null }))
+  const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Pallet Preview", logo: null, symbol: null }))
   const [brandOpen, setBrandOpen] = useState(false)
 
   // Overlay popovers (Preview picker + Style/Template picker).
@@ -141,13 +141,17 @@ export default function App() {
   return (
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
       {/* ---------- Small header ---------- */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-softgrey bg-white/85 px-3 py-2 backdrop-blur sm:flex-nowrap sm:px-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: BRAND.brand }}>
-            <span className="text-[13px] text-white" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>H</span>
-          </div>
-          <h1 className="text-[14px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
-            Hue<span style={{ color: BRAND.brand }}>Frame</span>
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-softgrey/70 bg-white/85 px-3 py-1.5 backdrop-blur sm:flex-nowrap sm:px-5">
+        <div className="flex items-center gap-2">
+          <img
+            src="/app-icon-64.png"
+            alt="Pallet Preview"
+            width={26}
+            height={26}
+            className="h-[26px] w-[26px] rounded-md"
+          />
+          <h1 className="text-[13px] font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+            Pallet <span style={{ color: BRAND.brand }}>Preview</span>
           </h1>
         </div>
 
@@ -186,7 +190,7 @@ export default function App() {
       </header>
 
       {/* ---------- Compact palette bar ---------- */}
-      <section className="shrink-0 border-b border-softgrey bg-white px-4 py-2.5 sm:px-5">
+      <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
         <PalettePanel
           palette={palette}
           onChange={change}
@@ -209,18 +213,18 @@ export default function App() {
         />
       </section>
 
-      {/* ---------- Large live preview ---------- */}
-      <main className="relative min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
+      {/* ---------- Large live preview (edge-to-edge, immersive) ---------- */}
+      <main className="relative min-h-0 flex-1 overflow-hidden bg-offwhite p-2 sm:p-3">
         <PreviewProvider value={ctx}>
           {isButton ? (
-            <div className="h-full w-full overflow-hidden rounded-2xl border border-softgrey bg-white shadow-sm">
+            <div className="h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white">
               <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
             </div>
           ) : (
             <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
               <div
                 key={sel.sub + tpl}
-                className="animate-pop-in relative h-full w-full overflow-hidden rounded-2xl border border-softgrey bg-white shadow-sm"
+                className="animate-pop-in relative h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white"
               >
                 {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
               </div>
@@ -329,10 +333,8 @@ export default function App() {
           {/* compact HueFrame bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-charcoal px-4 py-2.5 text-white sm:px-6">
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: BRAND.brand }}>
-                <span className="text-[11px] font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>H</span>
-              </div>
-              <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Hue<span style={{ color: BRAND.brand }}>Frame</span></span>
+              <img src="/app-icon-64.png" alt="Pallet Preview" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
+              <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Pallet <span style={{ color: BRAND.brand }}>Preview</span></span>
             </div>
             <div className="flex items-center gap-2">
               {palette.map((s) => (

@@ -119,20 +119,21 @@ function SwatchChip({
   brand: string
 }) {
   const fg = readableOn(swatch.hex)
+  const displayName = role ?? swatch.name
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-white pl-1.5 pr-3 text-left transition-transform hover:-translate-y-0.5"
+      className="group relative flex h-12 shrink-0 items-center gap-2.5 rounded-xl bg-white pl-1.5 pr-3.5 text-left transition-transform hover:-translate-y-0.5"
       style={{
         boxShadow: selected
           ? `0 0 0 2px ${brand}, 0 6px 16px ${withAlpha("#0E1821", 0.12)}`
-          : `inset 0 0 0 1px ${withAlpha("#0E1821", 0.08)}, 0 3px 10px ${withAlpha("#0E1821", 0.06)}`,
+          : `inset 0 0 0 1px ${withAlpha("#0E1821", 0.08)}, 0 2px 6px ${withAlpha("#0E1821", 0.04)}`,
       }}
       title={`${swatch.name} · ${swatch.hex}${swatch.locked ? " · locked" : ""}`}
     >
       <span
-        className="relative flex h-8 w-8 items-center justify-center rounded-lg"
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg"
         style={{ background: swatch.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(fg, 0.15)}` }}
       >
         {swatch.locked && (
@@ -144,9 +145,14 @@ function SwatchChip({
           </span>
         )}
       </span>
-      <span className="flex flex-col leading-tight">
-        <span className="text-[11px] font-semibold text-charcoal">{role ?? swatch.name}</span>
-        <span className="text-[10.5px] font-medium text-charcoal/55" style={{ fontFamily: "var(--font-mono)" }}>
+      <span className="flex flex-col leading-[1.1]">
+        <span
+          className="text-[10px] font-bold uppercase tracking-[0.09em] text-charcoal/50"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {displayName}
+        </span>
+        <span className="mt-0.5 text-[12px] font-bold text-charcoal" style={{ fontFamily: "var(--font-mono)" }}>
           {swatch.hex.toUpperCase()}
         </span>
       </span>

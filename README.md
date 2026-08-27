@@ -1,4 +1,4 @@
-# HueFrame
+# Pallet Preview
 
 Create colour palettes and instantly test them across **Websites, Mobile Apps, and Components** — buttons, cards, forms, navigation and typography — with live, interactive previews.
 
