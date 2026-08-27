@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { aaCheck, hslString, normalizeHex, readableOn, rgbString, withAlpha, type Swatch } from "../lib/color"
 
 type Props = {
@@ -11,9 +11,16 @@ type Props = {
   onRename: (id: string, name: string) => void
   brand: string
   roleLabels?: (string | null)[]
-  caption?: string
+  /** rendered to the right of the palette chips — e.g. a "Style" / "Template" button */
+  rightSlot?: React.ReactNode
 }
 
+/**
+ * Compact horizontal palette bar.
+ * Default view is a clean strip of chips (swatch + name + hex).
+ * Advanced controls (HEX/RGB/HSL, picker, contrast, rename, lock, remove) appear only
+ * when a chip is clicked — they drop below the bar as an inline expanded editor.
+ */
 export default function PalettePanel({
   palette,
   onChange,
@@ -24,65 +31,72 @@ export default function PalettePanel({
   onRename,
   brand,
   roleLabels,
-  caption,
+  rightSlot,
 }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const openSwatch = palette.find((s) => s.id === openId) ?? null
   const openRole = openSwatch ? roleLabels?.[palette.indexOf(openSwatch)] ?? null : null
 
-  return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-[22px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Your colour palette
-          </h2>
-          <p className="mt-0.5 text-[13px] text-charcoal/55">{caption ?? "Edit any colour and watch it flow through the preview below."}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onRandomize}
-            className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-3.5 py-2 text-xs font-medium text-charcoal transition-colors hover:border-charcoal/25"
-          >
-            <ShuffleIcon /> Randomise
-          </button>
-          <button
-            type="button"
-            onClick={onAdd}
-            className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ background: brand }}
-          >
-            <PlusIcon /> Add colour
-          </button>
-        </div>
-      </div>
+  // Close on Escape.
+  useEffect(() => {
+    if (!openId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenId(null)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [openId])
 
-      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2.5 overflow-x-auto pb-0.5">
         {palette.map((s, i) => (
-          <SwatchCard
+          <SwatchChip
             key={s.id}
             swatch={s}
             role={roleLabels?.[i] ?? null}
             selected={openId === s.id}
             onClick={() => setOpenId(openId === s.id ? null : s.id)}
-            onRemove={() => {
-              onRemove(s.id)
-              if (openId === s.id) setOpenId(null)
-            }}
-            onToggleLock={() => onToggleLock(s.id)}
-            canRemove={palette.length > 1}
             brand={brand}
           />
         ))}
+
+        <button
+          type="button"
+          onClick={onAdd}
+          aria-label="Add colour"
+          title="Add colour"
+          className="ml-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-dashed text-charcoal/50 transition-colors hover:border-charcoal/40 hover:text-charcoal"
+          style={{ borderColor: withAlpha("#0E1821", 0.18) }}
+        >
+          <PlusIcon />
+        </button>
+
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onRandomize}
+            className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-3 py-2 text-xs font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal"
+            title="Randomise (locked colours are kept)"
+          >
+            <ShuffleIcon /> Randomise
+          </button>
+          {rightSlot}
+        </div>
       </div>
 
       {openSwatch && (
         <ColorEditor
           swatch={openSwatch}
           role={openRole}
+          canRemove={palette.length > 1}
           onChange={(hex) => onChange(openSwatch.id, hex)}
           onRename={(name) => onRename(openSwatch.id, name)}
+          onToggleLock={() => onToggleLock(openSwatch.id)}
+          onRemove={() => {
+            onRemove(openSwatch.id)
+            setOpenId(null)
+          }}
           onClose={() => setOpenId(null)}
         />
       )}
@@ -90,24 +104,18 @@ export default function PalettePanel({
   )
 }
 
-/* ---------- swatch card ---------- */
-function SwatchCard({
+/* ---------- swatch chip (compact) ---------- */
+function SwatchChip({
   swatch,
   role,
   selected,
   onClick,
-  onRemove,
-  onToggleLock,
-  canRemove,
   brand,
 }: {
   swatch: Swatch
   role: string | null
   selected: boolean
   onClick: () => void
-  onRemove: () => void
-  onToggleLock: () => void
-  canRemove: boolean
   brand: string
 }) {
   const fg = readableOn(swatch.hex)
@@ -115,58 +123,33 @@ function SwatchCard({
     <button
       type="button"
       onClick={onClick}
-      className="group relative flex h-[132px] w-full flex-col justify-between overflow-hidden rounded-2xl p-4 text-left transition-transform hover:-translate-y-1"
+      className="group relative flex h-11 shrink-0 items-center gap-2.5 rounded-xl bg-white pl-1.5 pr-3 text-left transition-transform hover:-translate-y-0.5"
       style={{
-        background: swatch.hex,
         boxShadow: selected
-          ? `0 0 0 2px ${brand}, 0 0 0 5px ${withAlpha(brand, 0.25)}, 0 10px 26px ${withAlpha("#0E1821", 0.16)}`
-          : `inset 0 0 0 1px ${withAlpha(fg, 0.12)}, 0 6px 18px ${withAlpha("#0E1821", 0.1)}`,
+          ? `0 0 0 2px ${brand}, 0 6px 16px ${withAlpha("#0E1821", 0.12)}`
+          : `inset 0 0 0 1px ${withAlpha("#0E1821", 0.08)}, 0 3px 10px ${withAlpha("#0E1821", 0.06)}`,
       }}
+      title={`${swatch.name} · ${swatch.hex}${swatch.locked ? " · locked" : ""}`}
     >
-      <div className="flex items-start justify-between">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: withAlpha(fg, 0.65) }}>
-          {swatch.name}
-        </span>
-        <span className="flex items-center gap-1">
+      <span
+        className="relative flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ background: swatch.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(fg, 0.15)}` }}
+      >
+        {swatch.locked && (
           <span
-            role="button"
-            tabIndex={0}
-            onClick={(e) => {
-              e.stopPropagation()
-              onToggleLock()
-            }}
-            className={"flex h-5 w-5 items-center justify-center rounded-full transition-opacity " + (swatch.locked ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
-            style={{ background: withAlpha(fg, 0.16), color: fg }}
-            aria-label={swatch.locked ? "Unlock colour (currently kept during randomise)" : "Lock colour (keep during randomise)"}
-            title={swatch.locked ? "Locked — kept when randomising" : "Lock — keep when randomising"}
+            className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-white text-charcoal shadow"
+            aria-label="Locked"
           >
-            {swatch.locked ? <LockIcon /> : <UnlockIcon />}
+            <LockIcon />
           </span>
-          {canRemove && (
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation()
-                onRemove()
-              }}
-              className="flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
-              style={{ background: withAlpha(fg, 0.16), color: fg }}
-              aria-label="Remove colour"
-            >
-              <XIcon />
-            </span>
-          )}
+        )}
+      </span>
+      <span className="flex flex-col leading-tight">
+        <span className="text-[11px] font-semibold text-charcoal">{role ?? swatch.name}</span>
+        <span className="text-[10.5px] font-medium text-charcoal/55" style={{ fontFamily: "var(--font-mono)" }}>
+          {swatch.hex.toUpperCase()}
         </span>
-      </div>
-      <div>
-        <span className="block text-[17px] font-bold leading-tight" style={{ color: fg, fontFamily: "var(--font-display)" }}>
-          {role ?? swatch.name}
-        </span>
-        <span className="mt-0.5 block text-[13px] font-semibold" style={{ color: withAlpha(fg, 0.78), fontFamily: "var(--font-mono)" }}>
-          {swatch.hex}
-        </span>
-      </div>
+      </span>
     </button>
   )
 }
@@ -177,36 +160,49 @@ const ROLE_SUGGESTIONS = ["Primary", "Secondary", "Tertiary", "Text", "Caption",
 function ColorEditor({
   swatch,
   role,
+  canRemove,
   onChange,
   onRename,
+  onToggleLock,
+  onRemove,
   onClose,
 }: {
   swatch: Swatch
   role: string | null
+  canRemove: boolean
   onChange: (hex: string) => void
   onRename: (name: string) => void
+  onToggleLock: () => void
+  onRemove: () => void
   onClose: () => void
 }) {
   const [draft, setDraft] = useState(swatch.hex)
   const [nameDraft, setNameDraft] = useState(swatch.name)
+  const nameRef = useRef<HTMLInputElement | null>(null)
   useEffect(() => setDraft(swatch.hex), [swatch.hex, swatch.id])
   useEffect(() => setNameDraft(swatch.name), [swatch.name, swatch.id])
 
   return (
-    <div className="animate-pop-in mt-4 flex flex-col gap-5 rounded-2xl border border-softgrey bg-white p-5 sm:flex-row sm:items-center">
+    <div
+      className="animate-pop-in absolute left-0 right-0 top-full z-30 mt-2 flex flex-col gap-4 rounded-2xl border border-softgrey bg-white p-4 shadow-xl sm:flex-row sm:items-center"
+      role="dialog"
+      aria-label="Colour editor"
+    >
       {/* big picker swatch */}
       <label
-        className="relative block h-24 w-24 shrink-0 cursor-pointer overflow-hidden rounded-2xl"
+        className="relative block h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-2xl"
         style={{ background: swatch.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(readableOn(swatch.hex), 0.15)}` }}
+        title="Open colour picker"
       >
         <input
           type="color"
           value={swatch.hex}
           onChange={(e) => onChange(normalizeHex(e.target.value))}
           className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          aria-label="Colour picker"
         />
         <span
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-semibold"
           style={{ background: withAlpha(readableOn(swatch.hex), 0.18), color: readableOn(swatch.hex) }}
         >
           pick
@@ -214,8 +210,9 @@ function ColorEditor({
       </label>
 
       <div className="min-w-0 flex-1">
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
           <input
+            ref={nameRef}
             value={nameDraft}
             onChange={(e) => setNameDraft(e.target.value)}
             onBlur={() => onRename(nameDraft)}
@@ -264,13 +261,36 @@ function ColorEditor({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="self-start rounded-lg border border-softgrey px-3 py-2 text-xs font-semibold text-charcoal/60 transition-colors hover:text-charcoal sm:self-center"
-      >
-        Done
-      </button>
+      <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={onToggleLock}
+            className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/70 transition-colors hover:text-charcoal"
+            title={swatch.locked ? "Unlock (allow randomise to change)" : "Lock (keep on randomise)"}
+          >
+            {swatch.locked ? <LockIcon /> : <UnlockIcon />}
+            {swatch.locked ? "Locked" : "Lock"}
+          </button>
+          {canRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="rounded-lg border border-softgrey bg-white px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/60 transition-colors hover:text-[#C22F2F]"
+              title="Remove colour"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg bg-charcoal px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          Done
+        </button>
+      </div>
     </div>
   )
 }
@@ -305,7 +325,7 @@ function ReadField({ label, value }: { label: string; value: string }) {
 }
 
 const PlusIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
     <path d="M12 5v14M5 12h14" />
   </svg>
 )
@@ -322,10 +342,5 @@ const LockIcon = () => (
 const UnlockIcon = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.6-1.7" />
-  </svg>
-)
-const XIcon = () => (
-  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-    <path d="M18 6 6 18M6 6l12 12" />
   </svg>
 )

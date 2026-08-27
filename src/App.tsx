@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { BRAND, deriveTheme, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "./lib/color"
 import PalettePanel from "./components/PalettePanel"
 import {
@@ -11,7 +11,6 @@ import {
   type ButtonProps,
   type ButtonStyle,
 } from "./components/ButtonPreview"
-import StyleStrip from "./components/StyleStrip"
 import {
   GROUPS,
   TemplateThumb,
@@ -77,6 +76,10 @@ export default function App() {
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "HueFrame", logo: null, symbol: null }))
   const [brandOpen, setBrandOpen] = useState(false)
 
+  // Overlay popovers (Preview picker + Style/Template picker).
+  const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
+  const [stylePickerOpen, setStylePickerOpen] = useState(false)
+
   // Persist the pieces worth keeping across refreshes.
   useStored("palette", palette)
   useStored("assignments", assignments)
@@ -100,6 +103,14 @@ export default function App() {
   const templates = currentSub.templates
   const tpl = tplBySub[sel.sub] ?? templates[0]?.key ?? ""
   const isButton = sel.group === "components" && sel.sub === "button"
+
+  // Label for the top "Preview:" chip.
+  const previewLabel = `${currentGroup.label} · ${currentSub.label}`
+  // Whether there's a style/template control that makes sense to expose right now.
+  const hasStyleControl = isButton || templates.length > 1
+  const styleLabel = isButton
+    ? STYLE_META[buttonStyle].label
+    : templates.find((t) => t.key === tpl)?.label ?? ""
 
   const change = (id: string, hex: string) => setPalette((p) => p.map((s) => (s.id === id ? { ...s, hex } : s)))
   const rename = (id: string, name: string) =>
@@ -129,45 +140,53 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* ---------- Header ---------- */}
-      <header className="flex items-center justify-between gap-3 border-b border-softgrey bg-white/70 px-6 py-3 backdrop-blur">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: BRAND.brand }}>
-            <span className="text-white" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>H</span>
+      {/* ---------- Small header ---------- */}
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-softgrey bg-white/85 px-3 py-2 backdrop-blur sm:flex-nowrap sm:px-5">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: BRAND.brand }}>
+            <span className="text-[13px] text-white" style={{ fontFamily: "var(--font-display)", fontWeight: 700 }}>H</span>
           </div>
-          <div className="leading-tight">
-            <h1 className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
-              Hue<span style={{ color: BRAND.brand }}>Frame</span>
-            </h1>
-            <p className="text-[11px] text-charcoal/50">See your colours behave across real products</p>
-          </div>
+          <h1 className="text-[14px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Hue<span style={{ color: BRAND.brand }}>Frame</span>
+          </h1>
         </div>
-        <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setBrandOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors"
-          style={{ background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>
-          Brand
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditMode((v) => !v)}
-          className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors"
-          style={editMode
-            ? { background: BRAND.brand, color: "#fff" }
-            : { background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
-        >
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: editMode ? "#fff" : BRAND.brand }} />
-          {editMode ? "Editing — click any element" : "Edit elements"}
-        </button>
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <ChipButton
+            onClick={() => setPreviewPickerOpen(true)}
+            title="Change what you're previewing"
+          >
+            <span className="hidden text-charcoal/45 sm:inline">Preview:</span>
+            <span className="ml-0.5 hidden max-w-[180px] truncate sm:inline">{previewLabel}</span>
+            <span className="max-w-[110px] truncate sm:hidden">{currentSub.label}</span>
+            <CaretDown />
+          </ChipButton>
+
+          <ChipButton onClick={() => setBrandOpen(true)} title="Upload logo / app icon">
+            <BrandIcon />
+            <span className="hidden sm:inline">Brand</span>
+          </ChipButton>
+
+          <ChipButton
+            onClick={() => setEditMode((v) => !v)}
+            active={editMode}
+            title="Toggle Edit Mode — click elements in the preview to reassign their colour"
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: editMode ? "#fff" : BRAND.brand }} />
+            {editMode ? "Editing" : "Edit"}
+          </ChipButton>
+
+          {!isButton && (
+            <ChipButton onClick={() => setFullscreen(true)} title="Full screen preview">
+              <FullscreenIcon />
+              <span className="hidden lg:inline">Full screen</span>
+            </ChipButton>
+          )}
         </div>
       </header>
 
-      {/* ---------- Palette section (prominent) ---------- */}
-      <section className="border-b border-softgrey bg-white px-6 py-5">
+      {/* ---------- Compact palette bar ---------- */}
+      <section className="shrink-0 border-b border-softgrey bg-white px-4 py-2.5 sm:px-5">
         <PalettePanel
           palette={palette}
           onChange={change}
@@ -178,114 +197,122 @@ export default function App() {
           onRename={rename}
           brand={BRAND.brand}
           roleLabels={roleLabels}
-          caption={
-            isButton
-              ? `Each colour drives one part of the ${STYLE_META[buttonStyle].label.toLowerCase()} button — edit it to customise.`
-              : "Edit any colour and watch it flow through every preview."
+          rightSlot={
+            hasStyleControl ? (
+              <ChipButton onClick={() => setStylePickerOpen(true)} title={isButton ? "Change button style" : "Change template"}>
+                <span className="text-charcoal/45">{isButton ? "Style:" : "Template:"}</span>
+                <span className="ml-1">{styleLabel}</span>
+                <CaretDown />
+              </ChipButton>
+            ) : null
           }
         />
       </section>
 
-      {/* ---------- Body ---------- */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[210px_1fr]">
-        {/* navigation rail */}
-        <aside className="hidden flex-col gap-4 overflow-auto border-r border-softgrey bg-white/60 p-3 lg:flex">
-          {GROUPS.map((g) => (
-            <div key={g.key}>
-              <p className="flex items-center gap-2 px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-charcoal/40">
-                <span>{GROUP_ICONS[g.key]}</span>{g.label}
-              </p>
-              <div className="flex flex-col gap-0.5">
-                {g.subs.map((s) => {
-                  const on = sel.group === g.key && sel.sub === s.key
+      {/* ---------- Large live preview ---------- */}
+      <main className="relative min-h-0 flex-1 overflow-hidden p-3 sm:p-4">
+        <PreviewProvider value={ctx}>
+          {isButton ? (
+            <div className="h-full w-full overflow-hidden rounded-2xl border border-softgrey bg-white shadow-sm">
+              <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
+            </div>
+          ) : (
+            <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
+              <div
+                key={sel.sub + tpl}
+                className="animate-pop-in relative h-full w-full overflow-hidden rounded-2xl border border-softgrey bg-white shadow-sm"
+              >
+                {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
+              </div>
+            </ScopeProvider>
+          )}
+        </PreviewProvider>
+
+        {editMode && (
+          <div className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-charcoal/85 px-3 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur">
+            Edit mode — click an element to assign it a colour
+          </div>
+        )}
+      </main>
+
+      {/* ---------- Preview picker overlay ---------- */}
+      {previewPickerOpen && (
+        <PickerOverlay onClose={() => setPreviewPickerOpen(false)} title="Change preview">
+          <div className="grid gap-6 sm:grid-cols-3">
+            {GROUPS.map((g) => (
+              <div key={g.key}>
+                <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">
+                  <span>{GROUP_ICONS[g.key]}</span>
+                  {g.label}
+                </p>
+                <div className="flex flex-col gap-1">
+                  {g.subs.map((s) => {
+                    const on = sel.group === g.key && sel.sub === s.key
+                    return (
+                      <button
+                        key={s.key}
+                        type="button"
+                        onClick={() => {
+                          setSel({ group: g.key, sub: s.key })
+                          setPreviewPickerOpen(false)
+                        }}
+                        className="rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors"
+                        style={on
+                          ? { background: withAlpha(BRAND.brand, 0.12), color: BRAND.brandDark }
+                          : { color: BRAND.medgrey }}
+                      >
+                        {s.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </PickerOverlay>
+      )}
+
+      {/* ---------- Style / Template picker overlay ---------- */}
+      {stylePickerOpen && hasStyleControl && (
+        <PickerOverlay
+          onClose={() => setStylePickerOpen(false)}
+          title={isButton ? "Button style" : "Template"}
+        >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {isButton
+              ? BUTTON_STYLES.map((k) => {
+                  const on = buttonStyle === k
                   return (
-                    <button
-                      key={s.key}
-                      type="button"
-                      onClick={() => setSel({ group: g.key, sub: s.key })}
-                      className="rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors"
-                      style={on ? { background: withAlpha(BRAND.brand, 0.12), color: BRAND.brandDark } : { color: BRAND.medgrey }}
-                    >
-                      {s.label}
-                    </button>
+                    <PickerTile
+                      key={k}
+                      label={STYLE_META[k].label}
+                      thumb={<div className="h-full w-full">{styleThumb(k, trio)}</div>}
+                      on={on}
+                      onClick={() => {
+                        setButtonStyle(k)
+                        setStylePickerOpen(false)
+                      }}
+                    />
+                  )
+                })
+              : templates.map((t) => {
+                  const on = tpl === t.key
+                  return (
+                    <PickerTile
+                      key={t.key}
+                      label={t.label}
+                      thumb={<TemplateThumb theme={theme} layout={t.layout} />}
+                      on={on}
+                      onClick={() => {
+                        selectTpl(t.key)
+                        setStylePickerOpen(false)
+                      }}
+                    />
                   )
                 })}
-              </div>
-            </div>
-          ))}
-        </aside>
-
-        {/* stage */}
-        <main className="min-w-0 overflow-auto p-4 sm:p-8">
-          {/* mobile selector */}
-          <div className="mb-4 flex gap-2 overflow-x-auto lg:hidden">
-            {GROUPS.flatMap((g) => g.subs.map((s) => ({ g, s }))).map(({ g, s }) => {
-              const on = sel.group === g.key && sel.sub === s.key
-              return (
-                <button
-                  key={g.key + s.key}
-                  type="button"
-                  onClick={() => setSel({ group: g.key, sub: s.key })}
-                  className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold"
-                  style={on ? { background: BRAND.brand, color: "#fff" } : { background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
-                >
-                  {s.label}
-                </button>
-              )
-            })}
           </div>
-
-          <div className="mx-auto flex max-w-4xl flex-col gap-4">
-            <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-charcoal/40">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.brand }} />
-              Live preview · driven by your palette
-            </div>
-
-            {/* main preview */}
-            <PreviewProvider value={ctx}>
-              {isButton ? (
-                <div className="h-[420px] rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[52vh] sm:min-h-[420px]">
-                  <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
-                </div>
-              ) : (
-                <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                  <div key={sel.sub + tpl} className="animate-pop-in relative h-[440px] min-h-[400px] overflow-hidden rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[56vh] sm:min-h-[440px]">
-                    {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                    <button
-                      type="button"
-                      onClick={() => setFullscreen(true)}
-                      className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/70 shadow-md backdrop-blur transition-colors hover:text-charcoal"
-                      aria-label="Full screen preview"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
-                      Full screen
-                    </button>
-                  </div>
-                </ScopeProvider>
-              )}
-            </PreviewProvider>
-
-            {/* secondary style / template selector */}
-            {isButton ? (
-              <StyleStrip
-                title="Button style"
-                active={buttonStyle}
-                onSelect={(k) => setButtonStyle(k as ButtonStyle)}
-                items={BUTTON_STYLES.map((s) => ({ key: s, label: STYLE_META[s].label, thumb: styleThumb(s, trio) }))}
-              />
-            ) : (
-              templates.length > 1 && (
-                <StyleStrip
-                  title="Template"
-                  active={tpl}
-                  onSelect={selectTpl}
-                  items={templates.map((t) => ({ key: t.key, label: t.label, thumb: <TemplateThumb theme={theme} layout={t.layout} /> }))}
-                />
-              )
-            )}
-          </div>
-        </main>
-      </div>
+        </PickerOverlay>
+      )}
 
       {/* ---------- Full screen preview ---------- */}
       {fullscreen && !isButton && (
@@ -343,6 +370,13 @@ export default function App() {
                 style={editMode ? { background: BRAND.brand, color: "#fff" } : { border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }}
               >
                 {editMode ? "Editing" : "Edit"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewPickerOpen(true)}
+                className="rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white"
+              >
+                Change preview
               </button>
             </div>
             <button
@@ -423,3 +457,122 @@ export default function App() {
     </div>
   )
 }
+
+/* ---------- small header/palette-bar chip button ---------- */
+function ChipButton({
+  onClick,
+  active,
+  title,
+  children,
+}: {
+  onClick: () => void
+  active?: boolean
+  title?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors"
+      style={active
+        ? { background: BRAND.brand, color: "#fff" }
+        : { background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
+    >
+      {children}
+    </button>
+  )
+}
+
+/* ---------- centered picker modal (used for both Preview and Style pickers) ---------- */
+function PickerOverlay({
+  title,
+  onClose,
+  children,
+}: {
+  title: string
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-start justify-center bg-charcoal/40 p-4 pt-[8vh]"
+      onClick={onClose}
+    >
+      <div
+        ref={ref}
+        onClick={(e) => e.stopPropagation()}
+        className="animate-pop-in w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl"
+        role="dialog"
+        aria-label={title}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-softgrey px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/60 hover:text-charcoal"
+          >
+            Close
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function PickerTile({
+  label,
+  thumb,
+  on,
+  onClick,
+}: {
+  label: string
+  thumb: React.ReactNode
+  on: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col items-stretch gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5"
+      style={{ outline: on ? "2px solid #20B9FA" : `1px solid ${BRAND.softgrey}` }}
+    >
+      <div className="h-16 w-full overflow-hidden rounded-lg border border-softgrey">
+        {thumb}
+      </div>
+      <span className="px-1 text-[11.5px] font-semibold" style={{ color: on ? "#05A9F0" : BRAND.medgrey }}>
+        {label}
+      </span>
+    </button>
+  )
+}
+
+/* ---------- inline icons ---------- */
+const CaretDown = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5">
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+)
+const BrandIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" />
+  </svg>
+)
+const FullscreenIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+  </svg>
+)
