@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { BRAND, deriveTheme, randomHex, readableOn, uid, withAlpha, type Swatch } from "./lib/color"
+import { useEffect, useMemo, useState } from "react"
+import { BRAND, deriveTheme, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "./lib/color"
 import PalettePanel from "./components/PalettePanel"
 import {
   BUTTON_STYLES,
@@ -51,6 +51,17 @@ export default function App() {
   // Brand assets shown inside previews (logo / app icon), editable via the Brand modal.
   const [brand, setBrand] = useState<Brand>({ name: "HueFrame", logo: null, symbol: null })
   const [brandOpen, setBrandOpen] = useState(false)
+
+  // Full screen preview
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    if (!fullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [fullscreen])
 
   const currentGroup = GROUPS.find((g) => g.key === sel.group)!
   const currentSub = currentGroup.subs.find((s) => s.key === sel.sub) ?? currentGroup.subs[0]
@@ -206,8 +217,17 @@ export default function App() {
                 </div>
               ) : (
                 <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                  <div key={sel.sub + tpl} className="animate-pop-in h-[440px] min-h-[400px] overflow-hidden rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[56vh] sm:min-h-[440px]">
+                  <div key={sel.sub + tpl} className="animate-pop-in relative h-[440px] min-h-[400px] overflow-hidden rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[56vh] sm:min-h-[440px]">
                     {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
+                    <button
+                      type="button"
+                      onClick={() => setFullscreen(true)}
+                      className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/70 shadow-md backdrop-blur transition-colors hover:text-charcoal"
+                      aria-label="Full screen preview"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>
+                      Full screen
+                    </button>
                   </div>
                 </ScopeProvider>
               )}
@@ -234,6 +254,76 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* ---------- Full screen preview ---------- */}
+      {fullscreen && !isButton && (
+        <div className="fixed inset-0 z-40 flex flex-col bg-charcoal/95">
+          <div className="min-h-0 flex-1 p-3 sm:p-5">
+            <PreviewProvider value={ctx}>
+              <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
+                <div className="h-full w-full overflow-hidden rounded-2xl bg-white">
+                  {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
+                </div>
+              </ScopeProvider>
+            </PreviewProvider>
+          </div>
+          {/* compact HueFrame bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-charcoal px-4 py-2.5 text-white sm:px-6">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: BRAND.brand }}>
+                <span className="text-[11px] font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>H</span>
+              </div>
+              <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Hue<span style={{ color: BRAND.brand }}>Frame</span></span>
+            </div>
+            <div className="flex items-center gap-2">
+              {palette.map((s) => (
+                <label
+                  key={s.id}
+                  className="relative block h-8 w-8 cursor-pointer rounded-full transition-transform hover:scale-110"
+                  style={{ background: s.hex, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)" }}
+                  title={`${s.name} · ${s.hex}${s.locked ? " · locked" : ""}`}
+                >
+                  <input
+                    type="color"
+                    value={s.hex}
+                    onChange={(e) => change(s.id, normalizeHex(e.target.value))}
+                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    aria-label={`Edit ${s.name}`}
+                  />
+                  {s.locked && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-charcoal">
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                    </span>
+                  )}
+                </label>
+              ))}
+              <button
+                type="button"
+                onClick={randomize}
+                className="ml-1 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white"
+              >
+                Randomise
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditMode((v) => !v)}
+                className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                style={editMode ? { background: BRAND.brand, color: "#fff" } : { border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }}
+              >
+                {editMode ? "Editing" : "Edit"}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFullscreen(false)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+              Exit
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ---------- Brand assets modal ---------- */}
       {brandOpen && (
