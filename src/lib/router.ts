@@ -10,6 +10,7 @@ export type Route =
   | "/contact"
 
 const KNOWN: Route[] = ["/", "/builder", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const NAV_EVENT = "pallet-preview:navigate"
 
 function currentPath(): Route {
   if (typeof window === "undefined") return "/"
@@ -18,22 +19,28 @@ function currentPath(): Route {
 }
 
 /**
- * Minimal client-side router. Keeps the browser's Back/Forward working
- * (uses the History API), and updates on every route change.
+ * Minimal client-side router. Every `useRoute` instance listens for both
+ * native `popstate` (browser Back/Forward) and a custom `NAV_EVENT` fired
+ * by `navigate` — so a click in the header updates the App-level route.
  */
 export function useRoute(): [Route, (r: Route) => void] {
   const [route, setRoute] = useState<Route>(currentPath)
 
   useEffect(() => {
-    const onPop = () => setRoute(currentPath())
-    window.addEventListener("popstate", onPop)
-    return () => window.removeEventListener("popstate", onPop)
+    const onChange = () => setRoute(currentPath())
+    window.addEventListener("popstate", onChange)
+    window.addEventListener(NAV_EVENT, onChange)
+    return () => {
+      window.removeEventListener("popstate", onChange)
+      window.removeEventListener(NAV_EVENT, onChange)
+    }
   }, [])
 
   const navigate = (r: Route) => {
     if (r === window.location.pathname) return
     window.history.pushState({}, "", r)
-    setRoute(r)
+    // fan-out so every other useRoute() in the tree updates
+    window.dispatchEvent(new Event(NAV_EVENT))
     window.scrollTo({ top: 0, behavior: "auto" })
   }
 
@@ -41,8 +48,9 @@ export function useRoute(): [Route, (r: Route) => void] {
 }
 
 /**
- * A styled anchor that stays inside the SPA — cmd/ctrl-click still opens a new tab,
- * plain click uses pushState so Back/Forward keeps working.
+ * A styled anchor helper — cmd/ctrl-click still opens a new tab, plain click
+ * uses pushState + the custom nav event so Back/Forward keeps working and
+ * every subscribed component re-renders.
  */
 export function useNav() {
   const [, navigate] = useRoute()

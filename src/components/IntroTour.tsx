@@ -34,13 +34,14 @@ export default function IntroTour({ open, onClose }: { open: boolean; onClose: (
       >
         <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.brand }}>Welcome</p>
         <h2 id="intro-title" className="mt-1 text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
-          Three quick steps
+          Four quick steps
         </h2>
         <ol className="mt-5 flex flex-col gap-3.5">
           {[
-            { t: "Choose your colours", b: "Click any swatch in the top bar to change its HEX, RGB or HSL — or press Randomise." },
-            { t: "Choose what to preview", b: "Use the Preview button (top-right) to switch between websites, mobile apps and components." },
-            { t: "Click elements to customise", b: "Turn on Edit, then click any button or heading in the preview to reassign its colour." },
+            { t: "Choose your colours", b: "Click any swatch in the palette to edit its HEX, RGB or HSL — or use Randomise beside the palette." },
+            { t: "Choose your preview", b: "Use the Preview and Templates buttons in the main tools row to switch between websites, mobile apps and components." },
+            { t: "Edit Elements", b: "Turn on Edit Elements, then click any button or heading in the preview to reassign its colour to a role from your palette." },
+            { t: "Export your palette", b: "Open Export to copy HEX/RGB/HSL, grab CSS or Tailwind, or download a project file to reopen later." },
           ].map((s, i) => (
             <li key={i} className="flex gap-3">
               <span

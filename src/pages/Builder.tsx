@@ -34,6 +34,8 @@ import {
   saveEntitlement,
   type Entitlement,
 } from "../lib/entitlement"
+import AccessibilityPanel, { ColourblindFilters, type ColourblindMode } from "../components/AccessibilityPanel"
+import ExportPanel from "../components/ExportPanel"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -66,63 +68,53 @@ const initialPalette: Swatch[] = [
   { id: uid(), name: "Tertiary", hex: BRAND.offwhite },
 ]
 
-const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
 const MAX_HISTORY = 40
+const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
 
 export default function Builder() {
   const navHome = useNav()
   const [, navigate] = useRoute()
   const toast = useToast()
 
+  // ---------- palette + design state ----------
   const [palette, setPalette] = useState<Swatch[]>(() => loadStored("palette", initialPalette))
   const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing" })
   const [tplBySub, setTplBySub] = useState<Record<string, string>>({})
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
   const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
 
+  // Edit Elements
   const [editMode, setEditMode] = useState(false)
   const [assignments, setAssignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
   const [assignTarget, setAssignTarget] = useState<{ id: string; label: string } | null>(null)
 
+  // Brand
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Pallet Preview", logo: null, symbol: null }))
   const [brandOpen, setBrandOpen] = useState(false)
 
+  // Overlays
   const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
-  const [stylePickerOpen, setStylePickerOpen] = useState(false)
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
+  const [a11yOpen, setA11yOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
 
-  // Free/Pro entitlement — persisted locally.
+  // Accessibility: colour-blindness simulation applied to the preview
+  const [cbMode, setCbMode] = useState<ColourblindMode>("off")
+
+  // Undo / Redo
+  const [undoStack, setUndoStack] = useState<Swatch[][]>([])
+  const [redoStack, setRedoStack] = useState<Swatch[][]>([])
+  const skipHistory = useRef(false)
+
+  // Free / Pro entitlement
   const [ent, setEnt] = useState<Entitlement>(loadEntitlement)
   useEffect(() => { saveEntitlement(ent) }, [ent])
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
   const remaining = freeRemaining(ent)
   const remainingLabel = ent.isPro ? null : `${remaining} free preview${remaining === 1 ? "" : "s"} left`
-
-  const goPro = () => { setPaywall({ open: false }); navigate("/pricing") }
-  const dismissPaywall = () => setPaywall({ open: false })
-
-  /**
-   * Attempt to switch the preview. Consumes one free preview only when the
-   * (group, sub) pair is new to the user. Never touches the palette or design.
-   * Returns true when the switch happened, false when the paywall was opened.
-   */
-  const trySelectPreview = useCallback((next: Selection): boolean => {
-    const key = previewKey(next.group, next.sub)
-    if (needsPaywall(ent, key)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
-      return false
-    }
-    setSel(next)
-    setEnt((e) => recordSwitch(e, key))
-    return true
-  }, [ent])
-
-  // Undo/Redo history for the palette
-  const [undoStack, setUndoStack] = useState<Swatch[][]>([])
-  const [redoStack, setRedoStack] = useState<Swatch[][]>([])
-  const skipHistory = useRef(false)
 
   useStored("palette", palette)
   useStored("assignments", assignments)
@@ -130,17 +122,11 @@ export default function Builder() {
   useStored("buttonStyle", buttonStyle)
   useStored("buttonProps", buttonProps)
 
-  // First-visit intro
-  useEffect(() => {
-    if (shouldShowIntro()) setHelpOpen(true)
-  }, [])
+  // First-visit tour
+  useEffect(() => { if (shouldShowIntro()) setHelpOpen(true) }, [])
+  const closeHelp = useCallback(() => { markIntroSeen(); setHelpOpen(false) }, [])
 
-  const closeHelp = useCallback(() => {
-    markIntroSeen()
-    setHelpOpen(false)
-  }, [])
-
-  // Fullscreen Escape handler
+  // Fullscreen Escape
   useEffect(() => {
     if (!fullscreen) return
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false) }
@@ -148,30 +134,12 @@ export default function Builder() {
     return () => window.removeEventListener("keydown", onKey)
   }, [fullscreen])
 
-  // Keyboard shortcuts: Ctrl/Cmd+Z (undo), Ctrl/Cmd+Shift+Z or Ctrl+Y (redo)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      const target = e.target as HTMLElement | null
-      const tag = target?.tagName
-      if (tag === "INPUT" || tag === "TEXTAREA" || (target?.isContentEditable)) return
-      if (mod && !e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo() }
-      else if (mod && ((e.shiftKey && e.key.toLowerCase() === "z") || e.key.toLowerCase() === "y")) { e.preventDefault(); redo() }
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [undoStack, redoStack, palette])
-
-  // Push previous palette onto undo stack before every mutation.
+  // Undo history mutator
   const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
     setPalette((prev) => {
       const next = updater(prev)
       if (!skipHistory.current && JSON.stringify(prev) !== JSON.stringify(next)) {
-        setUndoStack((s) => {
-          const cap = s.length >= MAX_HISTORY ? s.slice(1) : s
-          return [...cap, prev]
-        })
+        setUndoStack((s) => (s.length >= MAX_HISTORY ? [...s.slice(1), prev] : [...s, prev]))
         setRedoStack([])
       }
       skipHistory.current = false
@@ -203,34 +171,54 @@ export default function Builder() {
     })
   }, [palette, toast])
 
+  // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      const target = e.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return
+      if (mod && !e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo() }
+      else if (mod && ((e.shiftKey && e.key.toLowerCase() === "z") || e.key.toLowerCase() === "y")) { e.preventDefault(); redo() }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [undo, redo])
+
   const currentGroup = GROUPS.find((g) => g.key === sel.group)!
   const currentSub = currentGroup.subs.find((s) => s.key === sel.sub) ?? currentGroup.subs[0]
   const templates = currentSub.templates
   const tpl = tplBySub[sel.sub] ?? templates[0]?.key ?? ""
   const isButton = sel.group === "components" && sel.sub === "button"
+  const currentTemplateLabel = isButton
+    ? STYLE_META[buttonStyle].label
+    : templates.find((t) => t.key === tpl)?.label ?? ""
 
   const theme = useMemo(() => deriveTheme(palette), [palette])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
 
-  const previewLabel = `${currentGroup.label} · ${currentSub.label}`
-  const hasStyleControl = isButton || templates.length > 1
-  const styleLabel = isButton
-    ? STYLE_META[buttonStyle].label
-    : templates.find((t) => t.key === tpl)?.label ?? ""
+  // ---------- entitlement-aware preview switching ----------
+  const goPro = () => { setPaywall({ open: false }); navigate("/pricing") }
+  const dismissPaywall = () => setPaywall({ open: false })
 
+  const trySelectPreview = useCallback((next: Selection): boolean => {
+    const key = previewKey(next.group, next.sub)
+    if (needsPaywall(ent, key)) {
+      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
+      return false
+    }
+    setSel(next)
+    setEnt((e) => recordSwitch(e, key))
+    return true
+  }, [ent])
+
+  // ---------- palette mutations ----------
   const change = (id: string, hex: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, hex } : s)))
-  const rename = (id: string, name: string) =>
-    mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
-  const add = () => {
-    mutatePalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }])
-    toast.push("Colour added", "success")
-  }
-  const remove = (id: string) => {
-    mutatePalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
-  }
+  const rename = (id: string, name: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
+  const add = () => { mutatePalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }]); toast.push("Colour added", "success") }
+  const remove = (id: string) => mutatePalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
   const randomize = () => {
-    const anyUnlocked = palette.some((s) => !s.locked)
-    if (!anyUnlocked) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
+    if (!palette.some((s) => !s.locked)) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
     mutatePalette((p) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() })))
   }
   const toggleLock = (id: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
@@ -247,6 +235,7 @@ export default function Builder() {
   }
 
   const selectTpl = (key: string) => setTplBySub((m) => ({ ...m, [sel.sub]: key }))
+
   const roleLabels = isButton ? STYLE_META[buttonStyle].roles.map((r) => r.part) : undefined
 
   const ctx: PreviewCtxValue = {
@@ -260,9 +249,14 @@ export default function Builder() {
     trio,
   }
 
+  // Colour-blindness filter CSS
+  const cbFilter = cbMode === "off" ? undefined : `url(#cb-${cbMode})`
+
   return (
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* ---------- Small header ---------- */}
+      <ColourblindFilters />
+
+      {/* ================= Row 1: slim brand header ================= */}
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-softgrey/70 bg-white/90 px-3 py-1.5 backdrop-blur sm:flex-nowrap sm:px-5">
         <a
           href="/"
@@ -270,91 +264,45 @@ export default function Builder() {
           className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
           aria-label="Pallet Preview — home"
         >
-          <img src="/app-icon-64.png" alt="" width={26} height={26} className="h-[26px] w-[26px] rounded-md" />
+          <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
           <h1 className="text-[13px] font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
             Pallet <span style={{ color: BRAND.brand }}>Preview</span>
           </h1>
         </a>
 
         <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
+          {/* Save status */}
+          <span
+            className="hidden items-center gap-1.5 text-[11px] font-medium text-charcoal/55 sm:inline-flex"
+            title="Your palette is saved in your browser"
+            aria-label="Saved locally in your browser"
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#0E8A4E" }} />
+            Saved locally
+          </span>
+          {/* Free-preview counter */}
           {remainingLabel && (
             <button
               type="button"
               onClick={() => navigate("/pricing")}
-              title="You're on the Free tier — click to see Pro"
-              className="hidden items-center gap-1.5 rounded-full border border-softgrey bg-white px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-charcoal/55 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] sm:inline-flex"
+              title="Free tier — click to see Pro"
+              className="inline-flex items-center gap-1.5 rounded-full border border-softgrey bg-white px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide text-charcoal/55 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
               aria-label={`${remainingLabel}. Open pricing.`}
             >
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: remaining > 0 ? BRAND.brand : "#C22F2F" }} />
               {remainingLabel}
             </button>
           )}
-          <ChipButton
-            onClick={() => setPreviewPickerOpen(true)}
-            title="Change what you're previewing"
-            ariaLabel={`Change preview — currently ${previewLabel}`}
-          >
-            <PreviewIcon />
-            <span className="hidden text-charcoal/45 sm:inline">Preview:</span>
-            <span className="ml-0.5 hidden max-w-[180px] truncate sm:inline">{previewLabel}</span>
-            <span className="max-w-[110px] truncate sm:hidden">{currentSub.label}</span>
-            <CaretDown />
-          </ChipButton>
-
-          <ChipButton onClick={() => setBrandOpen(true)} title="Upload your logo or app icon" ariaLabel="Brand assets">
-            <BrandIcon />
-            <span className="hidden sm:inline">Brand</span>
-          </ChipButton>
-
-          <ChipButton
-            onClick={() => setEditMode((v) => !v)}
-            active={editMode}
-            title={editMode ? "Turn off Edit Mode" : "Turn on Edit Mode to click preview elements and change their colour"}
-            ariaLabel={editMode ? "Edit mode on" : "Edit mode off"}
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: editMode ? "#fff" : BRAND.brand }} />
-            {editMode ? "Editing" : "Edit"}
-          </ChipButton>
-
-          <ChipButton
-            onClick={undo}
-            disabled={!undoStack.length}
-            title={undoStack.length ? "Undo the last palette change (Ctrl/Cmd+Z)" : "Nothing to undo yet"}
-            ariaLabel="Undo"
-          >
-            <UndoIcon />
-            <span className="hidden sm:inline">Undo</span>
-          </ChipButton>
-          <ChipButton
-            onClick={redo}
-            disabled={!redoStack.length}
-            title={redoStack.length ? "Redo (Ctrl/Cmd+Shift+Z)" : "Nothing to redo"}
-            ariaLabel="Redo"
-          >
-            <RedoIcon />
-            <span className="hidden sm:inline">Redo</span>
-          </ChipButton>
-
-          <ChipButton onClick={() => setConfirmReset(true)} title="Reset the palette to the defaults" ariaLabel="Reset palette">
-            <ResetIcon />
-            <span className="hidden md:inline">Reset</span>
-          </ChipButton>
-
-          <ChipButton onClick={() => setHelpOpen(true)} title="How Pallet Preview works" ariaLabel="Help">
-            <HelpIcon />
-            <span className="hidden md:inline">Help</span>
-          </ChipButton>
-
-          {!isButton && (
-            <ChipButton onClick={() => setFullscreen(true)} title="Enter full screen preview" ariaLabel="Full screen">
-              <FullscreenIcon />
-              <span className="hidden lg:inline">Full screen</span>
-            </ChipButton>
-          )}
+          {/* Utility group */}
+          <span className="mx-1 hidden h-4 w-px bg-softgrey sm:inline-block" aria-hidden />
+          <IconButton onClick={undo} disabled={!undoStack.length} label="Undo" title="Undo last change (Ctrl/Cmd+Z)"><UndoIcon /></IconButton>
+          <IconButton onClick={redo} disabled={!redoStack.length} label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)"><RedoIcon /></IconButton>
+          <IconButton onClick={() => setConfirmReset(true)} label="Reset" title="Reset the palette to defaults"><ResetIcon /></IconButton>
+          <IconButton onClick={() => setHelpOpen(true)} label="Help" title="How Pallet Preview works"><HelpIcon /></IconButton>
         </div>
       </header>
 
-      {/* ---------- Palette bar ---------- */}
+      {/* ================= Row 2: palette bar (with Randomise) ================= */}
       <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
         <PalettePanel
           palette={palette}
@@ -366,47 +314,120 @@ export default function Builder() {
           onRename={rename}
           brand={BRAND.brand}
           roleLabels={roleLabels}
-          rightSlot={
-            hasStyleControl ? (
-              <ChipButton onClick={() => setStylePickerOpen(true)} title={isButton ? "Change button style" : "Change template"} ariaLabel={isButton ? "Change button style" : "Change template"}>
-                <span className="text-charcoal/45">{isButton ? "Style:" : "Template:"}</span>
-                <span className="ml-1">{styleLabel}</span>
-                <CaretDown />
-              </ChipButton>
-            ) : null
-          }
         />
       </section>
 
-      {/* ---------- Large live preview ---------- */}
-      <main className="relative min-h-0 flex-1 overflow-hidden bg-offwhite p-2 sm:p-3">
-        <PreviewProvider value={ctx}>
-          {isButton ? (
-            <div className="h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white">
-              <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
-            </div>
-          ) : (
-            <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-              <div
-                key={sel.sub + tpl}
-                className="animate-pop-in relative h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white"
-              >
-                {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-              </div>
-            </ScopeProvider>
+      {/* ================= Row 3: main tools ================= */}
+      <section className="shrink-0 border-b border-softgrey/70 bg-white/80 px-2 py-1.5 backdrop-blur sm:px-4" aria-label="Design tools">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <ToolButton
+            onClick={() => setPreviewPickerOpen(true)}
+            icon={<PreviewIcon />}
+            label="Preview"
+            valueLabel={`${currentGroup.label} · ${currentSub.label}`}
+            title="Choose what to preview"
+          />
+          <ToolButton
+            onClick={() => setTemplatePickerOpen(true)}
+            icon={<TemplateIcon />}
+            label="Templates"
+            valueLabel={currentTemplateLabel}
+            title={isButton ? "Choose button style" : "Choose template"}
+          />
+          <ToolButton
+            onClick={() => setEditMode((v) => !v)}
+            icon={<EditIcon />}
+            label="Edit Elements"
+            active={editMode}
+            title={editMode ? "Turn off Edit Elements" : "Click elements in the preview to change their colour"}
+          />
+          <ToolButton
+            onClick={() => setBrandOpen(true)}
+            icon={<BrandIcon />}
+            label="Brand"
+            title="Company name, logo, app icon and typography"
+          />
+          <ToolButton
+            onClick={() => setA11yOpen(true)}
+            icon={<A11yIcon />}
+            label="Accessibility"
+            title="Contrast checks and colour-blindness simulation"
+            valueLabel={cbMode !== "off" ? `Sim: ${cbMode}` : undefined}
+          />
+          <ToolButton
+            onClick={() => setExportOpen(true)}
+            icon={<ExportIcon />}
+            label="Export"
+            title="Copy colours, developer formats and download"
+          />
+        </div>
+      </section>
+
+      {/* ================= Row 4: breadcrumb + full screen ================= */}
+      <section className="flex shrink-0 items-center justify-between gap-2 border-b border-softgrey/60 bg-offwhite px-3 py-1.5 sm:px-4" aria-label="Current location">
+        <nav
+          className="flex min-w-0 items-center gap-1 truncate text-[11.5px] font-semibold text-charcoal/60"
+          aria-label="Breadcrumb"
+        >
+          <span aria-hidden className="text-[13px] leading-none" style={{ color: BRAND.brand }}>{GROUP_ICONS[sel.group]}</span>
+          <span className="truncate">{currentGroup.label}</span>
+          <Chevron />
+          <span className="truncate">{currentSub.label}</span>
+          {currentTemplateLabel && (
+            <>
+              <Chevron />
+              <span className="truncate" style={{ color: BRAND.brandDark }}>{currentTemplateLabel}</span>
+            </>
           )}
-        </PreviewProvider>
+        </nav>
+        {!isButton && (
+          <button
+            type="button"
+            onClick={() => setFullscreen(true)}
+            title="Enter full screen preview"
+            aria-label="Enter full screen preview"
+            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2.5 py-1 text-[11px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          >
+            <FullscreenIcon />
+            <span className="hidden sm:inline">Full screen</span>
+          </button>
+        )}
+      </section>
+
+      {/* ================= Preview (large, immersive) ================= */}
+      <main className="relative min-h-0 flex-1 overflow-hidden bg-offwhite p-2 sm:p-3">
+        <div className="h-full w-full" style={{ filter: cbFilter }}>
+          <PreviewProvider value={ctx}>
+            {isButton ? (
+              <div className="h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white">
+                <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
+              </div>
+            ) : (
+              <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
+                <div
+                  key={sel.sub + tpl}
+                  className="animate-pop-in relative h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white"
+                >
+                  {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
+                </div>
+              </ScopeProvider>
+            )}
+          </PreviewProvider>
+        </div>
 
         {editMode && (
-          <div className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-charcoal/85 px-3 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur">
-            Edit mode on — click any element in the preview to assign a colour
+          <div
+            role="status"
+            className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-charcoal/85 px-3.5 py-1.5 text-[11.5px] font-semibold text-white shadow-lg backdrop-blur"
+          >
+            Edit Elements is on — click something in the preview to customise it
           </div>
         )}
       </main>
 
-      {/* ---------- Preview picker overlay ---------- */}
+      {/* ================= Preview picker ================= */}
       {previewPickerOpen && (
-        <PickerOverlay onClose={() => setPreviewPickerOpen(false)} title="Change preview">
+        <PickerOverlay onClose={() => setPreviewPickerOpen(false)} title="Choose what to preview">
           <div className="grid gap-6 sm:grid-cols-3">
             {GROUPS.map((g) => (
               <div key={g.key}>
@@ -433,16 +454,7 @@ export default function Builder() {
                         aria-current={on ? "true" : undefined}
                       >
                         <span>{s.label}</span>
-                        {locked && (
-                          <span
-                            className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
-                            style={{ background: `${BRAND.brand}18`, color: BRAND.brandDark }}
-                            aria-label="Pro feature"
-                          >
-                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-                            Pro
-                          </span>
-                        )}
+                        {locked && <ProBadge />}
                       </button>
                     )
                   })}
@@ -453,11 +465,11 @@ export default function Builder() {
         </PickerOverlay>
       )}
 
-      {/* ---------- Style / Template picker overlay ---------- */}
-      {stylePickerOpen && hasStyleControl && (
+      {/* ================= Template picker ================= */}
+      {templatePickerOpen && (
         <PickerOverlay
-          onClose={() => setStylePickerOpen(false)}
-          title={isButton ? "Button style" : "Template"}
+          onClose={() => setTemplatePickerOpen(false)}
+          title={isButton ? "Choose button style" : "Choose template"}
         >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {isButton
@@ -467,11 +479,7 @@ export default function Builder() {
                     label={STYLE_META[k].label}
                     thumb={<div className="h-full w-full">{styleThumb(k, trio)}</div>}
                     on={buttonStyle === k}
-                    onClick={() => {
-                      setButtonStyle(k)
-                      setStylePickerOpen(false)
-                      toast.push(`Style: ${STYLE_META[k].label}`)
-                    }}
+                    onClick={() => { setButtonStyle(k); setTemplatePickerOpen(false); toast.push(`Style: ${STYLE_META[k].label}`) }}
                   />
                 ))
               : templates.map((t) => (
@@ -480,21 +488,17 @@ export default function Builder() {
                     label={t.label}
                     thumb={<TemplateThumb theme={theme} layout={t.layout} />}
                     on={tpl === t.key}
-                    onClick={() => {
-                      selectTpl(t.key)
-                      setStylePickerOpen(false)
-                      toast.push(`Template: ${t.label}`)
-                    }}
+                    onClick={() => { selectTpl(t.key); setTemplatePickerOpen(false); toast.push(`Template: ${t.label}`) }}
                   />
                 ))}
           </div>
         </PickerOverlay>
       )}
 
-      {/* ---------- Full screen preview ---------- */}
+      {/* ================= Full screen preview ================= */}
       {fullscreen && !isButton && (
         <div className="fixed inset-0 z-40 flex flex-col bg-charcoal/95">
-          <div className="min-h-0 flex-1 p-3 sm:p-5">
+          <div className="min-h-0 flex-1 p-3 sm:p-5" style={{ filter: cbFilter }}>
             <PreviewProvider value={ctx}>
               <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
                 <div className="h-full w-full overflow-hidden rounded-2xl bg-white">
@@ -508,7 +512,7 @@ export default function Builder() {
               <img src="/app-icon-64.png" alt="" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
               <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Pallet <span style={{ color: BRAND.brand }}>Preview</span></span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {palette.map((s) => (
                 <label
                   key={s.id}
@@ -523,11 +527,6 @@ export default function Builder() {
                     className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                     aria-label={`Edit ${s.name}`}
                   />
-                  {s.locked && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white text-charcoal">
-                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-                    </span>
-                  )}
                 </label>
               ))}
               <button type="button" onClick={randomize} className="ml-1 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">Randomise</button>
@@ -542,7 +541,7 @@ export default function Builder() {
         </div>
       )}
 
-      {/* ---------- Brand assets modal ---------- */}
+      {/* Brand modal */}
       {brandOpen && (
         <BrandUpload
           brand={brand}
@@ -551,7 +550,7 @@ export default function Builder() {
         />
       )}
 
-      {/* ---------- Assign-colour modal (Edit Mode) ---------- */}
+      {/* Assign-colour modal */}
       {assignTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40 p-4" onClick={() => setAssignTarget(null)}>
           <div className="animate-pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Assign a colour">
@@ -576,10 +575,29 @@ export default function Builder() {
         </div>
       )}
 
-      {/* ---------- Intro / help drawer ---------- */}
+      {/* Accessibility */}
+      <AccessibilityPanel
+        open={a11yOpen}
+        onClose={() => setA11yOpen(false)}
+        palette={palette}
+        mode={cbMode}
+        setMode={(m) => { setCbMode(m); toast.push(m === "off" ? "Simulation off" : `Simulating ${m}`) }}
+      />
+
+      {/* Export */}
+      <ExportPanel
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        palette={palette}
+        isPro={ent.isPro}
+        onUpgrade={() => { setExportOpen(false); setPaywall({ open: true, reason: "High-resolution image exports are part of Pro." }) }}
+        onToast={(m, k) => toast.push(m, k)}
+      />
+
+      {/* Intro tour + Help */}
       <IntroTour open={helpOpen} onClose={closeHelp} />
 
-      {/* ---------- Reset confirmation ---------- */}
+      {/* Reset confirmation */}
       <ConfirmDialog
         open={confirmReset}
         title="Reset your palette?"
@@ -590,7 +608,7 @@ export default function Builder() {
         onCancel={() => setConfirmReset(false)}
       />
 
-      {/* ---------- Pro paywall (over the preview, non-destructive) ---------- */}
+      {/* Pro paywall */}
       <PaywallOverlay
         open={paywall.open}
         reason={paywall.reason}
@@ -601,30 +619,61 @@ export default function Builder() {
   )
 }
 
-/* ---------- small header/palette-bar chip button ---------- */
-function ChipButton({
-  onClick, active, disabled, title, ariaLabel, children,
+/* ---------- shared components ---------- */
+
+function ToolButton({
+  onClick, icon, label, valueLabel, title, active,
 }: {
   onClick: () => void
-  active?: boolean
-  disabled?: boolean
+  icon: React.ReactNode
+  label: string
+  valueLabel?: string
   title?: string
-  ariaLabel?: string
-  children: React.ReactNode
+  active?: boolean
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      aria-label={ariaLabel}
-      disabled={disabled}
-      className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40"
+      aria-label={valueLabel ? `${label}: ${valueLabel}` : label}
+      className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1"
       style={active
-        ? { background: BRAND.brand, color: "#fff" }
-        : { background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
+        ? { background: BRAND.brand, color: "#fff", border: `1px solid ${BRAND.brand}` }
+        : { background: "#fff", color: BRAND.charcoal, border: `1px solid ${BRAND.softgrey}` }}
+    >
+      <span className="flex h-4 w-4 items-center justify-center" aria-hidden style={{ color: active ? "#fff" : BRAND.brand }}>{icon}</span>
+      <span>{label}</span>
+      {valueLabel && !active && (
+        <>
+          <span className="text-charcoal/30" aria-hidden>·</span>
+          <span className="max-w-[140px] truncate text-charcoal/55">{valueLabel}</span>
+        </>
+      )}
+    </button>
+  )
+}
+
+function IconButton({
+  onClick, disabled, label, title, children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  label: string
+  title?: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title ?? label}
+      aria-label={label}
+      className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2 py-1.5 text-[11px] font-semibold text-charcoal/65 outline-none transition-colors hover:text-charcoal focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35"
     >
       {children}
+      <span className="hidden md:inline">{label}</span>
     </button>
   )
 }
@@ -638,7 +687,7 @@ function PickerOverlay({
     return () => window.removeEventListener("keydown", onKey)
   }, [onClose])
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center bg-charcoal/40 p-4 pt-[8vh]" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-40 flex items-start justify-center bg-charcoal/40 p-4 pt-[6vh]" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
       <div onClick={(e) => e.stopPropagation()} className="animate-pop-in w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
@@ -666,11 +715,26 @@ function PickerTile({
   )
 }
 
+const ProBadge = () => (
+  <span
+    className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
+    style={{ background: `${BRAND.brand}18`, color: BRAND.brandDark }}
+    aria-label="Pro feature"
+  >
+    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+    Pro
+  </span>
+)
+
 /* ---------- icons ---------- */
-const CaretDown = () => (<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5"><path d="m6 9 6 6 6-6" /></svg>)
-const BrandIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>)
+const Chevron = () => (<span aria-hidden className="text-charcoal/25">›</span>)
+const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
+const TemplateIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>)
+const EditIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.5 4.5 5 5-11 11H3.5v-5.5z" /><path d="m12 7 5 5" /></svg>)
+const BrandIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>)
+const A11yIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="4.5" r="1.6" /><path d="M4 7.5c2.5 1.5 5.5 2 8 2s5.5-.5 8-2" /><path d="M9 22 12 12l3 10" /><path d="M12 12v-2" /></svg>)
+const ExportIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
 const FullscreenIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
-const PreviewIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
 const UndoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></svg>)
 const RedoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></svg>)
 const ResetIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>)
