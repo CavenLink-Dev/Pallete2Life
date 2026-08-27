@@ -51,10 +51,10 @@ function SiteNav({ theme }: { theme: Theme }) {
       <BrandLogo color={theme.ink} size={17} />
       <div className="hidden items-center gap-7 text-sm md:flex">
         {["Product", "Solutions", "Pricing", "Docs"].map((t) => (
-          <Editable key={t} id="nav" label="Navigation link" as="span" color={theme.inkSoft}>{t}</Editable>
+          <Editable key={t} id={`nav-${t}`} label={`Nav link · ${t}`} as="span" color={theme.inkSoft}>{t}</Editable>
         ))}
       </div>
-      <PreviewButton id="cta" label="Nav button" text="Sign up" size="sm" />
+      <PreviewButton id="nav-cta" label="Nav button" text="Sign up" size="sm" />
     </nav>
   )
 }
@@ -100,7 +100,7 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
         </div>
         <div className="grid grid-cols-2 gap-4 px-8 py-6 md:grid-cols-4">
           {items.map(([n, p], i) => (
-            <Editable key={n} id="card" label="Product card" prop="background" color={theme.paper} className="overflow-hidden rounded-2xl border" style={{ borderColor: theme.border }}>
+            <Editable key={n} id={`card-${i}`} label={`Product card · ${n}`} prop="background" color={theme.paper} className="overflow-hidden rounded-2xl border" style={{ borderColor: theme.border }}>
               <div className="aspect-square" style={{ background: `linear-gradient(145deg, ${withAlpha(theme.accent, 0.2 + i * 0.06)}, ${withAlpha(theme.secondary, 0.14)})` }} />
               <div className="p-3"><p className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>{n}</p><div className="mt-2 flex items-center justify-between"><span className="text-sm font-bold">{p}</span><span className="rounded-lg px-2.5 py-1 text-xs font-semibold" style={{ background: theme.accent, color: theme.onBrand }}>Add</span></div></div>
             </Editable>
@@ -227,7 +227,7 @@ function Phone({ theme, children }: { theme: Theme; children: ReactNode }) {
           <div className="min-h-[420px] flex-1 px-5 pb-3 pt-3">{children}</div>
           <Editable id="navbg" label="Nav bar" prop="background" color={theme.paper} className="flex items-center justify-around border-t px-3 py-2.5" style={{ borderColor: theme.border }}>
             {tabs.map(([t, g], i) => (
-              <Editable key={t} id="nav" label="Tab" as="div" color={i === 0 ? theme.accent : theme.inkSoft} className="flex flex-col items-center gap-0.5">
+              <Editable key={t} id={`nav-${t}`} label={`Tab · ${t}`} as="div" color={i === 0 ? theme.accent : theme.inkSoft} className="flex flex-col items-center gap-0.5">
                 <Icon name={g} size={17} /><span className="text-[9px] font-semibold">{t}</span>
               </Editable>
             ))}
@@ -244,7 +244,7 @@ export function AppPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
       <Phone theme={theme}>
         <Editable id="caption" label="Caption" as="p" color={theme.inkSoft} className="text-xs">This month</Editable>
         <Editable id="heading" label="Heading" as="p" color={theme.ink} className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Overview</Editable>
-        <div className="mt-3 grid grid-cols-2 gap-2.5">{[["Steps", "8,240"], ["Sleep", "7h 20m"], ["Calories", "1,980"], ["Water", "1.8 L"]].map(([l, v]) => <Editable key={l} id="card" label="Stat card" prop="background" color={theme.surface} className="rounded-2xl p-3"><p className="text-[11px]" style={{ color: theme.inkSoft }}>{l}</p><p className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p></Editable>)}</div>
+        <div className="mt-3 grid grid-cols-2 gap-2.5">{[["Steps", "8,240"], ["Sleep", "7h 20m"], ["Calories", "1,980"], ["Water", "1.8 L"]].map(([l, v]) => <Editable key={l} id={`card-${l}`} label={`Stat card · ${l}`} prop="background" color={theme.surface} className="rounded-2xl p-3"><p className="text-[11px]" style={{ color: theme.inkSoft }}>{l}</p><p className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p></Editable>)}</div>
         <div className="mt-3 rounded-2xl p-3" style={{ background: theme.accent, color: theme.onBrand }}><p className="text-xs opacity-80">Weekly activity</p><div className="mt-2 flex h-16 items-end gap-1">{[50, 70, 40, 85, 60, 95, 75].map((h, i) => <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: withAlpha("#fff", 0.85) }} />)}</div></div>
       </Phone>
     )
@@ -254,9 +254,9 @@ export function AppPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
       <Phone theme={theme}>
         <Editable id="heading" label="Heading" as="p" color={theme.ink} className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Discover</Editable>
         <div className="mt-3 space-y-3">{[["Design trends 2026", "5 min read"], ["Colour in motion", "3 min read"], ["Systems that scale", "8 min read"]].map(([t, m], i) => (
-          <Editable key={t} id="card" label="Card" prop="background" color={theme.surface} className="overflow-hidden rounded-2xl">
+          <Editable key={t} id={`card-${i}`} label={`Card · ${t}`} prop="background" color={theme.surface} className="overflow-hidden rounded-2xl">
             <div className="h-20" style={{ background: `linear-gradient(135deg, ${theme.accent}, ${shade(theme.secondary, i % 2 ? -0.1 : 0.1)})` }} />
-            <div className="p-3"><p className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>{t}</p><div className="mt-1 flex items-center justify-between"><Editable id="caption" label="Caption" as="span" color={theme.inkSoft} className="text-[11px]">{m}</Editable><span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold" style={{ background: theme.accent, color: theme.onBrand }}>Read</span></div></div>
+            <div className="p-3"><p className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>{t}</p><div className="mt-1 flex items-center justify-between"><Editable id={`caption-${i}`} label="Caption" as="span" color={theme.inkSoft} className="text-[11px]">{m}</Editable><span className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold" style={{ background: theme.accent, color: theme.onBrand }}>Read</span></div></div>
           </Editable>
         ))}</div>
       </Phone>
@@ -271,8 +271,8 @@ export function AppPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
           <Editable id="caption" label="Caption" as="p" color={theme.inkSoft} className="text-sm">Product Designer · San Francisco</Editable>
           <div className="mt-3 w-full"><PreviewButton id="cta" text="Edit profile" size="sm" /></div>
         </div>
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">{[["248", "Posts"], ["12k", "Followers"], ["318", "Following"]].map(([v, l]) => <Editable key={l} id="card" label="Stat" prop="background" color={theme.surface} className="rounded-xl py-3"><p className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p><p className="text-[10px]" style={{ color: theme.inkSoft }}>{l}</p></Editable>)}</div>
-        <div className="mt-3 space-y-2">{["Account", "Notifications", "Privacy"].map((s) => <Editable key={s} id="card" label="Row" prop="background" color={theme.surface} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium"><span>{s}</span><span style={{ color: theme.inkSoft }}>›</span></Editable>)}</div>
+        <div className="mt-5 grid grid-cols-3 gap-2 text-center">{[["248", "Posts"], ["12k", "Followers"], ["318", "Following"]].map(([v, l]) => <Editable key={l} id={`card-${l}`} label={`Stat · ${l}`} prop="background" color={theme.surface} className="rounded-xl py-3"><p className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p><p className="text-[10px]" style={{ color: theme.inkSoft }}>{l}</p></Editable>)}</div>
+        <div className="mt-3 space-y-2">{["Account", "Notifications", "Privacy"].map((s) => <Editable key={s} id={`card-${s}`} label={`Row · ${s}`} prop="background" color={theme.surface} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium"><span>{s}</span><span style={{ color: theme.inkSoft }}>›</span></Editable>)}</div>
       </Phone>
     )
   }
@@ -287,8 +287,8 @@ export function AppPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
         <p className="text-xs opacity-80">Total balance</p><p className="mt-1 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>$8,420.50</p>
         <div className="mt-4 flex gap-2"><span className="flex-1 rounded-lg py-2 text-center text-xs font-semibold" style={{ background: withAlpha("#fff", 0.2) }}>Send</span><span className="flex-1 rounded-lg py-2 text-center text-xs font-semibold" style={{ background: withAlpha("#fff", 0.2) }}>Request</span></div>
       </Editable>
-      <Editable id="heading" label="Section" as="p" color={theme.ink} className="mt-4 text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>Transactions</Editable>
-      <div className="mt-2 space-y-2.5">{[["Spotify", "-$9.99"], ["Grocery", "-$42.10"], ["Salary", "+$3,200"]].map(([n, v]) => <Editable key={n} id="card" label="Row" prop="background" color={theme.surface} className="flex items-center gap-3 rounded-xl p-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold" style={{ background: withAlpha(theme.accent, 0.14), color: theme.accent }}>{n[0]}</div><div className="flex-1"><p className="text-sm font-medium">{n}</p></div><span className="text-sm font-semibold" style={{ color: v[0] === "+" ? theme.accent : theme.ink }}>{v}</span></Editable>)}</div>
+      <Editable id="heading-section" label="Section heading" as="p" color={theme.ink} className="mt-4 text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>Transactions</Editable>
+      <div className="mt-2 space-y-2.5">{[["Spotify", "-$9.99"], ["Grocery", "-$42.10"], ["Salary", "+$3,200"]].map(([n, v]) => <Editable key={n} id={`card-${n}`} label={`Row · ${n}`} prop="background" color={theme.surface} className="flex items-center gap-3 rounded-xl p-2.5"><div className="flex h-9 w-9 items-center justify-center rounded-lg text-xs font-bold" style={{ background: withAlpha(theme.accent, 0.14), color: theme.accent }}>{n[0]}</div><div className="flex-1"><p className="text-sm font-medium">{n}</p></div><span className="text-sm font-semibold" style={{ color: v[0] === "+" ? theme.accent : theme.ink }}>{v}</span></Editable>)}</div>
     </Phone>
   )
 }

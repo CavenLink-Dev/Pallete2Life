@@ -8,6 +8,7 @@ type Props = {
   onRemove: (id: string) => void
   onRandomize: () => void
   onToggleLock: (id: string) => void
+  onRename: (id: string, name: string) => void
   brand: string
   roleLabels?: (string | null)[]
   caption?: string
@@ -20,6 +21,7 @@ export default function PalettePanel({
   onRemove,
   onRandomize,
   onToggleLock,
+  onRename,
   brand,
   roleLabels,
   caption,
@@ -80,6 +82,7 @@ export default function PalettePanel({
           swatch={openSwatch}
           role={openRole}
           onChange={(hex) => onChange(openSwatch.id, hex)}
+          onRename={(name) => onRename(openSwatch.id, name)}
           onClose={() => setOpenId(null)}
         />
       )}
@@ -169,19 +172,25 @@ function SwatchCard({
 }
 
 /* ---------- inline expanded editor ---------- */
+const ROLE_SUGGESTIONS = ["Primary", "Secondary", "Tertiary", "Text", "Caption", "Border", "Surface", "Outline", "Navigation", "Disabled", "Background", "Accent"]
+
 function ColorEditor({
   swatch,
   role,
   onChange,
+  onRename,
   onClose,
 }: {
   swatch: Swatch
   role: string | null
   onChange: (hex: string) => void
+  onRename: (name: string) => void
   onClose: () => void
 }) {
   const [draft, setDraft] = useState(swatch.hex)
+  const [nameDraft, setNameDraft] = useState(swatch.name)
   useEffect(() => setDraft(swatch.hex), [swatch.hex, swatch.id])
+  useEffect(() => setNameDraft(swatch.name), [swatch.name, swatch.id])
 
   return (
     <div className="animate-pop-in mt-4 flex flex-col gap-5 rounded-2xl border border-softgrey bg-white p-5 sm:flex-row sm:items-center">
@@ -206,8 +215,23 @@ function ColorEditor({
 
       <div className="min-w-0 flex-1">
         <div className="mb-3 flex items-center gap-2">
-          <span className="text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>{swatch.name}</span>
+          <input
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={() => onRename(nameDraft)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onRename(nameDraft)
+            }}
+            list="hueframe-role-suggestions"
+            aria-label="Colour role name"
+            className="w-40 rounded-lg border border-transparent px-2 py-1 text-sm font-bold outline-none transition-colors hover:border-softgrey focus:border-[#20B9FA]"
+            style={{ fontFamily: "var(--font-display)" }}
+          />
+          <datalist id="hueframe-role-suggestions">
+            {ROLE_SUGGESTIONS.map((r) => <option key={r} value={r} />)}
+          </datalist>
           {role && <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: withAlpha("#20B9FA", 0.12), color: "#05A9F0" }}>{role}</span>}
+          <span className="text-[10px] text-charcoal/40">rename to create a custom role</span>
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* HEX (editable) */}

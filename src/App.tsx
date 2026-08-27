@@ -18,7 +18,7 @@ import {
   renderComponentPreview,
   type GroupKey,
 } from "./components/Previews"
-import { PreviewProvider, type Brand, type PreviewCtxValue } from "./components/PreviewCtx"
+import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "./components/PreviewCtx"
 import BrandUpload from "./components/BrandUpload"
 
 type Selection = { group: GroupKey; sub: string }
@@ -59,6 +59,8 @@ export default function App() {
   const isButton = sel.group === "components" && sel.sub === "button"
 
   const change = (id: string, hex: string) => setPalette((p) => p.map((s) => (s.id === id ? { ...s, hex } : s)))
+  const rename = (id: string, name: string) =>
+    setPalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
   const add = () =>
     setPalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }])
   const remove = (id: string) =>
@@ -75,7 +77,7 @@ export default function App() {
     editMode,
     assignments,
     requestAssign: (id, label) => setAssignTarget({ id, label }),
-    roleColor: (name) => palette.find((s) => s.name === name)?.hex,
+    roleColor: (swatchId) => palette.find((s) => s.id === swatchId)?.hex,
     brand,
     buttonStyle,
     buttonProps,
@@ -130,6 +132,7 @@ export default function App() {
           onRemove={remove}
           onRandomize={randomize}
           onToggleLock={toggleLock}
+          onRename={rename}
           brand={BRAND.brand}
           roleLabels={roleLabels}
           caption={
@@ -202,9 +205,11 @@ export default function App() {
                   <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
                 </div>
               ) : (
-                <div key={sel.sub + tpl} className="animate-pop-in h-[440px] min-h-[400px] overflow-hidden rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[56vh] sm:min-h-[440px]">
-                  {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                </div>
+                <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
+                  <div key={sel.sub + tpl} className="animate-pop-in h-[440px] min-h-[400px] overflow-hidden rounded-3xl border border-softgrey bg-white shadow-sm sm:h-[56vh] sm:min-h-[440px]">
+                    {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
+                  </div>
+                </ScopeProvider>
               )}
             </PreviewProvider>
 
@@ -249,13 +254,13 @@ export default function App() {
             <p className="mt-0.5 text-xs text-charcoal/55">Bind “{assignTarget.label}” to one of your palette colours.</p>
             <div className="mt-4 grid grid-cols-3 gap-2.5">
               {palette.map((s) => {
-                const on = assignments[assignTarget.id] === s.name
+                const on = assignments[assignTarget.id] === s.id
                 return (
                   <button
                     key={s.id}
                     type="button"
                     onClick={() => {
-                      setAssignments((a) => ({ ...a, [assignTarget.id]: s.name }))
+                      setAssignments((a) => ({ ...a, [assignTarget.id]: s.id }))
                       setAssignTarget(null)
                     }}
                     className="flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5"

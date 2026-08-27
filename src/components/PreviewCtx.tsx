@@ -1,5 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react"
-import { withAlpha } from "../lib/color"
+import { readableOn, withAlpha } from "../lib/color"
 import { StyledButton, type ButtonProps, type ButtonStyle, type Trio } from "./ButtonPreview"
 
 export type Brand = { name: string; logo: string | null; symbol: string | null }
@@ -19,6 +19,12 @@ const Ctx = createContext<PreviewCtxValue | null>(null)
 export const PreviewProvider = Ctx.Provider
 export const usePreview = () => useContext(Ctx)
 
+/* Scope namespaces element ids per template so assignments never leak
+   between previews (e.g. the landing CTA vs the paywall CTA). */
+const ScopeCtx = createContext<string>("")
+export const ScopeProvider = ScopeCtx.Provider
+export const useScope = () => useContext(ScopeCtx)
+
 type EditableProps = {
   id: string
   label: string
@@ -32,7 +38,9 @@ type EditableProps = {
 
 export function Editable({ id, label, color, prop = "color", as = "div", className, style, children }: EditableProps) {
   const ctx = usePreview()
-  const assignedRole = ctx?.assignments[id]
+  const scope = useScope()
+  const fullId = scope ? `${scope}:${id}` : id
+  const assignedRole = ctx?.assignments[fullId]
   const resolved = (assignedRole && ctx?.roleColor(assignedRole)) || color
   const edit = ctx?.editMode
   const Tag = as as any
@@ -49,7 +57,7 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
         if (edit && ctx) {
           e.preventDefault()
           e.stopPropagation()
-          ctx.requestAssign(id, label, resolved)
+          ctx.requestAssign(fullId, label, resolved)
         }
       }}
       title={edit ? `Edit ${label}` : undefined}
@@ -62,14 +70,19 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
 /* Interactive button that uses the global button style/props; editable in Edit Mode */
 export function PreviewButton({ id, label = "Button", text, size }: { id: string; label?: string; text?: string; size?: ButtonProps["size"] }) {
   const ctx = usePreview()
+  const scope = useScope()
   if (!ctx) return null
+  const fullId = scope ? `${scope}:${id}` : id
+  const assigned = ctx.assignments[fullId]
+  const primary = (assigned && ctx.roleColor(assigned)) || ctx.trio.primary
+  const colors = primary === ctx.trio.primary ? ctx.trio : { ...ctx.trio, primary, text: readableOn(primary) }
   const props: ButtonProps = { ...ctx.buttonProps, text: text ?? ctx.buttonProps.text, size: size ?? "md" }
   return (
     <StyledButton
       style={ctx.buttonStyle}
-      colors={ctx.trio}
+      colors={colors}
       props={props}
-      onEditClick={ctx.editMode ? () => ctx.requestAssign(id, label, ctx.trio.primary) : undefined}
+      onEditClick={ctx.editMode ? () => ctx.requestAssign(fullId, label, colors.primary) : undefined}
     />
   )
 }
