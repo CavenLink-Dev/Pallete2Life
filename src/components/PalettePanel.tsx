@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { hslString, normalizeHex, readableOn, rgbString, withAlpha, type Swatch } from "../lib/color"
+import { aaCheck, hslString, normalizeHex, readableOn, rgbString, withAlpha, type Swatch } from "../lib/color"
 
 type Props = {
   palette: Swatch[]
@@ -208,6 +208,15 @@ function ColorEditor({
           {/* HSL */}
           <ReadField label="HSL" value={hslString(swatch.hex)} />
         </div>
+
+        {/* WCAG contrast feedback */}
+        <div className="mt-3">
+          <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">Contrast (WCAG)</label>
+          <div className="flex flex-wrap gap-2">
+            <ContrastBadge fg="#FFFFFF" bg={swatch.hex} label="White text" />
+            <ContrastBadge fg="#0E1821" bg={swatch.hex} label="Dark text" />
+          </div>
+        </div>
       </div>
 
       <button
@@ -218,6 +227,24 @@ function ColorEditor({
         Done
       </button>
     </div>
+  )
+}
+
+export function ContrastBadge({ fg, bg, label }: { fg: string; bg: string; label?: string }) {
+  const { ratio, aa, aaLarge } = aaCheck(fg, bg)
+  const status = aa ? "AA Pass" : aaLarge ? "AA Large only" : "AA Fail"
+  const color = aa ? "#0E8A4E" : aaLarge ? "#9A6B00" : "#C22F2F"
+  const tint = aa ? "rgba(14,138,78,0.1)" : aaLarge ? "rgba(154,107,0,0.12)" : "rgba(194,47,47,0.1)"
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+      style={{ background: tint, color }}
+      title={`${label ?? "Contrast"}: ${ratio}:1 — AA needs 4.5:1 (3:1 for large text)`}
+    >
+      <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold" style={{ background: bg, color: fg, boxShadow: "inset 0 0 0 1px rgba(14,24,33,0.15)" }}>A</span>
+      {label && <span className="font-medium" style={{ color: "#7A818B" }}>{label}</span>}
+      {ratio}:1 · {status}
+    </span>
   )
 }
 

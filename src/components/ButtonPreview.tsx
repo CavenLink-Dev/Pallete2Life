@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from "react"
 import { BRAND, luminance, readableOn, shade, withAlpha, type Swatch } from "../lib/color"
+import { ContrastBadge } from "./PalettePanel"
 
 /* ------------------------------------------------------------------ */
 /* Style definitions — each binds palette roles to button parts        */
@@ -144,10 +145,13 @@ export function ButtonLab({
         <div className="relative z-10">
           <StyledButton style={style} colors={colors} props={props} disabled={disabled} />
         </div>
-        <label className="relative z-10 flex cursor-pointer items-center gap-1.5 text-xs text-charcoal/50" style={{ fontFamily: "var(--font-mono)" }}>
-          <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} className="h-3.5 w-3.5 accent-[#20B9FA]" />
-          preview disabled state
-        </label>
+        <div className="relative z-10 flex flex-col items-center gap-2.5">
+          <ContrastBadge fg={colors.text} bg={colors.primary} label="Button text" />
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-charcoal/50" style={{ fontFamily: "var(--font-mono)" }}>
+            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} className="h-3.5 w-3.5 accent-[#20B9FA]" />
+            preview disabled state
+          </label>
+        </div>
       </div>
 
       {/* property controls */}
