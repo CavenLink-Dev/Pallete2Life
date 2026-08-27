@@ -257,6 +257,15 @@ export default function Builder() {
     mutatePalette((p) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() })))
   }
   const toggleLock = (id: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
+  const reorder = (activeId: string, overId: string) => mutatePalette((p) => {
+    const from = p.findIndex((swatch) => swatch.id === activeId)
+    const to = p.findIndex((swatch) => swatch.id === overId)
+    if (from < 0 || to < 0 || from === to) return p
+    const next = [...p]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    return next
+  })
 
   const doReset = () => {
     skipHistory.current = false
@@ -351,6 +360,7 @@ export default function Builder() {
           onRandomize={randomize}
           onToggleLock={toggleLock}
           onRename={rename}
+          onReorder={reorder}
           brand={BRAND.brand}
           roleLabels={roleLabels}
         />
