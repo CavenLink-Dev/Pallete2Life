@@ -19,6 +19,7 @@ import {
   type GroupKey,
 } from "./components/Previews"
 import { PreviewProvider, type Brand, type PreviewCtxValue } from "./components/PreviewCtx"
+import BrandUpload from "./components/BrandUpload"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -47,7 +48,9 @@ export default function App() {
   const theme = useMemo(() => deriveTheme(palette), [palette])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
 
-  const brand: Brand = { name: "HueFrame", logo: null, symbol: null }
+  // Brand assets shown inside previews (logo / app icon), editable via the Brand modal.
+  const [brand, setBrand] = useState<Brand>({ name: "HueFrame", logo: null, symbol: null })
+  const [brandOpen, setBrandOpen] = useState(false)
 
   const currentGroup = GROUPS.find((g) => g.key === sel.group)!
   const currentSub = currentGroup.subs.find((s) => s.key === sel.sub) ?? currentGroup.subs[0]
@@ -93,6 +96,16 @@ export default function App() {
             <p className="text-[11px] text-charcoal/50">See your colours behave across real products</p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setBrandOpen(true)}
+          className="flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors"
+          style={{ background: "#fff", color: BRAND.medgrey, border: `1px solid ${BRAND.softgrey}` }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>
+          Brand
+        </button>
         <button
           type="button"
           onClick={() => setEditMode((v) => !v)}
@@ -104,6 +117,7 @@ export default function App() {
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: editMode ? "#fff" : BRAND.brand }} />
           {editMode ? "Editing — click any element" : "Edit elements"}
         </button>
+        </div>
       </header>
 
       {/* ---------- Palette section (prominent) ---------- */}
@@ -213,6 +227,11 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* ---------- Brand assets modal ---------- */}
+      {brandOpen && (
+        <BrandUpload brand={brand} onChange={setBrand} onClose={() => setBrandOpen(false)} />
+      )}
 
       {/* ---------- Assign-colour modal (edit mode) ---------- */}
       {assignTarget && (
