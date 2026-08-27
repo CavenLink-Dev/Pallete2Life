@@ -44,20 +44,20 @@ const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary"
 const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
   // Websites
   "website/landing":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/saas":     ["Page Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Body Text"],
-  "website/ecom":     ["Page Background", "Secondary Background", "Brand Primary", "Sale Accent", "Heading Text", "Body Text"],
-  "website/signin":   ["Page Background", "Card", "Brand Primary", "Input Border", "Heading Text", "Body Text"],
-  "website/paywall":  ["Page Background", "Card", "Brand Primary", "Highlight", "Heading Text", "Body Text"],
+  "website/saas":     ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "website/ecom":     ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "website/signin":   ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "website/paywall":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
   // Mobile
-  "mobile/standard":  ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
-  "mobile/dashboard": ["App Background", "Secondary Background", "Brand Primary", "Chart Accent", "Heading Text", "Muted Text"],
-  "mobile/cards":     ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
-  "mobile/profile":   ["App Background", "Secondary Background", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/standard":  ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "mobile/dashboard": ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "mobile/cards":     ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "mobile/profile":   ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
   // Components (non-button)
-  "components/cards":      ["Card Background", "Card Border", "Heading Text", "Body Text", "Accent"],
-  "components/forms":      ["Form Background", "Input Fill", "Input Border", "Label Text", "Primary Button"],
-  "components/nav":        ["Nav Background", "Nav Text", "Active", "Divider"],
-  "components/typography": ["Background", "Heading", "Body", "Muted", "Accent"],
+  "components/cards":      ["Card Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Card Border"],
+  "components/forms":      ["Form Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Input Border"],
+  "components/nav":        ["Nav Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Divider"],
+  "components/typography": ["Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
 }
 
 
@@ -204,7 +204,11 @@ export default function Builder() {
     ? STYLE_META[buttonStyle].label
     : templates.find((t) => t.key === tpl)?.label ?? ""
 
-  const theme = useMemo(() => deriveTheme(palette), [palette])
+  const roleLabels: (string | null)[] | undefined = isButton
+    ? STYLE_META[buttonStyle].roles.map((r) => r.part)
+    : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
+
+  const theme = useMemo(() => deriveTheme(palette, roleLabels), [palette, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
 
   // ---------- entitlement-aware preview switching ----------
@@ -287,10 +291,6 @@ export default function Builder() {
       toast.push(`Now previewing ${next.groupLabel} · ${next.label}`)
     }
   }
-
-  const roleLabels: (string | null)[] | undefined = isButton
-    ? STYLE_META[buttonStyle].roles.map((r) => r.part)
-    : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
 
   const ctx: PreviewCtxValue = {
     editMode,

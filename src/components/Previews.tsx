@@ -63,19 +63,19 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
   if (tpl === "saas-centered" || tpl === "saas-classic") {
     const centered = tpl === "saas-centered"
     return (
-      <Editable id="bg" label="Background" prop="background" color={theme.surface} className="h-full w-full overflow-auto rounded-2xl" style={{ color: theme.ink }}>
+      <Editable id="bg" label="Background" prop="background" color={theme.paper} className="h-full w-full overflow-auto rounded-2xl" style={{ color: theme.ink }}>
         <SiteNav theme={theme} />
         <div className={"px-8 pb-10 pt-12 " + (centered ? "text-center" : "")}>
           <Editable id="caption" label="Eyebrow" as="span" color={theme.accent} className="inline-block rounded-full px-3 py-1 text-xs font-semibold" style={{ background: withAlpha(theme.accent, 0.12) }}>Trusted by 12,000 teams</Editable>
           <Editable id="heading" label="Heading" as="h1" color={theme.ink} className={"mt-4 text-[38px] font-bold leading-[1.05] tracking-tight " + (centered ? "mx-auto max-w-2xl" : "max-w-xl")} style={{ fontFamily: "var(--font-display)" }}>Analytics that actually ship.</Editable>
           <div className={"mt-5 flex gap-3 " + (centered ? "justify-center" : "")}><PreviewButton id="cta" text="Start free trial" /><Ghost theme={theme}>See docs</Ghost></div>
-          <Editable id="card" label="Card" prop="background" color={theme.paper} className="mx-auto mt-10 max-w-3xl rounded-2xl border p-5 text-left" style={{ borderColor: theme.border, boxShadow: `0 20px 50px ${withAlpha(theme.ink, 0.12)}` }}>
+          <Editable id="card" label="Card" prop="background" color={theme.surface} className="mx-auto mt-10 max-w-3xl rounded-2xl border p-5 text-left" style={{ borderColor: theme.border, boxShadow: `0 20px 50px ${withAlpha(theme.ink, 0.12)}` }}>
             <div className="grid grid-cols-3 gap-3">
               {[["MRR", "$84.2k"], ["Users", "12,904"], ["Churn", "1.2%"]].map(([l, v]) => (
-                <div key={l} className="rounded-xl p-3" style={{ background: theme.surface }}><p className="text-xs" style={{ color: theme.inkSoft }}>{l}</p><p className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p></div>
+                <div key={l} className="rounded-xl p-3" style={{ background: theme.paper }}><p className="text-xs" style={{ color: theme.inkSoft }}>{l}</p><p className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>{v}</p></div>
               ))}
             </div>
-            <div className="mt-3 flex h-24 items-end gap-1.5 rounded-xl p-3" style={{ background: theme.surface }}>
+            <div className="mt-3 flex h-24 items-end gap-1.5 rounded-xl p-3" style={{ background: theme.paper }}>
               {[40, 65, 45, 80, 55, 95, 70, 88].map((h, i) => <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i % 2 ? theme.accent : withAlpha(theme.accent, 0.45) }} />)}
             </div>
           </Editable>
@@ -132,8 +132,8 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
       </Editable>
     )
     return (
-      <Editable id="bg" label="Background" prop="background" color={theme.surface} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-8" style={{ color: theme.ink }}>
-        <Editable id="card" label="Card" prop="background" color={theme.paper} className="w-full max-w-sm rounded-3xl p-8" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>{form}</Editable>
+      <Editable id="bg" label="Background" prop="background" color={theme.paper} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-8" style={{ color: theme.ink }}>
+        <Editable id="card" label="Card" prop="background" color={theme.surface} className="w-full max-w-sm rounded-3xl p-8" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>{form}</Editable>
       </Editable>
     )
   }
@@ -143,8 +143,8 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
       const rows = [["Projects", "3", "Unlimited", "Unlimited"], ["Analytics", "—", "Basic", "Advanced"], ["Team seats", "1", "5", "Unlimited"], ["Priority support", "—", "—", "✓"]]
       const plans = ["Free", "Pro", "Team"]
       return (
-        <Editable id="bg" label="Background" prop="background" color={theme.surface} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ color: theme.ink }}>
-          <Editable id="card" label="Card" prop="background" color={theme.paper} className="w-full max-w-2xl rounded-3xl p-7" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>
+        <Editable id="bg" label="Background" prop="background" color={theme.paper} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ color: theme.ink }}>
+          <Editable id="card" label="Card" prop="background" color={theme.surface} className="w-full max-w-2xl rounded-3xl p-7" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>
             <Editable id="heading" label="Heading" as="h1" color={theme.ink} className="text-center text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Compare plans</Editable>
             <div className="mt-6 overflow-hidden rounded-2xl border" style={{ borderColor: theme.border }}>
               <div className="grid grid-cols-4 text-sm font-semibold" style={{ background: theme.surface }}><span className="px-4 py-3" />{plans.map((p, i) => <span key={p} className="px-4 py-3 text-center" style={i === 1 ? { color: theme.accent } : {}}>{p}{i === 1 && " ★"}</span>)}</div>
@@ -157,8 +157,8 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
     }
     const plans = [{ n: "Monthly", p: "$12", per: "/mo", f: false }, { n: "Yearly", p: "$96", per: "/yr", f: true }]
     return (
-      <Editable id="bg" label="Background" prop="background" color={theme.surface} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ color: theme.ink }}>
-        <Editable id="card" label="Card" prop="background" color={theme.paper} className="w-full max-w-md rounded-3xl p-8" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>
+      <Editable id="bg" label="Background" prop="background" color={theme.paper} className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ color: theme.ink }}>
+        <Editable id="card" label="Card" prop="background" color={theme.surface} className="w-full max-w-md rounded-3xl p-8" style={{ boxShadow: `0 24px 60px ${withAlpha(theme.ink, 0.14)}` }}>
           <div className="text-center">
             <Editable id="caption" label="Badge" as="span" color={theme.accent} className="inline-block rounded-full px-3 py-1 text-xs font-semibold" style={{ background: withAlpha(theme.accent, 0.14) }}>Pro</Editable>
             <Editable id="heading" label="Heading" as="h1" color={theme.ink} className="mt-3 text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Unlock everything</Editable>
@@ -202,13 +202,13 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
   }
   // bold hero
   return (
-    <Editable id="bg" label="Background" prop="background" color={theme.ink} className="h-full w-full overflow-auto rounded-2xl" style={{ color: theme.onInk }}>
-      <nav className="flex items-center justify-between px-8 py-5"><BrandLogo color={theme.onInk} size={18} /><PreviewButton id="cta" text="Try it" size="sm" /></nav>
+    <Editable id="bg" label="Background" prop="background" color={theme.paper} className="h-full w-full overflow-auto rounded-2xl" style={{ color: theme.ink }}>
+      <nav className="flex items-center justify-between px-8 py-5"><BrandLogo color={theme.ink} size={18} /><PreviewButton id="cta" text="Try it" size="sm" /></nav>
       <div className="px-8 py-16 text-center">
         <Editable id="caption" label="Eyebrow" as="p" color={theme.accent} className="text-sm font-semibold uppercase tracking-[0.2em]">Design faster</Editable>
-        <Editable id="heading" label="Heading" as="h1" color={theme.onInk} className="mx-auto mt-4 max-w-2xl text-[52px] font-bold leading-[1.02] tracking-tight" style={{ fontFamily: "var(--font-display)" }}>Ship beautiful products at the speed of thought.</Editable>
-        <Editable id="subcaption" label="Sub-caption" as="p" color={withAlpha(theme.onInk, 0.65)} className="mx-auto mt-5 max-w-lg text-base">One canvas for your whole team to design, prototype and hand off.</Editable>
-        <div className="mx-auto mt-12 grid max-w-3xl gap-4 md:grid-cols-3">{[["10×", "faster handoff"], ["99.9%", "uptime"], ["4.9★", "avg rating"]].map(([a, b]) => <div key={b} className="rounded-2xl p-5" style={{ background: withAlpha(theme.onInk, 0.06), border: `1px solid ${withAlpha(theme.onInk, 0.1)}` }}><p className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: theme.accent }}>{a}</p><p className="mt-1 text-sm" style={{ color: withAlpha(theme.onInk, 0.6) }}>{b}</p></div>)}</div>
+        <Editable id="heading" label="Heading" as="h1" color={theme.ink} className="mx-auto mt-4 max-w-2xl text-[52px] font-bold leading-[1.02] tracking-tight" style={{ fontFamily: "var(--font-display)" }}>Ship beautiful products at the speed of thought.</Editable>
+        <Editable id="subcaption" label="Sub-caption" as="p" color={theme.inkSoft} className="mx-auto mt-5 max-w-lg text-base">One canvas for your whole team to design, prototype and hand off.</Editable>
+        <div className="mx-auto mt-12 grid max-w-3xl gap-4 md:grid-cols-3">{[["10×", "faster handoff"], ["99.9%", "uptime"], ["4.9★", "avg rating"]].map(([a, b]) => <div key={b} className="rounded-2xl p-5" style={{ background: theme.surface, border: `1px solid ${theme.border}` }}><p className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: theme.accent }}>{a}</p><p className="mt-1 text-sm" style={{ color: theme.inkSoft }}>{b}</p></div>)}</div>
       </div>
     </Editable>
   )
@@ -323,7 +323,7 @@ export function CardsPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
 export function FormsPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
   const minimal = tpl === "minimal"
   return (
-    <div className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-8" style={{ background: theme.surface }}>
+    <div className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-8" style={{ background: theme.paper }}>
       <div className={minimal ? "w-full max-w-md" : "w-full max-w-lg rounded-2xl p-8"} style={minimal ? { color: theme.ink } : { background: theme.paper, color: theme.ink, boxShadow: `0 16px 40px ${withAlpha(theme.ink, 0.1)}` }}>
         <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Create your account</h1>
         <p className="mt-1 text-sm" style={{ color: theme.inkSoft }}>It only takes a minute.</p>
@@ -444,7 +444,7 @@ export function TemplateThumb({ theme, layout }: { theme: Theme; layout: string 
   const wrap = (bg: string, kids: ReactNode) => <div className="flex h-full w-full flex-col gap-1 overflow-hidden rounded-md p-1.5" style={{ background: bg }}>{kids}</div>
   switch (layout) {
     case "hero": case "split": return wrap(theme.paper, <div className="flex flex-1 gap-1"><div className="flex flex-1 flex-col justify-center gap-1">{b(theme.ink, "80%", 4)}{b(theme.accent, 20, 6, 3)}</div><div className="flex-1 rounded" style={{ background: withAlpha(theme.accent, 0.25) }} /></div>)
-    case "hero-dark": return wrap(theme.ink, <div className="flex flex-1 flex-col items-center justify-center gap-1">{b(theme.onInk, "60%", 6)}{b(theme.accent, "30%", 4)}</div>)
+    case "hero-dark": return wrap(theme.paper, <div className="flex flex-1 flex-col items-center justify-center gap-1">{b(theme.ink, "60%", 6)}{b(theme.accent, "30%", 4)}</div>)
     case "centered": return wrap(theme.paper, <div className="flex flex-1 flex-col items-center justify-center gap-1">{b(theme.ink, "55%", 5)}{b(theme.accent, 20, 6, 3)}</div>)
     case "grid": return wrap(theme.paper, <div className="grid flex-1 grid-cols-2 gap-1">{[0, 1, 2, 3].map((i) => <div key={i} className="rounded" style={{ background: withAlpha(theme.accent, 0.2 + i * 0.08) }} />)}</div>)
     case "card": return wrap(theme.surface, <div className="m-auto flex w-3/4 flex-col gap-1 rounded p-1" style={{ background: theme.paper }}>{b(theme.ink, "60%", 3)}{b(theme.inkFaint, "100%", 4)}{b(theme.accent, "100%", 4)}</div>)

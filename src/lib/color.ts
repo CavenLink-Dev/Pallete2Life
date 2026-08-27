@@ -151,28 +151,41 @@ export function hslToHex(h: number, s: number, l: number): string {
   return rgbToHex(f(0) * 255, f(8) * 255, f(4) * 255)
 }
 
-// Derive a coherent theme from an arbitrary palette so every preview stays consistent.
-export function deriveTheme(palette: Swatch[]) {
-  const hexes = palette.map((p) => p.hex)
-  const brand = hexes[0] ?? BRAND.brand
-  const sorted = [...hexes].sort((a, b) => luminance(a) - luminance(b))
-  const darkest = sorted[0] ?? BRAND.charcoal
-  const lightest = sorted[sorted.length - 1] ?? BRAND.white
-  // Ink: dark enough for text; Paper: light enough for surface.
-  const ink = luminance(darkest) < 0.22 ? darkest : shade(brand, -0.78)
-  const paper = luminance(lightest) > 0.82 ? lightest : "#FFFFFF"
-  const accent = hexes.find((h) => luminance(h) > 0.15 && luminance(h) < 0.7) ?? brand
-  const secondary = hexes[1] ?? shade(brand, -0.4)
+// Map palette values by their design role. Never reorder semantic tokens by
+// brightness: a user-selected background must remain the background.
+export function deriveTheme(palette: Swatch[], roleLabels?: (string | null)[]) {
+  const entries = palette.map((swatch, index) => ({
+    hex: swatch.hex,
+    role: (roleLabels?.[index] ?? "").toLowerCase(),
+  }))
+  const hasRoles = entries.some((entry) => entry.role)
+  const at = (index: number, fallback: string) => entries[index]?.hex ?? fallback
+  const byRole = (...roles: string[]) => entries.find((entry) => roles.includes(entry.role))?.hex
+
+  const paper = byRole("page background", "app background", "form background", "card background", "nav background", "background")
+    ?? at(0, BRAND.white)
+  const surfaceFallback = shade(paper, luminance(paper) > 0.5 ? -0.04 : 0.06)
+  const surface = byRole("secondary background", "input fill", "surface", "card")
+    ?? (hasRoles ? surfaceFallback : at(1, surfaceFallback))
+  const accent = byRole("brand primary", "sale accent", "chart accent", "primary button", "active", "accent")
+    ?? (hasRoles ? BRAND.brand : at(2, BRAND.brand))
+  const ink = byRole("heading text", "heading", "nav text", "label text")
+    ?? (hasRoles ? readableOn(paper) : at(3, readableOn(paper)))
+  const body = byRole("body text", "body", "muted text", "caption")
+    ?? (hasRoles ? ink : at(4, ink))
+  const border = byRole("input border", "card border", "border", "divider", "outline")
+    ?? withAlpha(ink, 0.12)
+
   return {
-    brand,
+    brand: accent,
     accent,
-    secondary,
+    secondary: surface,
     ink,
-    inkSoft: withAlpha(ink, 0.62),
-    inkFaint: withAlpha(ink, 0.1),
+    inkSoft: body,
+    inkFaint: withAlpha(body, 0.1),
     paper,
-    surface: shade(paper, -0.03),
-    border: withAlpha(ink, 0.12),
+    surface,
+    border,
     onBrand: readableOn(accent),
     onInk: readableOn(ink),
   }
