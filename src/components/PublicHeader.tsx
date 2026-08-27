@@ -54,7 +54,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                 key={n.to}
                 href={n.to}
                 onClick={nav(n.to)}
-                className="rounded-lg px-3 py-1.5 text-[13px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+                className="rounded-lg px-3 py-1.5 text-[13px] font-semibold outline-none transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
                 style={on ? { color: BRAND.brandDark, background: "rgba(32,185,250,0.10)" } : { color: BRAND.medgrey }}
                 aria-current={on ? "page" : undefined}
               >
@@ -77,7 +77,8 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
-              className="rounded-lg border border-softgrey bg-white px-2.5 py-1.5 text-[12px] font-semibold text-charcoal/75 md:hidden"
+              aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+              className="rounded-lg border border-softgrey bg-white px-2.5 py-1.5 text-[12px] font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] md:hidden"
             >
               Menu
             </button>

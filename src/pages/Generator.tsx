@@ -217,7 +217,7 @@ export default function Generator() {
               />
 
               <div
-                className={`absolute left-1/2 top-[44%] z-10 flex -translate-x-1/2 flex-col gap-2 transition-opacity ${active ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+                className={`absolute left-1/2 top-[44%] z-10 flex -translate-x-1/2 flex-col gap-2 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 ${active ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
               >
                 <ColumnAction label="Edit colour" onClick={() => setActiveId(swatch.id)} foreground={foreground}><EditIcon /></ColumnAction>
                 <ColumnAction label={swatch.locked ? "Unlock colour" : "Lock colour"} onClick={() => toggleLock(swatch.id)} foreground={foreground} active={!!swatch.locked}>
