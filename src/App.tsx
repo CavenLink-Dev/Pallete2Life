@@ -63,7 +63,8 @@ export default function App() {
     setPalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }])
   const remove = (id: string) =>
     setPalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
-  const randomize = () => setPalette((p) => p.map((s) => ({ ...s, hex: randomHex() })))
+  const randomize = () => setPalette((p) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() })))
+  const toggleLock = (id: string) => setPalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
 
   const selectTpl = (key: string) => setTplBySub((m) => ({ ...m, [sel.sub]: key }))
 
@@ -128,6 +129,7 @@ export default function App() {
           onAdd={add}
           onRemove={remove}
           onRandomize={randomize}
+          onToggleLock={toggleLock}
           brand={BRAND.brand}
           roleLabels={roleLabels}
           caption={

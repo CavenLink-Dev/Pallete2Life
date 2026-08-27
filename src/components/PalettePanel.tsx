@@ -7,6 +7,7 @@ type Props = {
   onAdd: () => void
   onRemove: (id: string) => void
   onRandomize: () => void
+  onToggleLock: (id: string) => void
   brand: string
   roleLabels?: (string | null)[]
   caption?: string
@@ -18,6 +19,7 @@ export default function PalettePanel({
   onAdd,
   onRemove,
   onRandomize,
+  onToggleLock,
   brand,
   roleLabels,
   caption,
@@ -66,6 +68,7 @@ export default function PalettePanel({
               onRemove(s.id)
               if (openId === s.id) setOpenId(null)
             }}
+            onToggleLock={() => onToggleLock(s.id)}
             canRemove={palette.length > 1}
             brand={brand}
           />
@@ -91,6 +94,7 @@ function SwatchCard({
   selected,
   onClick,
   onRemove,
+  onToggleLock,
   canRemove,
   brand,
 }: {
@@ -99,6 +103,7 @@ function SwatchCard({
   selected: boolean
   onClick: () => void
   onRemove: () => void
+  onToggleLock: () => void
   canRemove: boolean
   brand: string
 }) {
@@ -119,21 +124,37 @@ function SwatchCard({
         <span className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: withAlpha(fg, 0.65) }}>
           {swatch.name}
         </span>
-        {canRemove && (
+        <span className="flex items-center gap-1">
           <span
             role="button"
             tabIndex={0}
             onClick={(e) => {
               e.stopPropagation()
-              onRemove()
+              onToggleLock()
             }}
-            className="flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+            className={"flex h-5 w-5 items-center justify-center rounded-full transition-opacity " + (swatch.locked ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
             style={{ background: withAlpha(fg, 0.16), color: fg }}
-            aria-label="Remove colour"
+            aria-label={swatch.locked ? "Unlock colour (currently kept during randomise)" : "Lock colour (keep during randomise)"}
+            title={swatch.locked ? "Locked — kept when randomising" : "Lock — keep when randomising"}
           >
-            <XIcon />
+            {swatch.locked ? <LockIcon /> : <UnlockIcon />}
           </span>
-        )}
+          {canRemove && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemove()
+              }}
+              className="flex h-5 w-5 items-center justify-center rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+              style={{ background: withAlpha(fg, 0.16), color: fg }}
+              aria-label="Remove colour"
+            >
+              <XIcon />
+            </span>
+          )}
+        </span>
       </div>
       <div>
         <span className="block text-[17px] font-bold leading-tight" style={{ color: fg, fontFamily: "var(--font-display)" }}>
@@ -267,6 +288,16 @@ const PlusIcon = () => (
 const ShuffleIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+  </svg>
+)
+const LockIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+)
+const UnlockIcon = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.6-1.7" />
   </svg>
 )
 const XIcon = () => (

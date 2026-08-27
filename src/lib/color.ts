@@ -1,4 +1,4 @@
-export type Swatch = { id: string; name: string; hex: string }
+export type Swatch = { id: string; name: string; hex: string; locked?: boolean }
 
 export const BRAND = {
   brand: "#20B9FA",
