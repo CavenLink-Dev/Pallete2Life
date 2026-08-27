@@ -25,6 +25,31 @@ type Selection = { group: GroupKey; sub: string }
 
 const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
 
+/* localStorage persistence (best-effort; the app works fine without it) */
+const STORE_KEY = "hueframe:v1"
+function loadStored<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(STORE_KEY)
+    if (!raw) return fallback
+    const data = JSON.parse(raw)
+    return data?.[key] ?? fallback
+  } catch {
+    return fallback
+  }
+}
+function useStored(key: string, value: unknown) {
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORE_KEY)
+      const data = raw ? JSON.parse(raw) : {}
+      data[key] = value
+      localStorage.setItem(STORE_KEY, JSON.stringify(data))
+    } catch {
+      /* storage unavailable — ignore */
+    }
+  }, [key, value])
+}
+
 const initialPalette: Swatch[] = [
   { id: uid(), name: "Primary", hex: BRAND.brand },
   { id: uid(), name: "Secondary", hex: BRAND.charcoal },
@@ -34,23 +59,30 @@ const initialPalette: Swatch[] = [
 const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
 
 export default function App() {
-  const [palette, setPalette] = useState<Swatch[]>(initialPalette)
+  const [palette, setPalette] = useState<Swatch[]>(() => loadStored("palette", initialPalette))
   const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing" })
   const [tplBySub, setTplBySub] = useState<Record<string, string>>({})
-  const [buttonStyle, setButtonStyle] = useState<ButtonStyle>("depth")
-  const [buttonProps, setButtonProps] = useState<ButtonProps>(DEFAULT_BUTTON_PROPS)
+  const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
+  const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
 
   // Edit mode: click any element in a preview to bind it to a palette colour.
   const [editMode, setEditMode] = useState(false)
-  const [assignments, setAssignments] = useState<Record<string, string>>({})
+  const [assignments, setAssignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
   const [assignTarget, setAssignTarget] = useState<{ id: string; label: string } | null>(null)
 
   const theme = useMemo(() => deriveTheme(palette), [palette])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
 
   // Brand assets shown inside previews (logo / app icon), editable via the Brand modal.
-  const [brand, setBrand] = useState<Brand>({ name: "HueFrame", logo: null, symbol: null })
+  const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "HueFrame", logo: null, symbol: null }))
   const [brandOpen, setBrandOpen] = useState(false)
+
+  // Persist the pieces worth keeping across refreshes.
+  useStored("palette", palette)
+  useStored("assignments", assignments)
+  useStored("brand", brand)
+  useStored("buttonStyle", buttonStyle)
+  useStored("buttonProps", buttonProps)
 
   // Full screen preview
   const [fullscreen, setFullscreen] = useState(false)
