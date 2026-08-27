@@ -6,6 +6,26 @@ import type { CSSProperties, ReactNode } from "react"
 /* shared primitives                                                   */
 /* ------------------------------------------------------------------ */
 const Dot = ({ c }: { c: string }) => <span className="h-2.5 w-2.5 rounded-full" style={{ background: c }} />
+
+/* Cross-platform SVG icons (replaces Apple-only SF Symbol glyphs) */
+const ICON_PATHS: Record<string, ReactNode> = {
+  home: <path d="M3 10.5 12 3l9 7.5M5.5 9.5V21h13V9.5" />,
+  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.8-3.8" /></>,
+  activity: <path d="M4 12h3l2.5-6 4 12 2.5-6h4" />,
+  profile: <><circle cx="12" cy="8" r="4" /><path d="M4.5 20.5c1.5-3.5 4.2-5 7.5-5s6 1.5 7.5 5" /></>,
+  create: <path d="M12 5v14M5 12h14" />,
+  inbox: <path d="M3 13h5l1.5 3h5L16 13h5M3 13 5 5h14l2 8v6H3v-6Z" />,
+  battery: <><rect x="2" y="8" width="17" height="8" rx="2" /><path d="M21.5 11v2" /><rect x="4" y="10" width="10" height="4" rx="1" fill="currentColor" stroke="none" /></>,
+  wifi: <path d="M4 10.5a12 12 0 0 1 16 0M7 14a8 8 0 0 1 10 0M10.5 17.3a3.5 3.5 0 0 1 3 0M12 18.5h.01" />,
+  signal: <path d="M5 18v-3M9.5 18v-6M14 18v-9M18.5 18V6" />,
+}
+export function Icon({ name, size = 18 }: { name: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICON_PATHS[name] ?? ICON_PATHS.home}
+    </svg>
+  )
+}
 function Star({ c }: { c: string }) {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill={c}><path d="m12 2 2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.8 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8Z" /></svg>
 }
@@ -198,17 +218,17 @@ export function WebsitePreview({ theme, tpl }: { theme: Theme; tpl: string }) {
 /* MOBILE APP                                                          */
 /* ================================================================== */
 function Phone({ theme, children }: { theme: Theme; children: ReactNode }) {
-  const tabs = [["Home", "􀎟"], ["Search", "􀊫"], ["Activity", "􀍰"], ["Profile", "􀉪"]]
+  const tabs = [["Home", "home"], ["Search", "search"], ["Activity", "activity"], ["Profile", "profile"]]
   return (
     <div className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ background: theme.surface }}>
       <div className="flex w-[300px] flex-col overflow-hidden rounded-[2.4rem] border-[6px] shadow-2xl" style={{ borderColor: theme.ink }}>
         <Editable id="bg" label="App background" prop="background" color={theme.paper} className="flex flex-1 flex-col" style={{ color: theme.ink }}>
-          <div className="flex items-center justify-between px-5 pt-3 text-[11px] font-semibold" style={{ color: theme.inkSoft }}><span>9:41</span><span>􀛨 􀙇 􀺵</span></div>
+          <div className="flex items-center justify-between px-5 pt-3 text-[11px] font-semibold" style={{ color: theme.inkSoft }}><span>9:41</span><span className="flex items-center gap-1"><Icon name="signal" size={12} /><Icon name="wifi" size={12} /><Icon name="battery" size={14} /></span></div>
           <div className="min-h-[420px] flex-1 px-5 pb-3 pt-3">{children}</div>
           <Editable id="navbg" label="Nav bar" prop="background" color={theme.paper} className="flex items-center justify-around border-t px-3 py-2.5" style={{ borderColor: theme.border }}>
             {tabs.map(([t, g], i) => (
               <Editable key={t} id="nav" label="Tab" as="div" color={i === 0 ? theme.accent : theme.inkSoft} className="flex flex-col items-center gap-0.5">
-                <span className="text-lg leading-none">{g}</span><span className="text-[9px] font-semibold">{t}</span>
+                <Icon name={g} size={17} /><span className="text-[9px] font-semibold">{t}</span>
               </Editable>
             ))}
           </Editable>
@@ -331,12 +351,12 @@ export function NavPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
     )
   }
   if (tpl === "bottom") {
-    const tabs = [["Home", "􀎟"], ["Search", "􀊫"], ["Create", "􀁍"], ["Inbox", "􀍰"], ["Profile", "􀉪"]]
+    const tabs = [["Home", "home"], ["Search", "search"], ["Create", "create"], ["Inbox", "inbox"], ["Profile", "profile"]]
     return (
       <div className="flex h-full w-full items-center justify-center overflow-auto rounded-2xl p-6" style={{ background: theme.surface }}>
         <div className="flex w-[300px] flex-col overflow-hidden rounded-[2.4rem] border-[6px] shadow-2xl" style={{ borderColor: theme.ink, background: theme.paper, color: theme.ink }}>
           <div className="min-h-[360px] flex-1 p-5"><p className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Home</p><div className="mt-3 space-y-3">{[1, 2, 3].map((n) => <div key={n} className="rounded-2xl p-4" style={{ background: theme.surface }}><div className="mb-2 h-1.5 w-16 rounded-full" style={{ background: theme.accent }} /><div className="h-2 w-full rounded-full" style={{ background: withAlpha(theme.ink, 0.1) }} /></div>)}</div></div>
-          <div className="flex items-center justify-around border-t px-3 py-3" style={{ borderColor: theme.border }}>{tabs.map(([t, g], i) => <div key={t} className="flex flex-col items-center gap-0.5" style={{ color: i === 0 ? theme.accent : theme.inkSoft }}>{i === 2 ? <span className="flex h-9 w-9 -translate-y-1 items-center justify-center rounded-full text-lg" style={{ background: theme.accent, color: theme.onBrand }}>{g}</span> : <><span className="text-lg leading-none">{g}</span><span className="text-[9px] font-semibold">{t}</span></>}</div>)}</div>
+          <div className="flex items-center justify-around border-t px-3 py-3" style={{ borderColor: theme.border }}>{tabs.map(([t, g], i) => <div key={t} className="flex flex-col items-center gap-0.5" style={{ color: i === 0 ? theme.accent : theme.inkSoft }}>{i === 2 ? <span className="flex h-9 w-9 -translate-y-1 items-center justify-center rounded-full" style={{ background: theme.accent, color: theme.onBrand }}><Icon name={g} size={18} /></span> : <><Icon name={g} size={17} /><span className="text-[9px] font-semibold">{t}</span></>}</div>)}</div>
         </div>
       </div>
     )
