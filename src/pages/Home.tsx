@@ -11,25 +11,18 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero */}
-        <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-8 px-6 pb-16 pt-14 sm:pt-20 lg:flex-row lg:items-center lg:gap-12 lg:pb-24 lg:pt-24">
+        <section className="mx-auto flex w-full max-w-6xl flex-col items-center gap-10 px-6 pb-20 pt-20 sm:pt-28 lg:flex-row lg:items-center lg:gap-16 lg:pb-28 lg:pt-32">
           <div className="flex-1">
-            <span
-              className="inline-flex items-center gap-2 rounded-full border border-softgrey bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-charcoal/60"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.brand }} />
-              No account needed to try
-            </span>
             <h1
-              className="mt-5 text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
+              className="text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
               See your colours on a <span style={{ color: BRAND.brand }}>real</span> website, app and buttons.
             </h1>
-            <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
-              Pallet Preview lets you build a colour palette and instantly test it on landing pages, mobile apps, buttons, cards and forms. Change a colour and every design updates the moment you touch it — no design experience needed.
+            <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
+              Build a colour palette and instantly test it on landing pages, mobile apps, buttons, cards and forms.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
                 href="/builder"
                 onClick={nav("/builder")}
@@ -47,13 +40,9 @@ export default function Home() {
                 className="inline-flex items-center gap-2 rounded-xl border-2 bg-white px-5 py-3 text-[15px] font-semibold transition-colors hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
                 style={{ borderColor: BRAND.brand, color: BRAND.brandDark }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" />
-                </svg>
                 Unlock Pro
               </a>
             </div>
-            <p className="mt-4 text-[13px] text-charcoal/45">5 free previews · no card needed to start · your palette stays on your device.</p>
           </div>
 
           {/* Hero mock */}
@@ -63,8 +52,8 @@ export default function Home() {
         </section>
 
         {/* Steps */}
-        <section className="border-y border-softgrey bg-white px-6 py-14 sm:py-16">
-          <div className="mx-auto grid max-w-6xl gap-6 sm:grid-cols-3">
+        <section className="border-y border-softgrey bg-white px-6 py-16 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
             <Step n={1} title="Choose your colours" body="Pick a palette or randomise one. Lock the colours you love and keep exploring the rest." />
             <Step n={2} title="Choose what to preview" body="Landing pages, mobile app screens, buttons, cards, forms — one click swaps the whole preview." />
             <Step n={3} title="Click elements to customise" body="Turn on Edit Mode and click any button, heading or background to reassign its colour." />
@@ -72,14 +61,14 @@ export default function Home() {
         </section>
 
         {/* What you can preview */}
-        <section className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
+        <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
             One palette, tested across everything you build
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-            Real, interactive previews of the surfaces your users actually see — not swatches on a card.
+            Real, interactive previews of the surfaces your users actually see.
           </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Tile label="Websites" desc="Landing pages, SaaS, e-commerce, sign-in, paywall." />
             <Tile label="Mobile apps" desc="Dashboards, feeds, profile screens, sign-up flows." />
             <Tile label="Buttons" desc="Flat, 3D, Elevated, Outline, Glass and Gradient styles." />
@@ -90,14 +79,11 @@ export default function Home() {
         </section>
 
         {/* CTA */}
-        <section className="border-t border-softgrey bg-white px-6 py-14 text-center sm:py-16">
+        <section className="border-t border-softgrey bg-white px-6 py-20 text-center sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
             Ready to see your colours in action?
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-[15px] text-charcoal/65">
-            No account. No install. Just paint your ideas and watch them come to life.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
               href="/builder"
               onClick={nav("/builder")}
