@@ -1,0 +1,14 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const errors = [];
+const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
+page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0,200)) });
+page.on('pageerror', e => errors.push('PAGEERROR: ' + String(e).slice(0,200)));
+await page.goto('http://localhost:4173', { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+await page.screenshot({ path: '/tmp/hueframe-desktop.png' });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(600);
+await page.screenshot({ path: '/tmp/hueframe-mobile.png' });
+console.log('console errors:', errors.length ? errors : 'none');
+await b.close();
