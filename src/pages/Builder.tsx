@@ -41,6 +41,28 @@ type Selection = { group: GroupKey; sub: string }
 
 const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
 
+/* Contextual colour roles per preview. Left aligned to palette index; extra
+ * swatches keep their custom name. Buttons use STYLE_META (per style). */
+const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
+  // Websites
+  "website/landing":  ["Page Background", "Surface", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "website/saas":     ["Page Background", "Surface", "Brand Primary", "Accent", "Heading Text", "Body Text"],
+  "website/ecom":     ["Page Background", "Surface", "Brand Primary", "Sale Accent", "Heading Text", "Body Text"],
+  "website/signin":   ["Page Background", "Card", "Brand Primary", "Input Border", "Heading Text", "Body Text"],
+  "website/paywall":  ["Page Background", "Card", "Brand Primary", "Highlight", "Heading Text", "Body Text"],
+  // Mobile
+  "mobile/standard":  ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/dashboard": ["App Background", "Card", "Brand Primary", "Chart Accent", "Heading Text", "Muted Text"],
+  "mobile/cards":     ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  "mobile/profile":   ["App Background", "Card", "Brand Primary", "Accent", "Heading Text", "Muted Text"],
+  // Components (non-button)
+  "components/cards":      ["Card Background", "Card Border", "Heading Text", "Body Text", "Accent"],
+  "components/forms":      ["Form Background", "Input Fill", "Input Border", "Label Text", "Primary Button"],
+  "components/nav":        ["Nav Background", "Nav Text", "Active", "Divider"],
+  "components/typography": ["Background", "Heading", "Body", "Muted", "Accent"],
+}
+
+
 /* localStorage persistence */
 const STORE_KEY = "hueframe:v1"
 function loadStored<T>(key: string, fallback: T): T {
@@ -236,7 +258,9 @@ export default function Builder() {
 
   const selectTpl = (key: string) => setTplBySub((m) => ({ ...m, [sel.sub]: key }))
 
-  const roleLabels = isButton ? STYLE_META[buttonStyle].roles.map((r) => r.part) : undefined
+  const roleLabels: (string | null)[] | undefined = isButton
+    ? STYLE_META[buttonStyle].roles.map((r) => r.part)
+    : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
 
   const ctx: PreviewCtxValue = {
     editMode,
@@ -309,7 +333,7 @@ export default function Builder() {
       </section>
 
       {/* ================= Row 3: main tools ================= */}
-      <section className="shrink-0 border-b border-softgrey/70 bg-white/80 px-2 py-1.5 backdrop-blur sm:px-4" aria-label="Design tools">
+      <section className="shrink-0 border-b border-softgrey/70 bg-offwhite px-2 py-1.5 sm:px-4" aria-label="Design tools">
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <ToolButton
             onClick={() => setPreviewPickerOpen(true)}
@@ -390,18 +414,18 @@ export default function Builder() {
       </section>
 
       {/* ================= Preview (large, immersive) ================= */}
-      <main className="relative min-h-0 flex-1 overflow-hidden bg-offwhite p-2 sm:p-3">
+      <main className="relative min-h-0 flex-1 overflow-hidden bg-[#171616] p-4 sm:p-6">
         <div className="h-full w-full" style={{ filter: cbFilter }}>
           <PreviewProvider value={ctx}>
             {isButton ? (
-              <div className="h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white">
+              <div className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
                 <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
               </div>
             ) : (
               <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
                 <div
                   key={sel.sub + tpl}
-                  className="animate-pop-in relative h-full w-full overflow-hidden rounded-xl border border-softgrey/70 bg-white"
+                  className="animate-pop-in relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]"
                 >
                   {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
                 </div>
