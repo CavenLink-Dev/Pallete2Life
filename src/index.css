@@ -98,6 +98,18 @@ body {
   box-shadow: 0 1px 4px rgba(14, 24, 33, 0.45);
 }
 
+.palette-card-size {
+  width: 204px;
+  height: 120px;
+}
+
+@media (min-width: 640px) {
+  .palette-card-size {
+    width: clamp(184px, calc((100vw - 233px) / 6), 228px);
+    height: 136px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

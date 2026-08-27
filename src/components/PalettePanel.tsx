@@ -45,7 +45,7 @@ type Props = {
   rightSlot?: ReactNode
 }
 
-const CARD_SIZE = "h-[108px] w-[196px] sm:h-[116px] sm:w-[212px]"
+const CARD_SIZE = "palette-card-size"
 
 export default function PalettePanel({
   palette,
@@ -121,11 +121,11 @@ export default function PalettePanel({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="min-w-0 flex-1 overflow-x-auto px-0.5 py-1.5">
+    <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="min-w-0 flex-1 overflow-x-auto px-0.5 py-2">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={dragStart} onDragCancel={() => setDragId(null)} onDragEnd={dragEnd}>
           <SortableContext items={palette.map((item) => item.id)} strategy={horizontalListSortingStrategy}>
-            <div className="flex min-w-max items-stretch gap-3">
+            <div className="flex min-w-max snap-x snap-proximity items-stretch gap-3">
               {palette.map((swatch, index) => (
                 <SortableCard
                   key={swatch.id}
@@ -143,10 +143,10 @@ export default function PalettePanel({
                 type="button"
                 onClick={onAdd}
                 aria-label="Add colour"
-                className={`${CARD_SIZE} group flex shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-charcoal/20 bg-white text-charcoal/55 transition-[border-color,color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-charcoal/40 hover:text-charcoal hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2`}
+                className={`${CARD_SIZE} group flex shrink-0 snap-start flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-charcoal/20 bg-white text-charcoal/55 transition-[border-color,color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-charcoal/40 hover:text-charcoal hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2`}
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-offwhite transition-colors group-hover:bg-softgrey/70"><PlusIcon /></span>
-                <span className="text-[11px] font-bold uppercase">Add colour</span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-offwhite transition-colors group-hover:bg-softgrey/70"><PlusIcon /></span>
+                <span className="text-xs font-bold uppercase">Add colour</span>
               </button>
             </div>
           </SortableContext>
@@ -224,7 +224,7 @@ function SortableCard({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className={`${CARD_SIZE} group relative shrink-0`}>
+    <div ref={setNodeRef} style={style} className={`${CARD_SIZE} group relative shrink-0 snap-start`}>
       <button
         type="button"
         {...attributes}
@@ -242,12 +242,11 @@ function SortableCard({
         }}
         aria-label={`${role ?? swatch.name}, ${swatch.hex}. Open colour picker or drag to reorder.`}
         aria-expanded={selected}
-        className="h-full w-full cursor-grab overflow-hidden rounded-xl bg-white text-left active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        className="h-full w-full cursor-grab overflow-hidden rounded-lg bg-white text-left active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         style={{
           boxShadow: selected
             ? `0 0 0 2px ${brand}, 0 8px 22px ${withAlpha("#0E1821", 0.12)}`
-            : `inset 0 0 0 1px ${withAlpha("#0E1821", 0.1)}, 0 3px 10px ${withAlpha("#0E1821", 0.06)}`,
-          touchAction: "none",
+            : `inset 0 0 0 1px ${withAlpha("#0E1821", 0.1)}, 0 4px 14px ${withAlpha("#0E1821", 0.07)}`,
         }}
       >
         <CardFace swatch={swatch} role={role} />
@@ -258,7 +257,7 @@ function SortableCard({
         onClick={(event) => { event.stopPropagation(); onToggleLock() }}
         aria-label={swatch.locked ? `Unlock ${role ?? swatch.name}` : `Lock ${role ?? swatch.name}`}
         aria-pressed={Boolean(swatch.locked)}
-        className={`absolute left-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full border transition-[background-color,color,border-color,transform] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${swatch.locked ? "border-white bg-white text-charcoal shadow-sm" : "border-white/45 bg-charcoal/20 text-white backdrop-blur-sm hover:bg-charcoal/35"}`}
+        className={`absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border transition-[background-color,color,border-color,transform] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${swatch.locked ? "border-white bg-white text-charcoal shadow-sm" : "border-white/50 bg-charcoal/20 text-white backdrop-blur-sm hover:bg-charcoal/35"}`}
         title={swatch.locked ? "Unlock colour" : "Lock colour for Randomise"}
       >
         {swatch.locked ? <LockIcon /> : <UnlockIcon />}
@@ -269,7 +268,7 @@ function SortableCard({
           type="button"
           onClick={(event) => { event.stopPropagation(); onRemove() }}
           aria-label={`Delete ${role ?? swatch.name}`}
-          className="absolute right-2.5 top-2.5 z-10 hidden h-7 w-7 items-center justify-center rounded-full border border-white/70 bg-white/95 text-charcoal opacity-0 shadow-sm transition-[opacity,transform,color] hover:scale-105 hover:text-[#C22F2F] focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
+          className="absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/95 text-charcoal opacity-0 shadow-sm transition-[opacity,transform,color] hover:scale-105 hover:text-[#C22F2F] focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
           title="Delete colour"
         >
           <CloseIcon />
@@ -281,12 +280,12 @@ function SortableCard({
 
 function CardFace({ swatch, role, dragging = false }: { swatch: Swatch; role: string | null; dragging?: boolean }) {
   return (
-    <span className={`${CARD_SIZE} flex flex-col overflow-hidden rounded-xl bg-white ${dragging ? "rotate-1 shadow-2xl" : ""}`} aria-hidden={dragging || undefined}>
+    <span className={`${CARD_SIZE} flex flex-col overflow-hidden rounded-lg bg-white ${dragging ? "rotate-1 shadow-2xl" : ""}`} aria-hidden={dragging || undefined}>
       <span className="min-h-0 flex-1" style={{ background: swatch.hex }} />
-      <span className="flex h-[46px] shrink-0 items-center justify-between gap-3 px-3.5">
+      <span className="flex h-[52px] shrink-0 items-center justify-between gap-3 px-4">
         <span className="min-w-0">
-          <span className="block truncate text-[9px] font-bold uppercase text-charcoal/50" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</span>
-          <span className="mt-0.5 block text-[13px] font-bold text-charcoal" style={{ fontFamily: "var(--font-mono)" }}>{swatch.hex.toUpperCase()}</span>
+          <span className="block truncate text-[10px] font-bold uppercase text-charcoal/50" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</span>
+          <span className="mt-1 block text-[15px] font-bold text-charcoal" style={{ fontFamily: "var(--font-mono)" }}>{swatch.hex.toUpperCase()}</span>
         </span>
         <DragDotsIcon />
       </span>
@@ -418,7 +417,7 @@ function ColorEditor({
             />
             <datalist id="palette-role-suggestions">{ROLE_SUGGESTIONS.map((suggestion) => <option key={suggestion} value={suggestion} />)}</datalist>
           </label>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-3">
             <ReadField label="RGB" value={rgbString(swatch.hex)} />
             <ReadField label="HSL" value={hslString(swatch.hex)} />
           </div>
@@ -426,12 +425,12 @@ function ColorEditor({
             <ContrastBadge fg="#FFFFFF" bg={swatch.hex} label="White" />
             <ContrastBadge fg="#0E1821" bg={swatch.hex} label="Dark" />
           </div>
-          <div className="mt-3 flex gap-2 border-t border-softgrey pt-3">
-            <button type="button" onClick={onToggleLock} className={`flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold ${swatch.locked ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/70 hover:border-charcoal/30"}`}>
+          <div className="mt-4 flex gap-2 border-t border-softgrey pt-3">
+            <button type="button" onClick={onToggleLock} className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${swatch.locked ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/70 hover:border-charcoal/30"}`}>
               {swatch.locked ? <LockIcon /> : <UnlockIcon />}{swatch.locked ? "Locked" : "Lock"}
             </button>
-            {canRemove && <button type="button" onClick={onRemove} className="h-9 rounded-lg border border-softgrey px-3 text-xs font-semibold text-charcoal/60 hover:text-[#C22F2F]">Delete</button>}
-            <button type="button" onClick={onClose} className="ml-auto h-9 rounded-lg bg-charcoal px-4 text-xs font-semibold text-white">Done</button>
+            {canRemove && <button type="button" onClick={onRemove} className="h-10 rounded-lg border border-softgrey px-3 text-xs font-semibold text-charcoal/60 hover:border-[#C22F2F]/30 hover:text-[#C22F2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C22F2F] focus-visible:ring-offset-2">Delete</button>}
+            <button type="button" onClick={onClose} className="ml-auto h-10 rounded-lg bg-charcoal px-4 text-xs font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-charcoal focus-visible:ring-offset-2">Done</button>
           </div>
         </div>
       )}
