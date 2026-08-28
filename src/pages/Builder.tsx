@@ -486,7 +486,6 @@ export default function Builder() {
 
         {/* ================= Properties sidebar (always visible) ================= */}
         <PropertiesPanel
-          brandName={brand.name}
           brandColor={BRAND.brand}
           onRandomize={randomize}
           onUndo={undo}
@@ -503,7 +502,6 @@ export default function Builder() {
           onDuplicate={() => toast.push("Select an element to duplicate")}
           hasSelection={false}
           hasClipboard={false}
-          roles={roleLabels?.filter((r): r is string => Boolean(r)) ?? []}
           onSelectRole={() => toast.push("Select a role from a preview element")}
           onCreateRole={() => toast.push("Create a custom role — coming soon")}
           onRemoveRole={() => toast.push("Remove a role — coming soon")}
@@ -538,11 +536,6 @@ export default function Builder() {
           onFullscreen={() => setFullscreen(true)}
           onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
-          palette={palette}
-          onSwatchClick={(id: string) => {
-            const idx = palette.findIndex((s) => s.id === id)
-            if (idx >= 0) { setSelectedSwatchIndex(idx); setColorEditorOpen(true) }
-          }}
         />
       </div>{/* /main area flex row */}
 
