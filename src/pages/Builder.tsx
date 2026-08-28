@@ -363,7 +363,10 @@ export default function Builder() {
       {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
 
       {/* ================= Row 2: palette bar + Change Template trigger ================= */}
-      <section className="flex shrink-0 items-center gap-3 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
+      {/* The right column is 369px wide (matches the Properties sidebar
+       * below) so the Change Format card sits centered in the same lane
+       * as the sidebar instead of hugging the viewport edge. */}
+      <section className="flex shrink-0 items-center gap-3 border-b border-softgrey/70 bg-white pl-3 pr-0 py-2 sm:pl-5">
         <div className="min-w-0 flex-1">
           <PalettePanel
             palette={palette}
@@ -378,6 +381,7 @@ export default function Builder() {
             roleLabels={roleLabels}
           />
         </div>
+        <div className="flex w-[369px] shrink-0 justify-center px-3">
         <ChangeTemplatePanel
           open={templatePopoverOpen}
           onToggle={() => setTemplatePopoverOpen((v) => !v)}
@@ -401,6 +405,7 @@ export default function Builder() {
             if (match) trySelectPreview({ group: sel.group, sub: match.key })
           }}
         />
+        </div>
       </section>
 
       {/* Design tools row removed — Edit Elements, Brand and Export now live in the Properties sidebar */}
