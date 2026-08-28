@@ -130,6 +130,9 @@ export default function Builder() {
   const [roleMapSource, setRoleMapSource] = useState("Page Background")
   const [roleMapTarget, setRoleMapTarget] = useState("Brand Primary")
 
+  // Change Template popover
+  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false)
+
   // Undo / Redo
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
@@ -330,8 +333,8 @@ export default function Builder() {
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
       {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
 
-      {/* ================= Row 2: palette bar + Change Template panel ================= */}
-      <section className="flex shrink-0 items-start gap-3 border-b border-softgrey/70 bg-white px-3 py-3 sm:px-5">
+      {/* ================= Row 2: palette bar + Change Template trigger ================= */}
+      <section className="flex shrink-0 items-center gap-3 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
         <div className="min-w-0 flex-1">
           <PalettePanel
             palette={palette}
@@ -347,6 +350,9 @@ export default function Builder() {
           />
         </div>
         <ChangeTemplatePanel
+          open={templatePopoverOpen}
+          onToggle={() => setTemplatePopoverOpen((v) => !v)}
+          onClose={() => setTemplatePopoverOpen(false)}
           template={currentGroup.label}
           templates={GROUPS.map((g) => g.label)}
           onTemplate={(t: string) => {
