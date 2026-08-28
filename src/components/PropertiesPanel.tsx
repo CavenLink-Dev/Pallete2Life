@@ -54,41 +54,15 @@ const DISPLAY_FONT = { fontFamily: `"Inter", Geist, ui-sans-serif, system-ui, sa
 export default function PropertiesPanel(p: Props) {
   return (
     <aside
-      className="flex h-full w-[369px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-[#e5e7eb] bg-white px-4 pb-4 pt-3 text-[#111827]"
+      className="relative flex h-full w-[369px] shrink-0 flex-col border-l border-[#e5e7eb] bg-white text-[#111827]"
       aria-label="Palette Preview properties"
       style={UI_FONT}
     >
-      {/* Wordmark */}
-      <div className="mb-1 flex items-center justify-end gap-2">
-        <img src="/app-icon-64.png" alt="" width={28} height={28} className="h-7 w-7 rounded-md" />
-        <p className="text-[22px] font-extrabold tracking-tight" style={DISPLAY_FONT}>
-          Palette <span style={{ color: "#1f9eff" }}>Preview</span>
-        </p>
-      </div>
-      <div className="h-px w-full bg-[#ccccce]" />
-
-      {/* Randomise + Undo/Save/Redo cluster */}
-      <div className="mt-1 flex items-center justify-center">
-        <button
-          type="button"
-          onClick={p.onRandomize}
-          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[12.8px] bg-[#0e1821] px-4 text-white shadow-sm transition-colors hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <DiceIcon />
-          <span className="text-[18px] font-semibold" style={UI_FONT}>Randomise</span>
-        </button>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <PillBtn onClick={p.onUndo} disabled={!p.canUndo} label="Undo" icon={<UndoIcon />} />
-        <PillBtn onClick={p.onSave} label="Save" icon={<SaveIcon />} />
-        <PillBtn onClick={p.onRedo} disabled={!p.canRedo} label="Redo" icon={<RedoIcon />} />
-      </div>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      {/* PROPERTIES header */}
+      {/* Scrolling body */}
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 pt-4">
+      {/* PROPERTIES header (top of sidebar — logo removed) */}
       <div className="flex items-center justify-between">
-        <h2 className="text-[26px] font-bold tracking-tight text-[#515357]" style={DISPLAY_FONT}>PROPERTIES</h2>
+        <h2 className="text-[24px] font-bold tracking-tight text-[#515357]" style={DISPLAY_FONT}>PROPERTIES</h2>
         <button
           type="button"
           onClick={p.onHelp}
@@ -251,6 +225,29 @@ export default function PropertiesPanel(p: Props) {
           <DownloadIcon /> Export Assets
         </button>
       </Section>
+      </div>
+
+      {/* Sticky footer: Randomise + Undo/Save/Redo (was previously at the sidebar top) */}
+      <div className="shrink-0 border-t border-[#e5e7eb] bg-white p-3">
+        <button
+          type="button"
+          onClick={p.onRandomize}
+          className="flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#0e1821] px-4 text-white shadow-sm transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+        >
+          <DiceIcon />
+          <span className="text-[15px] font-semibold" style={UI_FONT}>Randomise</span>
+        </button>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          <PillBtn onClick={p.onUndo} disabled={!p.canUndo} label="Undo" icon={<UndoIcon />} />
+          <PillBtn onClick={p.onSave} label="Save" icon={<SaveIcon />} />
+          <PillBtn onClick={p.onRedo} disabled={!p.canRedo} label="Redo" icon={<RedoIcon />} />
+        </div>
+      </div>
+
+      {/* Tiny brand mark tucked at the very bottom, subdued */}
+      <div className="shrink-0 border-t border-[#e5e7eb] bg-white px-4 py-2 text-right">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]" style={UI_FONT}>Palette Preview</span>
+      </div>
     </aside>
   )
 }
@@ -398,7 +395,7 @@ function PillBtn({ label, icon, onClick, disabled }: { label: string; icon: Reac
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-[46px] items-center justify-center gap-2 rounded-[14.4px] border-[1.5px] border-[#818181] bg-white px-3 text-[15px] font-bold text-black/65 transition-colors hover:text-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-[36px] items-center justify-center gap-1.5 rounded-[8px] border border-[#d7d9dd] bg-white px-2 text-[12px] font-semibold text-[#4b5563] transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
       aria-label={label}
       title={label}
       style={DISPLAY_FONT}
