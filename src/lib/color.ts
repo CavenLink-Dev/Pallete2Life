@@ -162,18 +162,18 @@ export function deriveTheme(palette: Swatch[], roleLabels?: (string | null)[]) {
   const at = (index: number, fallback: string) => entries[index]?.hex ?? fallback
   const byRole = (...roles: string[]) => entries.find((entry) => roles.includes(entry.role))?.hex
 
-  const paper = byRole("page background", "app background", "form background", "card background", "nav background", "background")
+  const paper = byRole("page background", "app background", "form background", "card background", "nav background", "canvas background", "chart background", "background")
     ?? at(0, BRAND.white)
   const surfaceFallback = shade(paper, luminance(paper) > 0.5 ? -0.04 : 0.06)
-  const surface = byRole("secondary background", "input fill", "surface", "card")
+  const surface = byRole("secondary background", "input fill", "surface", "card", "grid lines", "success accent", "secondary series")
     ?? (hasRoles ? surfaceFallback : at(1, surfaceFallback))
-  const accent = byRole("brand primary", "sale accent", "chart accent", "primary button", "active", "accent")
+  const accent = byRole("brand primary", "sale accent", "chart accent", "primary button", "primary series", "warning accent", "active", "accent")
     ?? (hasRoles ? BRAND.brand : at(2, BRAND.brand))
   const ink = byRole("heading text", "heading", "nav text", "label text")
     ?? (hasRoles ? readableOn(paper) : at(3, readableOn(paper)))
   const body = byRole("body text", "body", "muted text", "caption")
     ?? (hasRoles ? ink : at(4, ink))
-  const border = byRole("input border", "card border", "border", "divider", "outline")
+  const border = byRole("input border", "card border", "error accent", "border", "divider", "outline")
     ?? withAlpha(ink, 0.12)
 
   return {

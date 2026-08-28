@@ -57,6 +57,8 @@ const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
   "components/cards":      ["Card Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Card Border"],
   "components/forms":      ["Form Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Input Border"],
   "components/nav":        ["Nav Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Divider"],
+  "components/states":     ["Canvas Background", "Success Accent", "Warning Accent", "Heading Text", "Body Text", "Error Accent"],
+  "components/charts":     ["Chart Background", "Grid Lines", "Primary Series", "Heading Text", "Body Text", "Secondary Series"],
   "components/typography": ["Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
 }
 

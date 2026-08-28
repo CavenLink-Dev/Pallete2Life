@@ -337,6 +337,124 @@ export function FormsPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
   )
 }
 
+export function StatesPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
+  const compact = tpl === "compact"
+  const states = [
+    { label: "Success", title: "Saved and synced", body: "Your palette is ready to use.", color: theme.secondary },
+    { label: "Warning", title: "Contrast needs review", body: "Try a darker text colour here.", color: theme.accent },
+    { label: "Error", title: "Export failed", body: "Check the file format and try again.", color: theme.border },
+  ]
+
+  return (
+    <div className="h-full w-full overflow-auto rounded-2xl p-8" style={{ background: theme.paper, color: theme.ink }}>
+      <div className="mx-auto max-w-3xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: theme.accent }}>Status system</p>
+            <h1 className="mt-2 text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>See how support colours behave.</h1>
+          </div>
+          <PreviewButton id="cta" text="Resolve all" size="sm" />
+        </div>
+        <div className={compact ? "mt-7 grid gap-3" : "mt-7 grid gap-4 md:grid-cols-3"}>
+          {states.map((state) => (
+            <Editable
+              key={state.label}
+              id={`state-${state.label}`}
+              label={`${state.label} state`}
+              prop="background"
+              color={theme.surface}
+              className="rounded-2xl border p-4"
+              style={{ borderColor: withAlpha(state.color, 0.35), boxShadow: `inset 4px 0 0 ${state.color}` }}
+            >
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold" style={{ background: state.color, color: readableOn(state.color) }}>
+                {state.label[0]}
+              </span>
+              <h2 className="mt-4 text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>{state.title}</h2>
+              <p className="mt-1 text-sm leading-relaxed" style={{ color: theme.inkSoft }}>{state.body}</p>
+            </Editable>
+          ))}
+        </div>
+        <div className="mt-5 rounded-2xl border p-4" style={{ borderColor: theme.border, background: theme.surface }}>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>Empty state</p>
+            <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ background: withAlpha(theme.accent, 0.12), color: theme.accent }}>Accessible</span>
+          </div>
+          <div className="rounded-xl border border-dashed p-6 text-center" style={{ borderColor: theme.border }}>
+            <BrandSymbol color={theme.accent} size={42} rounded={12} />
+            <p className="mt-3 text-sm font-semibold">No saved palettes yet</p>
+            <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed" style={{ color: theme.inkSoft }}>Create a palette, test the roles, then save the combination that still reads clearly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ChartsPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
+  const rows = [
+    ["Website UI", "92", theme.accent],
+    ["Mobile app", "78", theme.secondary],
+    ["Navigation", "64", theme.inkSoft],
+    ["Buttons", "86", theme.accent],
+  ]
+
+  if (tpl === "summary") {
+    return (
+      <div className="h-full w-full overflow-auto rounded-2xl p-8" style={{ background: theme.surface, color: theme.ink }}>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[["Contrast score", "94%"], ["Roles used", "6"], ["Ready views", "12"]].map(([label, value], index) => (
+            <Editable key={label} id={`metric-${label}`} label={label} prop="background" color={theme.paper} className="rounded-2xl p-5" style={{ boxShadow: `0 8px 24px ${withAlpha(theme.ink, 0.08)}` }}>
+              <p className="text-xs" style={{ color: theme.inkSoft }}>{label}</p>
+              <p className="mt-2 text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: index === 1 ? theme.secondary : theme.accent }}>{value}</p>
+            </Editable>
+          ))}
+        </div>
+        <Editable id="chart-card" label="Chart card" prop="background" color={theme.paper} className="mt-4 rounded-2xl p-6" style={{ boxShadow: `0 8px 24px ${withAlpha(theme.ink, 0.08)}` }}>
+          <h2 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Palette fit by surface</h2>
+          <div className="mt-5 space-y-4">
+            {rows.map(([label, value, color]) => (
+              <div key={label}>
+                <div className="mb-1 flex justify-between text-xs font-semibold" style={{ color: theme.inkSoft }}><span>{label}</span><span>{value}%</span></div>
+                <div className="h-3 rounded-full" style={{ background: withAlpha(theme.ink, 0.08) }}>
+                  <div className="h-3 rounded-full" style={{ width: `${value}%`, background: color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Editable>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full w-full overflow-auto rounded-2xl p-8" style={{ background: theme.paper, color: theme.ink }}>
+      <div className="mx-auto max-w-3xl rounded-2xl p-6" style={{ background: theme.surface }}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)" }}>Usage by preview type</h1>
+            <p className="text-sm" style={{ color: theme.inkSoft }}>Check data colours, grid lines and labels together.</p>
+          </div>
+          <div className="flex gap-2 text-xs font-semibold" style={{ color: theme.inkSoft }}>
+            <span><Dot c={theme.accent} /> Primary</span>
+            <span><Dot c={theme.secondary} /> Secondary</span>
+          </div>
+        </div>
+        <div className="mt-8 grid h-56 grid-cols-4 items-end gap-5 border-b border-l px-5 pb-0" style={{ borderColor: theme.border }}>
+          {[70, 44, 88, 62].map((height, index) => (
+            <div key={index} className="flex h-full items-end gap-1.5">
+              <span className="flex-1 rounded-t-lg" style={{ height: `${height}%`, background: index % 2 ? theme.secondary : theme.accent }} />
+              <span className="flex-1 rounded-t-lg" style={{ height: `${Math.max(24, height - 22)}%`, background: withAlpha(index % 2 ? theme.accent : theme.secondary, 0.45) }} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-5 px-5 text-center text-[11px] font-semibold" style={{ color: theme.inkSoft }}>
+          {["Web", "App", "Nav", "Data"].map((label) => <span key={label}>{label}</span>)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function NavPreview({ theme, tpl }: { theme: Theme; tpl: string }) {
   if (tpl === "sidebar") {
     const items = ["Dashboard", "Projects", "Messages", "Reports", "Settings"]
@@ -422,6 +540,8 @@ export const GROUPS: Group[] = [
       { key: "cards", label: "Cards", templates: [{ key: "elevated", label: "Elevated", layout: "cards" }, { key: "simple", label: "Simple", layout: "cards" }, { key: "outlined", label: "Outlined", layout: "cards" }] },
       { key: "forms", label: "Forms", templates: [{ key: "card", label: "Card Form", layout: "card" }, { key: "minimal", label: "Minimal", layout: "form" }] },
       { key: "nav", label: "Navigation", templates: [{ key: "topbar", label: "Top Bar", layout: "topbar" }, { key: "sidebar", label: "Sidebar", layout: "sidebar" }, { key: "bottom", label: "Bottom Nav", layout: "phone" }] },
+      { key: "states", label: "Status States", templates: [{ key: "cards", label: "Cards", layout: "states" }, { key: "compact", label: "Compact", layout: "states" }] },
+      { key: "charts", label: "Charts", templates: [{ key: "bars", label: "Bar Chart", layout: "chart" }, { key: "summary", label: "Summary", layout: "chart" }] },
       { key: "typography", label: "Typography", templates: [{ key: "modern", label: "Modern", layout: "type" }, { key: "friendly", label: "Friendly", layout: "type" }, { key: "professional", label: "Professional", layout: "type" }, { key: "editorial", label: "Editorial", layout: "type" }] },
     ],
   },
@@ -434,6 +554,8 @@ export function renderComponentPreview(group: GroupKey, sub: string, tpl: string
   if (sub === "cards") return <CardsPreview theme={theme} tpl={tpl} />
   if (sub === "forms") return <FormsPreview theme={theme} tpl={tpl} />
   if (sub === "nav") return <NavPreview theme={theme} tpl={tpl} />
+  if (sub === "states") return <StatesPreview theme={theme} tpl={tpl} />
+  if (sub === "charts") return <ChartsPreview theme={theme} tpl={tpl} />
   if (sub === "typography") return <TypographyPreview theme={theme} tpl={tpl} />
   return null
 }
@@ -454,6 +576,8 @@ export function TemplateThumb({ theme, layout }: { theme: Theme; layout: string 
     case "topbar": return wrap(theme.surface, <><div className="flex items-center gap-1 rounded p-1" style={{ background: theme.paper }}>{b(theme.ink, 10, 3)}{b(theme.accent, 8, 3)}</div><div className="flex-1" /></>)
     case "cards": return wrap(theme.surface, <div className="grid flex-1 grid-cols-2 gap-1">{[0, 1].map((i) => <div key={i} className="rounded p-1" style={{ background: theme.paper }}>{b(theme.accent, "60%", 3)}</div>)}</div>)
     case "form": return wrap(theme.surface, <div className="m-auto flex w-3/4 flex-col gap-1.5">{b(theme.inkFaint, "100%", 4)}{b(theme.inkFaint, "100%", 4)}{b(theme.accent, "100%", 4)}</div>)
+    case "states": return wrap(theme.paper, <div className="grid flex-1 grid-cols-2 gap-1">{[theme.secondary, theme.accent, theme.border, theme.surface].map((c, i) => <div key={i} className="rounded p-1" style={{ background: theme.surface, boxShadow: `inset 2px 0 0 ${c}` }}>{b(c, 6, 6, 999)}</div>)}</div>)
+    case "chart": return wrap(theme.surface, <div className="flex flex-1 items-end gap-1 border-b border-l p-1" style={{ borderColor: theme.border }}>{[55, 80, 45, 70].map((h, i) => <span key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, background: i % 2 ? theme.secondary : theme.accent }} />)}</div>)
     case "type": return wrap(theme.paper, <div className="flex flex-1 flex-col justify-center"><span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 20, color: theme.ink }}>Aa</span>{b(theme.inkFaint, "70%", 3)}</div>)
     default: return wrap(theme.paper, <div className="flex-1" />)
   }

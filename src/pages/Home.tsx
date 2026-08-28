@@ -17,10 +17,10 @@ export default function Home() {
               className="text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Create a palette for free. Preview it when you are ready.
+              Pick colours once. Preview them everywhere.
             </h1>
             <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
-              Generate, edit and export your colours without limits, then apply them to websites, mobile apps and components.
+              Build a simple palette with main, secondary, tertiary and support colours, then see how those roles shift across websites, mobile apps, buttons, navigation and more.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
@@ -54,34 +54,36 @@ export default function Home() {
         {/* Steps */}
         <section className="border-y border-softgrey bg-white px-6 py-16 sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
-            <Step n={1} title="Create your palette" body="Randomise, edit and lock colours in the free Palette Generator." />
-            <Step n={2} title="Export your colours" body="Copy HEX, RGB or HSL values, or download the palette whenever you need it." />
-            <Step n={3} title="Preview the result" body="Apply your palette to a website, mobile app or component when you want real-world context." />
+            <Step n={1} title="Choose colour roles" body="Start with main, secondary, tertiary, surface and text colours, then rename them to match your project." />
+            <Step n={2} title="Test real interfaces" body="Apply the same palette to pages, buttons, nav bars, app screens, forms, alerts and charts." />
+            <Step n={3} title="Keep it readable" body="Use simple previews and accessible contrast checks before you export the colours." />
           </div>
         </section>
 
         {/* What you can preview */}
         <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            One palette, tested across everything you build
+            One palette, many useful branches
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-            Real, interactive previews of the surfaces your users actually see.
+            The same colours do different jobs depending on the surface. Try each branch before deciding.
           </p>
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Tile label="Websites" desc="Landing pages, SaaS, e-commerce, sign-in, paywall." />
             <Tile label="Mobile apps" desc="Dashboards, feeds, profile screens, sign-up flows." />
             <Tile label="Buttons" desc="Flat, 3D, Elevated, Outline, Glass and Gradient styles." />
-            <Tile label="Cards & lists" desc="Product tiles, pricing tables, invoice rows." />
-            <Tile label="Forms" desc="Inputs, selects, validation and empty states." />
-            <Tile label="Navigation & type" desc="Menus, tab bars and readable text hierarchies." />
+            <Tile label="Navigation" desc="Top bars, sidebars and mobile tab bars." />
+            <Tile label="Status states" desc="Success, warning, error, empty and loading treatments." />
+            <Tile label="Forms" desc="Inputs, selects, validation and focus states." />
+            <Tile label="Charts & data" desc="Bars, legends, counters and dashboard summaries." />
+            <Tile label="Typography" desc="Readable heading, body, caption and label systems." />
           </div>
         </section>
 
         {/* CTA */}
         <section className="border-t border-softgrey bg-white px-6 py-20 text-center sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            Start with the colours.
+            Start with a palette that earns its place.
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
