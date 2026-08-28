@@ -37,6 +37,7 @@ import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
 import PropertiesPanel from "../components/PropertiesPanel"
 import ColorEditor from "../components/ColorEditor"
 import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
+import { pickCuratedPalette } from "../lib/curatedPalettes"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -269,9 +270,37 @@ export default function Builder() {
   const rename = (id: string, name: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
   const add = () => { mutatePalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }]); toast.push("Colour added", "success") }
   const remove = (id: string) => mutatePalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
+  // Randomise: 1st + 2nd click = smart random, every 3rd click = curated
+  // palette (recency-aware, respects locks). Falls back to smart random if
+  // no curated palette is a reasonable match around the locked colours.
+  const randomizeClickCount = useRef(0)
+  const recentCuratedIdx = useRef<number[]>([])
+  const smartRandom = (p: Swatch[]) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() }))
   const randomize = () => {
     if (!palette.some((s) => !s.locked)) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
-    mutatePalette((p) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() })))
+
+    randomizeClickCount.current += 1
+    const isCuratedTurn = randomizeClickCount.current % 3 === 0
+
+    if (isCuratedTurn) {
+      const locks = palette
+        .map((s, idx) => ({ idx, hex: s.hex, locked: !!s.locked }))
+        .filter((l) => l.locked && l.idx < 5)
+        .map(({ idx, hex }) => ({ idx, hex }))
+      const chosen = pickCuratedPalette(locks, recentCuratedIdx.current)
+      if (chosen) {
+        recentCuratedIdx.current = [chosen.index, ...recentCuratedIdx.current].slice(0, 20)
+        mutatePalette((p) => p.map((s, i) => {
+          if (s.locked) return s
+          if (i >= chosen.palette.length) return { ...s, hex: randomHex() }
+          return { ...s, hex: chosen.palette[i] }
+        }))
+        toast.push("Curated palette", "success")
+        return
+      }
+      toast.push("No matching curated palette — using smart random")
+    }
+    mutatePalette(smartRandom)
   }
   const toggleLock = (id: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
   const reorder = (activeId: string, overId: string) => mutatePalette((p) => {
