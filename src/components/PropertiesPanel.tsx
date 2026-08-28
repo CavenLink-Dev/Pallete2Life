@@ -1,431 +1,188 @@
-import { useEffect, useState } from "react"
 import type React from "react"
 
-/* Pixel-close rebuild of the Figma "prev_official_1" Properties sidebar.
- * Uses the exact colours, spacing, radii and typography noted in the
- * design (Geist as the UI font, Inter fallback via system stack). */
+type PaletteOption = { id: string; name: string; hex: string }
 
 type Props = {
-  brandColor: string
   onRandomize: () => void
   onUndo: () => void
   onRedo: () => void
   onSave: () => void
   canUndo: boolean
   canRedo: boolean
-  editActive: boolean
-  onToggleEdit: () => void
-  onCreateElement: () => void
-  onDelete: () => void
-  onCopy: () => void
-  onPaste: () => void
-  onDuplicate: () => void
-  hasSelection: boolean
-  hasClipboard: boolean
-  onSelectRole: () => void
-  onCreateRole: () => void
-  onRemoveRole: () => void
-  availableRoles: string[]
-  hierarchySource: string
-  hierarchyTarget: string
-  hierarchyOptions: string[]
-  onHierarchySource: (v: string) => void
-  onHierarchyTarget: (v: string) => void
-  onHierarchySet: () => void
-  currentHex: string
-  currentAlpha: number
-  onOpenColorEditor: () => void
-  onToggleVisible: () => void
-  visible: boolean
-  variant: string
-  variants: string[]
-  onVariant: (v: string) => void
-  layout: string
-  layouts: string[]
-  onLayout: (v: string) => void
-  onInsertBrand: () => void
-  onFullscreen: () => void
+  onFormat: () => void
+  formatLabel: string
   onExport: () => void
   onHelp: () => void
-  isPro: boolean
-  onTogglePro: () => void
+  onInsertBrand: () => void
+  onFullscreen: () => void
+  roleSource: string
+  roleTargetId: string
+  roleSourceOptions: string[]
+  paletteOptions: PaletteOption[]
+  onRoleSource: (value: string) => void
+  onRoleTarget: (value: string) => void
+  onRoleSet: () => void
+  roleSetDisabled: boolean
+  roleMessage: { text: string; tone: "success" | "error" | "neutral" } | null
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` } as const
 const DISPLAY_FONT = { fontFamily: `"Inter", Geist, ui-sans-serif, system-ui, sans-serif` } as const
 
 export default function PropertiesPanel(p: Props) {
+  const selectedTarget = p.paletteOptions.find((option) => option.id === p.roleTargetId)
+
   return (
     <aside
-      className="relative flex h-full w-[369px] shrink-0 flex-col border-l border-[#e5e7eb] bg-white text-[#111827]"
-      aria-label="Palette Preview properties"
+      className="flex h-auto w-full shrink-0 flex-col border-t border-[#e5e7eb] bg-white text-[#111827] xl:h-full xl:w-[369px] xl:border-l xl:border-t-0"
+      aria-label="Palette controls"
       style={UI_FONT}
     >
-      {/* Scrolling body */}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 pb-4 pt-4">
-      {/* PROPERTIES header (top of sidebar — logo removed) */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-[24px] font-bold tracking-tight text-[#515357]" style={DISPLAY_FONT}>PROPERTIES</h2>
-        <button
-          type="button"
-          onClick={p.onHelp}
-          className="flex items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-2.5 py-2 text-[13px] font-semibold text-[#6b7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <HelpCircleIcon /> Help
-        </button>
-      </div>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Tools" info="Switch modes and add new elements. Edit turns on element selection; Create Element inserts a placeholder into the current preview.">
-        <ChipRow>
-          <Chip active={p.editActive} onClick={p.onToggleEdit}>Edit</Chip>
-          <Chip onClick={p.onCreateElement}>Create Element</Chip>
-        </ChipRow>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Edit">
-        <ChipRow>
-          <Chip disabled={!p.hasSelection} onClick={p.onDelete}>Delete</Chip>
-          <Chip disabled={!p.hasSelection} onClick={p.onCopy}>Copy</Chip>
-          <Chip disabled={!p.hasClipboard} onClick={p.onPaste}>Paste</Chip>
-          <Chip disabled={!p.hasSelection} onClick={p.onDuplicate}>Duplicate</Chip>
-        </ChipRow>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Colour Roles" info="Group colours by their purpose (Primary, Text, Border…) so previews stay consistent when you swap palettes.">
-        <ChipRow>
-          <Chip onClick={p.onSelectRole}>Select</Chip>
-          <Chip onClick={p.onCreateRole}>Create  +</Chip>
-          <Chip onClick={p.onRemoveRole}>Remove  -</Chip>
-        </ChipRow>
-      </Section>
-
-      <Section label="Available Roles">
-        <ChipRow>
-          {p.availableRoles.map((r) => (
-            <ComponentChip key={r} label={r} />
-          ))}
-        </ChipRow>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Role Mapping" info="Map a design role to a palette role. Example: bind “Page Background” to “Primary” so every element that uses Page Background updates whenever you change your Primary colour.">
-        <div className="flex items-center gap-2">
-          <SplitSelect
-            leftValue={p.hierarchySource}
-            rightValue={p.hierarchyTarget}
-            leftOptions={p.hierarchyOptions}
-            rightOptions={p.hierarchyOptions}
-            onLeftChange={p.onHierarchySource}
-            onRightChange={p.onHierarchyTarget}
-            leftSwatchColor={p.currentHex}
-          />
+      <div className="flex flex-col gap-5 px-4 py-4 xl:min-h-0 xl:flex-1 xl:overflow-y-auto">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-[20px] font-bold text-[#31343a]" style={DISPLAY_FONT}>Palette controls</h2>
+            <p className="mt-0.5 text-[12px] text-[#6b7280]">Changes are saved automatically.</p>
+          </div>
           <button
             type="button"
-            onClick={p.onHierarchySet}
-            className="rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 py-1.5 text-[11px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-          >Set</button>
+            onClick={p.onHelp}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] border border-[#e5e7eb] text-[#6b7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            aria-label="Help"
+            title="Help"
+          >
+            <HelpCircleIcon />
+          </button>
         </div>
-      </Section>
 
-      <div className="h-px w-full bg-[#e5e7eb]" />
+        <section aria-labelledby="actions-title">
+          <h3 id="actions-title" className="mb-2 text-[11px] font-bold uppercase text-[#6b7280]">Actions</h3>
+          <button
+            type="button"
+            onClick={p.onRandomize}
+            className="flex h-[48px] w-full items-center justify-center gap-2 rounded-[8px] bg-[#0e1821] px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          >
+            <DiceIcon /> Randomise safely
+          </button>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <ActionButton onClick={p.onUndo} disabled={!p.canUndo} icon={<UndoIcon />}>Undo</ActionButton>
+            <ActionButton onClick={p.onRedo} disabled={!p.canRedo} icon={<RedoIcon />}>Redo</ActionButton>
+            <ActionButton onClick={p.onSave} icon={<SaveIcon />}>Save</ActionButton>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <ActionButton onClick={p.onFormat} icon={<LayersIcon />} strong>{p.formatLabel}</ActionButton>
+            <ActionButton onClick={p.onExport} icon={<DownloadIcon />} strong>Export</ActionButton>
+          </div>
+        </section>
 
-      <Section label="Colour">
-        <div className="flex items-center gap-2">
-          <ColourPill hex={p.currentHex} onOpen={p.onOpenColorEditor} />
-          <AlphaPill value={p.currentAlpha} />
-          <IconMiniBtn onClick={p.onToggleVisible} title={p.visible ? "Hide" : "Show"}>
-            {p.visible ? <EyeIcon /> : <EyeOffIcon />}
-          </IconMiniBtn>
-          <IconMiniBtn title="Remove"><MinusIcon /></IconMiniBtn>
-        </div>
-      </Section>
+        <div className="h-px bg-[#e5e7eb]" />
 
-      <div className="h-px w-full bg-[#e5e7eb]" />
+        <section aria-labelledby="mapping-title">
+          <div className="mb-2">
+            <h3 id="mapping-title" className="text-[11px] font-bold uppercase text-[#6b7280]">Global role mapping</h3>
+            <p className="mt-1 text-[12px] leading-relaxed text-[#6b7280]">Map a design role to a palette colour. The mapping applies to every preview and follows the colour if you rename it.</p>
+          </div>
+          <div className="grid gap-2">
+            <label className="grid gap-1">
+              <span className="text-[11px] font-semibold text-[#4b5563]">Design role</span>
+              <select
+                value={p.roleSource}
+                onChange={(event) => p.onRoleSource(event.target.value)}
+                className="h-10 w-full rounded-[7px] border border-[#d7d9dd] bg-white px-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+              >
+                {p.roleSourceOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1">
+              <span className="text-[11px] font-semibold text-[#4b5563]">Palette colour</span>
+              <span className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 rounded-[4px] border border-black/10" style={{ background: selectedTarget?.hex }} />
+                <select
+                  value={p.roleTargetId}
+                  onChange={(event) => p.onRoleTarget(event.target.value)}
+                  className="h-10 w-full rounded-[7px] border border-[#d7d9dd] bg-white pl-10 pr-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+                >
+                  {p.paletteOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+                </select>
+              </span>
+            </label>
+            <button
+              type="button"
+              onClick={p.onRoleSet}
+              disabled={p.roleSetDisabled}
+              className="mt-1 h-10 rounded-[7px] bg-[#111827] px-4 text-[13px] font-bold text-white hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:bg-[#e5e7eb] disabled:text-[#9ca3af]"
+            >
+              Set mapping
+            </button>
+            {p.roleMessage && (
+              <p
+                role="status"
+                className={`rounded-[7px] px-3 py-2 text-[12px] leading-relaxed ${
+                  p.roleMessage.tone === "error"
+                    ? "bg-[#fef2f2] text-[#b42318]"
+                    : p.roleMessage.tone === "success"
+                    ? "bg-[#ecfdf3] text-[#067647]"
+                    : "bg-[#f3f4f6] text-[#4b5563]"
+                }`}
+              >
+                {p.roleMessage.text}
+              </p>
+            )}
+          </div>
+        </section>
 
-      {/* Variant + Layout moved to the Change Template panel in the top-right */}
+        <div className="h-px bg-[#e5e7eb]" />
 
-      <Section label="Brand" info="Upload your logo, app icon and typography. Uploaded assets appear inside applicable previews so palettes are tested with your brand context.">
-        <button
-          type="button"
-          onClick={p.onInsertBrand}
-          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <SparklesIcon /> Insert Brand
-        </button>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="View">
-        <button
-          type="button"
-          onClick={p.onFullscreen}
-          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <MaximizeIcon /> Full screen
-        </button>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Export">
-        <button
-          type="button"
-          onClick={p.onExport}
-          className="flex h-[40px] w-full items-center justify-center gap-2 rounded-[5px] bg-[#111827] px-4 text-[13px] font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <DownloadIcon /> Export Assets
-        </button>
-      </Section>
+        <section aria-labelledby="workspace-title">
+          <h3 id="workspace-title" className="mb-2 text-[11px] font-bold uppercase text-[#6b7280]">Preview</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <ActionButton onClick={p.onInsertBrand} icon={<SparklesIcon />}>Brand</ActionButton>
+            <ActionButton onClick={p.onFullscreen} icon={<MaximizeIcon />}>Full screen</ActionButton>
+          </div>
+        </section>
       </div>
-
-      {/* Sticky footer: Randomise + Undo/Save/Redo (was previously at the sidebar top) */}
-      <div className="shrink-0 border-t border-[#e5e7eb] bg-white p-3">
-        <button
-          type="button"
-          onClick={p.onRandomize}
-          className="flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] bg-[#0e1821] px-4 text-white shadow-sm transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        >
-          <DiceIcon />
-          <span className="text-[15px] font-semibold" style={UI_FONT}>Randomise</span>
-        </button>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <PillBtn onClick={p.onUndo} disabled={!p.canUndo} label="Undo" icon={<UndoIcon />} />
-          <PillBtn onClick={p.onSave} label="Save" icon={<SaveIcon />} />
-          <PillBtn onClick={p.onRedo} disabled={!p.canRedo} label="Redo" icon={<RedoIcon />} />
-        </div>
-      </div>
-
-      {/* Tiny brand mark + Pro toggle tucked at the very bottom, subdued */}
-      <div className="flex shrink-0 items-center justify-between border-t border-[#e5e7eb] bg-white px-4 py-2">
-        <button
-          type="button"
-          onClick={p.onTogglePro}
-          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.24px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
-            p.isPro
-              ? "border-[#1f9eff] bg-[#1f9eff] text-white"
-              : "border-[#e5e7eb] bg-white text-[#9ca3af] hover:text-[#111827]"
-          }`}
-          title={p.isPro ? "Pro is on — click to switch back to Free" : "Switch to Pro"}
-          aria-pressed={p.isPro}
-          style={UI_FONT}
-        >
-          {p.isPro ? "★ Pro" : "Go Pro"}
-        </button>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]" style={UI_FONT}>Palette Preview</span>
+      <div className="border-t border-[#e5e7eb] px-4 py-3 text-[11px] text-[#9ca3af]">
+        Palette Preview
       </div>
     </aside>
   )
 }
 
-/* ---------- helpers ---------- */
-
-function Section({ label, info, children }: { label: string; info?: string | boolean; children: React.ReactNode }) {
-  const infoText = typeof info === "string" ? info : undefined
-  return (
-    <div className="flex w-full flex-col gap-2.5">
-      <div className="flex items-center gap-2">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.24px] text-[#4b5563]" style={UI_FONT}>{label}</span>
-        {info && <InfoDot text={infoText} label={label} />}
-      </div>
-      {children}
-    </div>
-  )
-}
-
-function InfoDot({ text, label }: { text?: string; label: string }) {
-  const [open, setOpen] = useState(false)
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (!target.closest("[data-info-popover]")) setOpen(false)
-    }
-    window.addEventListener("keydown", onKey)
-    const t = setTimeout(() => document.addEventListener("mousedown", onDown), 0)
-    return () => {
-      window.removeEventListener("keydown", onKey)
-      clearTimeout(t)
-      document.removeEventListener("mousedown", onDown)
-    }
-  }, [open])
-
-  return (
-    <span className="relative inline-flex" data-info-popover>
-      <button
-        type="button"
-        onClick={() => text && setOpen((v) => !v)}
-        title={text ?? ""}
-        aria-label={`About ${label}`}
-        aria-expanded={open}
-        className="grid h-[15px] w-[15px] cursor-help place-items-center rounded-full bg-[#1f9eff] text-[10px] font-bold italic text-white transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-      >
-        i
-      </button>
-      {open && text && (
-        <span
-          role="tooltip"
-          className="absolute left-[20px] top-0 z-50 w-[220px] rounded-lg border border-[#e5e7eb] bg-white p-2.5 text-left text-[11px] font-normal normal-case text-[#374151] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]"
-          style={UI_FONT}
-        >
-          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24px] text-[#111827]">{label}</span>
-          <span className="block leading-snug">{text}</span>
-        </span>
-      )}
-    </span>
-  )
-}
-
-function ChipRow({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-wrap items-center gap-2">{children}</div>
-}
-
-function Chip({
-  children, active, disabled, onClick,
-}: { children: React.ReactNode; active?: boolean; disabled?: boolean; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-[5px] border px-2.5 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
-        active
-          ? "border-[#0e1821] bg-[#0e1821] text-white"
-          : disabled
-          ? "cursor-not-allowed border-[#eef0f2] bg-[#fafafa] text-[#c7c9cc]"
-          : "border-[#e5e7eb] bg-[#f3f4f6] text-[#7b7b7b] hover:text-[#111827]"
-      }`}
-      style={UI_FONT}
-    >{children}</button>
-  )
-}
-
-function ComponentChip({ label }: { label: string }) {
-  return (
-    <span className="flex items-center gap-2 rounded-[7.776px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 py-1.5 text-[15px] font-semibold text-[#7b7b7b]" style={UI_FONT}>
-      <LayersIcon />{label}
-    </span>
-  )
-}
-
-function SplitSelect({
-  leftValue, rightValue, leftOptions, rightOptions, onLeftChange, onRightChange, leftSwatchColor,
+function ActionButton({
+  children,
+  icon,
+  onClick,
+  disabled,
+  strong,
 }: {
-  leftValue: string
-  rightValue: string
-  leftOptions: string[]
-  rightOptions: string[]
-  onLeftChange: (v: string) => void
-  onRightChange: (v: string) => void
-  leftSwatchColor: string
+  children: React.ReactNode
+  icon: React.ReactNode
+  onClick: () => void
+  disabled?: boolean
+  strong?: boolean
 }) {
   return (
-    <div className="flex h-[35px] items-center">
-      {/* left half */}
-      <label className="relative flex h-[35px] w-[130px] items-center gap-2 rounded-l-[7.776px] border border-[#d7d9dd] bg-white pl-1 pr-2">
-        <span className="block h-[25px] w-[25px] shrink-0 rounded-[2px]" style={{ background: leftSwatchColor }} aria-hidden />
-        <select
-          value={leftValue}
-          onChange={(e) => onLeftChange(e.target.value)}
-          className="w-full min-w-0 appearance-none bg-transparent pr-3 text-[11px] font-semibold text-[#4b5563] focus:outline-none"
-          style={UI_FONT}
-        >
-          {ensure(leftOptions, leftValue).map((o) => <option key={o}>{o}</option>)}
-        </select>
-        <CaretDown />
-      </label>
-      {/* right half */}
-      <label className="relative flex h-[35px] w-[95px] items-center gap-1 rounded-r-[7.776px] border-y border-r border-[#d7d9dd] bg-white pl-2 pr-2">
-        <select
-          value={rightValue}
-          onChange={(e) => onRightChange(e.target.value)}
-          className="w-full min-w-0 appearance-none bg-transparent pr-2 text-[11px] font-semibold text-[#4b5563] focus:outline-none"
-          style={UI_FONT}
-        >
-          {ensure(rightOptions, rightValue).map((o) => <option key={o}>{o}</option>)}
-        </select>
-        <CaretDown />
-      </label>
-    </div>
-  )
-}
-
-function ensure(options: string[], value: string): string[] {
-  return options.includes(value) ? options : [value, ...options]
-}
-
-function ColourPill({ hex, onOpen }: { hex: string; onOpen: () => void }) {
-  const clean = hex.replace("#", "").toUpperCase()
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="flex h-[35px] items-center gap-2 rounded-l-[7.776px] border border-[#d7d9dd] bg-white pl-[5px] pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-      aria-label="Edit colour"
-      title="Open colour editor"
-    >
-      <span className="block h-[25px] w-[25px] rounded-[4px]" style={{ background: `#${clean}` }} aria-hidden />
-      <span className="text-[13px] font-medium text-[#111827] tracking-tight" style={UI_FONT}>{clean}</span>
-    </button>
-  )
-}
-
-function AlphaPill({ value }: { value: number }) {
-  return (
-    <span className="flex h-[35px] items-center gap-1 rounded-r-[7.776px] border-y border-r border-[#d7d9dd] bg-white px-2 text-[#111827]" style={UI_FONT}>
-      <span className="text-[13px] font-medium">{Math.round(value * 100)}</span>
-      <span className="text-[13px] font-semibold text-[#5c5757]">%</span>
-    </span>
-  )
-}
-
-function IconMiniBtn({ children, onClick, title }: { children: React.ReactNode; onClick?: () => void; title?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-label={title ?? ""}
-      className="grid h-[28px] w-[28px] place-items-center rounded-[5px] border border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-    >{children}</button>
-  )
-}
-
-function PillBtn({ label, icon, onClick, disabled }: { label: string; icon: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-[36px] items-center justify-center gap-1.5 rounded-[8px] border border-[#d7d9dd] bg-white px-2 text-[12px] font-semibold text-[#4b5563] transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
-      aria-label={label}
-      title={label}
-      style={DISPLAY_FONT}
+      className={`flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-[7px] border px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40 ${
+        strong
+          ? "border-[#d7d9dd] bg-[#f3f4f6] text-[#111827] hover:bg-[#e9eaec]"
+          : "border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827]"
+      }`}
     >
-      {icon}<span>{label}</span>
+      {icon}<span className="truncate">{children}</span>
     </button>
   )
 }
 
-/* ---------- icons ---------- */
-const DiceIcon = () => (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="16" cy="8" r="1.4" fill="currentColor" /><circle cx="12" cy="12" r="1.4" fill="currentColor" /><circle cx="8" cy="16" r="1.4" fill="currentColor" /><circle cx="16" cy="16" r="1.4" fill="currentColor" /></svg>)
+const DiceIcon = () => (<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8" cy="8" r="1.4" fill="currentColor" /><circle cx="16" cy="8" r="1.4" fill="currentColor" /><circle cx="12" cy="12" r="1.4" fill="currentColor" /><circle cx="8" cy="16" r="1.4" fill="currentColor" /><circle cx="16" cy="16" r="1.4" fill="currentColor" /></svg>)
 const UndoIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></svg>)
 const RedoIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></svg>)
 const SaveIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21 12 16l-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z" /></svg>)
-const HelpCircleIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17.01V17" /></svg>)
-const EyeIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>)
-const EyeOffIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-6.5 0-10-7-10-7a19.4 19.4 0 0 1 4.11-5.19"/><path d="M1 1l22 22"/><path d="M9.53 9.53A3 3 0 0 0 12 15a3 3 0 0 0 2.47-4.47"/></svg>)
-const MinusIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M5 12h14" /></svg>)
-const SparklesIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>)
-const MaximizeIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
-const DownloadIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 12 5 5 5-5" /><path d="M5 21h14" /></svg>)
-const LayersIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 10 6-10 6L2 8Z"/><path d="M2 16l10 6 10-6"/><path d="M2 12l10 6 10-6"/></svg>)
-const CaretDown = () => (<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-[#4b5563]"><path d="m6 9 6 6 6-6"/></svg>)
+const LayersIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 10 6-10 6L2 8Z"/><path d="M2 16l10 6 10-6"/><path d="M2 12l10 6 10-6"/></svg>)
+const DownloadIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 12 5 5 5-5" /><path d="M5 21h14" /></svg>)
+const HelpCircleIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17.01V17" /></svg>)
+const SparklesIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>)
+const MaximizeIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)

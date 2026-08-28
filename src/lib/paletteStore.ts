@@ -3,11 +3,11 @@ import { uid, type Swatch } from "./color"
 const STORE_KEY = "hueframe:v1"
 
 const DEFAULT_COLOURS = [
-  { name: "Pale Sky Blue", hex: "#D5E4ED" },
-  { name: "Muted Teal", hex: "#4F9A94" },
-  { name: "Coral Red", hex: "#F46B5E" },
-  { name: "Golden Yellow", hex: "#F6C453" },
-  { name: "Deep Navy", hex: "#102A43" },
+  { name: "Cloud", hex: "#F8FAFC" },
+  { name: "White", hex: "#FFFFFF" },
+  { name: "Clear Blue", hex: "#2563EB" },
+  { name: "Ink Navy", hex: "#0F172A" },
+  { name: "Slate", hex: "#475569" },
 ]
 
 export function createDefaultPalette(): Swatch[] {

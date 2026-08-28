@@ -1,4 +1,5 @@
 export type Swatch = { id: string; name: string; hex: string; locked?: boolean }
+export type RoleBindings = Record<string, string>
 
 export const BRAND = {
   brand: "#20B9FA",
@@ -153,33 +154,50 @@ export function hslToHex(h: number, s: number, l: number): string {
 
 // Map palette values by their design role. Never reorder semantic tokens by
 // brightness: a user-selected background must remain the background.
-export function deriveTheme(palette: Swatch[], roleLabels?: (string | null)[]) {
+const roleKey = (role: string) => role.trim().toLowerCase()
+
+export function deriveTheme(
+  palette: Swatch[],
+  roleLabels?: (string | null)[],
+  roleBindings: RoleBindings = {},
+) {
   const entries = palette.map((swatch, index) => ({
+    id: swatch.id,
     hex: swatch.hex,
-    role: (roleLabels?.[index] ?? "").toLowerCase(),
+    role: roleKey(roleLabels?.[index] ?? ""),
   }))
-  const hasRoles = entries.some((entry) => entry.role)
+  const bindings = Object.fromEntries(Object.entries(roleBindings).map(([role, id]) => [roleKey(role), id]))
+  const hasRoles = entries.some((entry) => entry.role) || Object.keys(bindings).length > 0
   const at = (index: number, fallback: string) => entries[index]?.hex ?? fallback
-  const byRole = (...roles: string[]) => entries.find((entry) => roles.includes(entry.role))?.hex
+  const byRole = (...roles: string[]) => {
+    for (const role of roles) {
+      const boundId = bindings[roleKey(role)]
+      const bound = boundId ? entries.find((entry) => entry.id === boundId) : undefined
+      if (bound) return bound.hex
+    }
+    const keys = roles.map(roleKey)
+    return entries.find((entry) => keys.includes(entry.role))?.hex
+  }
 
   const paper = byRole("page background", "app background", "form background", "card background", "nav background", "canvas background", "chart background", "background")
     ?? at(0, BRAND.white)
   const surfaceFallback = shade(paper, luminance(paper) > 0.5 ? -0.04 : 0.06)
-  const surface = byRole("secondary background", "input fill", "surface", "card", "grid lines", "success accent", "secondary series")
+  const surface = byRole("secondary background", "input fill", "surface", "card")
     ?? (hasRoles ? surfaceFallback : at(1, surfaceFallback))
+  const secondary = byRole("secondary series", "success accent") ?? surface
   const accent = byRole("brand primary", "sale accent", "chart accent", "primary button", "primary series", "warning accent", "active", "accent")
     ?? (hasRoles ? BRAND.brand : at(2, BRAND.brand))
   const ink = byRole("heading text", "heading", "nav text", "label text")
     ?? (hasRoles ? readableOn(paper) : at(3, readableOn(paper)))
   const body = byRole("body text", "body", "muted text", "caption")
     ?? (hasRoles ? ink : at(4, ink))
-  const border = byRole("input border", "card border", "error accent", "border", "divider", "outline")
+  const border = byRole("input border", "card border", "grid lines", "error accent", "border", "divider", "outline")
     ?? withAlpha(ink, 0.12)
 
   return {
     brand: accent,
     accent,
-    secondary: surface,
+    secondary,
     ink,
     inkSoft: body,
     inkFaint: withAlpha(body, 0.1),
@@ -192,3 +210,23 @@ export function deriveTheme(palette: Swatch[], roleLabels?: (string | null)[]) {
 }
 
 export type Theme = ReturnType<typeof deriveTheme>
+
+export type ContrastIssue = {
+  foreground: "Heading text" | "Body text"
+  background: "Page background" | "Surface"
+  ratio: number
+}
+
+export function themeContrastIssues(theme: Theme, minimum = 4.5): ContrastIssue[] {
+  const pairs = [
+    ["Heading text", theme.ink, "Page background", theme.paper],
+    ["Heading text", theme.ink, "Surface", theme.surface],
+    ["Body text", theme.inkSoft, "Page background", theme.paper],
+    ["Body text", theme.inkSoft, "Surface", theme.surface],
+  ] as const
+
+  return pairs.flatMap(([foreground, foregroundHex, background, backgroundHex]) => {
+    const ratio = contrastRatio(foregroundHex, backgroundHex)
+    return ratio < minimum ? [{ foreground, background, ratio: Math.round(ratio * 100) / 100 }] : []
+  })
+}
