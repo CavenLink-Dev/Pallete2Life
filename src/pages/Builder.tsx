@@ -1,5 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { BRAND, deriveTheme, hslToHex, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "../lib/color"
+import {
+  BRAND,
+  contrastRatio,
+  deriveTheme,
+  hslToHex,
+  normalizeHex,
+  randomHex,
+  readableOn,
+  themeContrastIssues,
+  uid,
+  withAlpha,
+  type RoleBindings,
+  type Swatch,
+} from "../lib/color"
 import PalettePanel from "../components/PalettePanel"
 import {
   BUTTON_STYLES,
@@ -35,7 +48,6 @@ import {
 import ExportPanel from "../components/ExportPanel"
 import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
 import PropertiesPanel from "../components/PropertiesPanel"
-import ColorEditor from "../components/ColorEditor"
 import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
 
@@ -66,6 +78,19 @@ const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
   "components/typography": ["Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
 }
 
+const DESIGN_ROLES = Array.from(new Set(
+  Object.values(ROLES_BY_PREVIEW).flat().filter((role): role is string => Boolean(role)),
+))
+
+const TEXT_ROLE_HINTS = ["text", "heading", "body", "caption", "label"]
+const BACKGROUND_ROLE_HINTS = ["background", "surface", "canvas", "card", "nav", "form"]
+
+type BuilderSnapshot = {
+  palette: Swatch[]
+  assignments: Record<string, string>
+  roleBindings: RoleBindings
+}
+
 
 /* localStorage persistence */
 const STORE_KEY = "hueframe:v1"
@@ -88,6 +113,15 @@ function useStored(key: string, value: unknown) {
   }, [key, value])
 }
 
+function migrateSwatchReferences(records: Record<string, string>, palette: Swatch[]): Record<string, string> {
+  const ids = new Set(palette.map((swatch) => swatch.id))
+  return Object.fromEntries(Object.entries(records).flatMap(([key, value]) => {
+    if (ids.has(value)) return [[key, value]]
+    const renamed = palette.find((swatch) => swatch.name.trim().toLowerCase() === value.trim().toLowerCase())
+    return renamed ? [[key, renamed.id]] : []
+  }))
+}
+
 const MAX_HISTORY = 40
 const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
 const PREVIEW_CHOICES = GROUPS.flatMap((group) =>
@@ -108,8 +142,9 @@ export default function Builder() {
 
   // Edit Elements
   const [editMode, setEditMode] = useState(false)
-  const [assignments, setAssignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
-  const [assignTarget, setAssignTarget] = useState<{ id: string; label: string } | null>(null)
+  const [assignments, setAssignments] = useState<Record<string, string>>(() => migrateSwatchReferences(loadStored("assignments", {}), palette))
+  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => migrateSwatchReferences(loadStored("roleBindings", {}), palette))
+  const [assignTarget, setAssignTarget] = useState<{ id: string; label: string; currentHex: string } | null>(null)
 
   // Brand
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
@@ -122,22 +157,17 @@ export default function Builder() {
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
 
-  // Colour editor + selected swatch
-  const [colorEditorOpen, setColorEditorOpen] = useState(false)
-  const [selectedSwatchIndex, setSelectedSwatchIndex] = useState(0)
-  const [swatchVisible, setSwatchVisible] = useState<Record<string, boolean>>({})
-
   // Role Mapping (previously "Assign Hierarchy")
   const [roleMapSource, setRoleMapSource] = useState("Page Background")
-  const [roleMapTarget, setRoleMapTarget] = useState("Brand Primary")
+  const [roleMapTargetId, setRoleMapTargetId] = useState(() => palette[2]?.id ?? palette[0]?.id ?? "")
+  const [roleMapMessage, setRoleMapMessage] = useState<{ text: string; tone: "success" | "error" | "neutral" } | null>(null)
 
   // Change Template popover
   const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false)
 
   // Undo / Redo
-  const [undoStack, setUndoStack] = useState<Swatch[][]>([])
-  const [redoStack, setRedoStack] = useState<Swatch[][]>([])
-  const skipHistory = useRef(false)
+  const [undoStack, setUndoStack] = useState<BuilderSnapshot[]>([])
+  const [redoStack, setRedoStack] = useState<BuilderSnapshot[]>([])
 
   // Free / Pro entitlement
   const [ent, setEnt] = useState<Entitlement>(loadEntitlement)
@@ -148,6 +178,7 @@ export default function Builder() {
 
   useStored("palette", palette)
   useStored("assignments", assignments)
+  useStored("roleBindings", roleBindings)
   useStored("brand", brand)
   useStored("buttonStyle", buttonStyle)
   useStored("buttonProps", buttonProps)
@@ -162,42 +193,49 @@ export default function Builder() {
     return () => window.removeEventListener("keydown", onKey)
   }, [fullscreen])
 
-  // Undo history mutator
-  const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
-    setPalette((prev) => {
-      const next = updater(prev)
-      if (!skipHistory.current && JSON.stringify(prev) !== JSON.stringify(next)) {
-        setUndoStack((s) => (s.length >= MAX_HISTORY ? [...s.slice(1), prev] : [...s, prev]))
-        setRedoStack([])
-      }
-      skipHistory.current = false
-      return next
-    })
+  const pushHistory = useCallback((snapshot: BuilderSnapshot) => {
+    setUndoStack((stack) => stack.length >= MAX_HISTORY ? [...stack.slice(1), snapshot] : [...stack, snapshot])
+    setRedoStack([])
   }, [])
 
+  // Palette edits and role bindings share one history so Set can be undone.
+  const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
+    const next = updater(palette)
+    if (JSON.stringify(palette) === JSON.stringify(next)) return
+    pushHistory({ palette, assignments, roleBindings })
+    setPalette(next)
+  }, [assignments, palette, pushHistory, roleBindings])
+
+  const mutateWorkspace = useCallback((next: Partial<BuilderSnapshot>) => {
+    pushHistory({ palette, assignments, roleBindings })
+    if (next.palette) setPalette(next.palette)
+    if (next.assignments) setAssignments(next.assignments)
+    if (next.roleBindings) setRoleBindings(next.roleBindings)
+  }, [assignments, palette, pushHistory, roleBindings])
+
   const undo = useCallback(() => {
-    setUndoStack((s) => {
-      if (!s.length) { toast.push("Nothing to undo"); return s }
-      const prev = s[s.length - 1]
-      setRedoStack((r) => [...r, palette])
-      skipHistory.current = true
-      setPalette(prev)
-      toast.push("Undone")
-      return s.slice(0, -1)
-    })
-  }, [palette, toast])
+    if (!undoStack.length) { toast.push("Nothing to undo"); return }
+    const previous = undoStack[undoStack.length - 1]
+    setUndoStack(undoStack.slice(0, -1))
+    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings }])
+    setPalette(previous.palette)
+    setAssignments(previous.assignments)
+    setRoleBindings(previous.roleBindings)
+    setRoleMapMessage(null)
+    toast.push("Undone")
+  }, [assignments, palette, roleBindings, toast, undoStack])
 
   const redo = useCallback(() => {
-    setRedoStack((r) => {
-      if (!r.length) { toast.push("Nothing to redo"); return r }
-      const next = r[r.length - 1]
-      setUndoStack((s) => [...s, palette])
-      skipHistory.current = true
-      setPalette(next)
-      toast.push("Redone")
-      return r.slice(0, -1)
-    })
-  }, [palette, toast])
+    if (!redoStack.length) { toast.push("Nothing to redo"); return }
+    const next = redoStack[redoStack.length - 1]
+    setRedoStack(redoStack.slice(0, -1))
+    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings }])
+    setPalette(next.palette)
+    setAssignments(next.assignments)
+    setRoleBindings(next.roleBindings)
+    setRoleMapMessage(null)
+    toast.push("Redone")
+  }, [assignments, palette, redoStack, roleBindings, toast])
 
   // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
   useEffect(() => {
@@ -226,8 +264,13 @@ export default function Builder() {
     ? STYLE_META[buttonStyle].roles.map((r) => r.part)
     : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
 
-  const theme = useMemo(() => deriveTheme(palette, roleLabels), [palette, roleLabels])
+  const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleBindings, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
+
+  useEffect(() => {
+    if (palette.some((swatch) => swatch.id === roleMapTargetId)) return
+    setRoleMapTargetId(palette[0]?.id ?? "")
+  }, [palette, roleMapTargetId])
 
   // ---------- entitlement-aware preview switching ----------
   const goPro = () => { setPaywall({ open: false }); navigate("/pricing") }
@@ -268,52 +311,136 @@ export default function Builder() {
   // ---------- palette mutations ----------
   const change = (id: string, hex: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, hex } : s)))
   const rename = (id: string, name: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
-  const add = () => { mutatePalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }]); toast.push("Colour added", "success") }
-  const remove = (id: string) => mutatePalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
+  const add = () => {
+    const id = uid()
+    const occupiedRoles = new Set([
+      ...(roleLabels ?? []).slice(0, palette.length).filter((role): role is string => Boolean(role)),
+      ...Object.keys(roleBindings),
+    ])
+    const nextRole = roleLabels?.[palette.length]
+      ?? DESIGN_ROLES.find((role) => !occupiedRoles.has(role))
+      ?? null
+    const roleHint = (nextRole ?? "").toLowerCase()
+    const hex = TEXT_ROLE_HINTS.some((hint) => roleHint.includes(hint))
+      ? readableOn(theme.paper)
+      : BACKGROUND_ROLE_HINTS.some((hint) => roleHint.includes(hint))
+      ? theme.surface
+      : randomHex()
+    const nextPalette = [...palette, { id, name: START_NAMES[palette.length] ?? `Colour ${palette.length + 1}`, hex }]
+    const nextBindings = nextRole ? { ...roleBindings, [nextRole]: id } : roleBindings
+    mutateWorkspace({ palette: nextPalette, roleBindings: nextBindings })
+    toast.push(nextRole ? `Colour added as ${nextRole}` : "Colour added", "success")
+  }
+  const remove = (id: string) => {
+    if (palette.length <= 1) return
+    const nextAssignments = Object.fromEntries(Object.entries(assignments).filter(([, swatchId]) => swatchId !== id))
+    const nextBindings = Object.fromEntries(Object.entries(roleBindings).filter(([, swatchId]) => swatchId !== id))
+    mutateWorkspace({
+      palette: palette.filter((swatch) => swatch.id !== id),
+      assignments: nextAssignments,
+      roleBindings: nextBindings,
+    })
+    toast.push("Colour removed and stale bindings cleared", "success")
+  }
   // Randomise: 1st + 2nd click = smart random, every 3rd click = curated
   // palette (recency-aware, respects locks). Falls back to smart random if
   // no curated palette is a reasonable match around the locked colours.
   const randomizeClickCount = useRef(0)
   const recentCuratedIdx = useRef<number[]>([])
-  /* Smart random — picks a base hue, then generates a small harmonious
-   * spread instead of pure noise so the palette actually looks like a
-   * design system. Backgrounds go pale, text goes dark, accents get
-   * saturation. Locked swatches are preserved. */
+  const roleHintsFor = (swatch: Swatch, index: number): string[] => [
+    roleLabels?.[index] ?? "",
+    ...Object.entries(roleBindings).filter(([, id]) => id === swatch.id).map(([role]) => role),
+  ].map((role) => role.toLowerCase())
+
+  /* Smart random stays intentionally restrained: neutral backgrounds,
+   * one strong accent, and text values chosen for UI readability. */
   const smartRandom = (p: Swatch[]): Swatch[] => {
     const baseHue = Math.floor(Math.random() * 360)
-    const dark = Math.random() < 0.35  // 35% of the time try a dark theme
-    const roleFor = (idx: number, label?: string | null): { s: number; l: number; hueShift: number } => {
-      const hint = (label || "").toLowerCase()
-      if (hint.includes("text") || hint.includes("heading") || hint.includes("body")) {
-        return dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 }
+    const dark = Math.random() < 0.25
+    const roleFor = (idx: number, hints: string[]): { h: number; s: number; l: number } => {
+      const has = (...words: string[]) => hints.some((hint) => words.some((word) => hint.includes(word)))
+      if (has("heading")) {
+        return dark ? { h: baseHue, s: 8, l: 96 } : { h: baseHue, s: 14, l: 11 }
       }
-      if (hint.includes("border") || hint.includes("divider") || hint.includes("secondary text")) {
-        return dark ? { s: 10, l: 65, hueShift: 20 } : { s: 8, l: 55, hueShift: 20 }
+      if (has("body", "text", "caption", "label")) {
+        return dark ? { h: baseHue, s: 8, l: 82 } : { h: baseHue, s: 10, l: 30 }
       }
-      if (hint.includes("background") || hint.includes("surface") || hint.includes("page")) {
-        return dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 }
+      if (has("secondary background", "surface", "card background", "form background")) {
+        return dark ? { h: baseHue, s: 12, l: 18 } : { h: baseHue, s: 12, l: 94 }
       }
-      if (hint.includes("primary") || hint.includes("brand") || hint.includes("accent")) {
-        return { s: 65, l: 52, hueShift: 0 }
+      if (has("background", "canvas", "page", "app", "nav")) {
+        return dark ? { h: baseHue, s: 14, l: 10 } : { h: baseHue, s: 14, l: 98 }
       }
-      // Fallback by index: 0=bg, 1=surface, 2=primary, 3=main text, 4=secondary text
+      if (has("success")) return { h: 148, s: 58, l: dark ? 58 : 38 }
+      if (has("warning")) return { h: 38, s: 76, l: dark ? 62 : 42 }
+      if (has("error")) return { h: 4, s: 66, l: dark ? 62 : 45 }
+      if (has("border", "divider", "grid", "outline")) {
+        return dark ? { h: baseHue, s: 10, l: 34 } : { h: baseHue, s: 9, l: 78 }
+      }
+      if (has("secondary series", "secondary")) {
+        return { h: (baseHue + 48) % 360, s: 48, l: dark ? 64 : 44 }
+      }
+      if (has("primary", "brand", "accent", "series", "active")) {
+        return { h: baseHue, s: 68, l: dark ? 64 : 42 }
+      }
       const fallback = [
-        dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 },      // background
-        dark ? { s: 12, l: 18, hueShift: 0 } : { s: 12, l: 100, hueShift: 0 },     // surface
-        { s: 65, l: 52, hueShift: 0 },                                               // primary
-        dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 },       // main text
-        dark ? { s: 10, l: 65, hueShift: 0 } : { s: 8, l: 42, hueShift: 0 },       // secondary text
+        dark ? { h: baseHue, s: 14, l: 10 } : { h: baseHue, s: 14, l: 98 },
+        dark ? { h: baseHue, s: 12, l: 18 } : { h: baseHue, s: 12, l: 94 },
+        { h: baseHue, s: 68, l: dark ? 64 : 42 },
+        dark ? { h: baseHue, s: 8, l: 96 } : { h: baseHue, s: 14, l: 11 },
+        dark ? { h: baseHue, s: 8, l: 82 } : { h: baseHue, s: 10, l: 30 },
       ]
-      return fallback[idx] ?? { s: 40 + Math.random() * 30, l: 40 + Math.random() * 30, hueShift: (idx * 47) % 360 }
+      return fallback[idx] ?? { h: (baseHue + idx * 28) % 360, s: 38, l: dark ? 62 : 46 }
     }
     return p.map((s, idx) => {
       if (s.locked) return s
-      const label = (roleLabels ?? [])[idx]
-      const spec = roleFor(idx, label)
-      const h = (baseHue + spec.hueShift) % 360
-      return { ...s, hex: hslToHex(h, spec.s, spec.l) }
+      const spec = roleFor(idx, roleHintsFor(s, idx))
+      return { ...s, hex: hslToHex(spec.h, spec.s, spec.l) }
     })
   }
+
+  const swatchIdForRole = (candidate: Swatch[], role: string): string | undefined => {
+    const explicit = Object.entries(roleBindings).find(([name]) => name.toLowerCase() === role.toLowerCase())?.[1]
+    if (explicit && candidate.some((swatch) => swatch.id === explicit)) return explicit
+    const index = (roleLabels ?? []).findIndex((name) => name?.toLowerCase() === role.toLowerCase())
+    return index >= 0 ? candidate[index]?.id : undefined
+  }
+
+  const repairTextContrast = (candidate: Swatch[]): Swatch[] => {
+    const next = candidate.map((swatch) => ({ ...swatch }))
+    const candidateTheme = deriveTheme(next, roleLabels, roleBindings)
+    const backgrounds = [candidateTheme.paper, candidateTheme.surface]
+    const choices = ["#101828", "#FFFFFF"]
+    const safeText = choices.sort((a, b) =>
+      Math.min(...backgrounds.map((bg) => contrastRatio(b, bg))) - Math.min(...backgrounds.map((bg) => contrastRatio(a, bg))),
+    )[0]
+
+    for (const role of ["Heading Text", "Body Text"]) {
+      const id = swatchIdForRole(next, role)
+      const swatch = next.find((item) => item.id === id)
+      if (!swatch || swatch.locked) continue
+      const currentTheme = deriveTheme(next, roleLabels, roleBindings)
+      const foreground = role === "Heading Text" ? currentTheme.ink : currentTheme.inkSoft
+      if ([currentTheme.paper, currentTheme.surface].some((bg) => contrastRatio(foreground, bg) < 4.5)) {
+        swatch.hex = safeText
+      }
+    }
+    return next
+  }
+
+  const acceptSafePalette = (candidate: Swatch[]): Swatch[] | null => {
+    const repaired = repairTextContrast(candidate)
+    return themeContrastIssues(deriveTheme(repaired, roleLabels, roleBindings)).length ? null : repaired
+  }
+
+  const generateSafePalette = (source: Swatch[]): Swatch[] | null => {
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      const accepted = acceptSafePalette(smartRandom(source))
+      if (accepted) return accepted
+    }
+    return null
+  }
+
   const randomize = () => {
     if (!palette.some((s) => !s.locked)) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
 
@@ -328,17 +455,27 @@ export default function Builder() {
       const chosen = pickCuratedPalette(locks, recentCuratedIdx.current)
       if (chosen) {
         recentCuratedIdx.current = [chosen.index, ...recentCuratedIdx.current].slice(0, 20)
-        mutatePalette((p) => p.map((s, i) => {
+        const curatedCandidate = palette.map((s, i) => {
           if (s.locked) return s
           if (i >= chosen.palette.length) return { ...s, hex: randomHex() }
           return { ...s, hex: chosen.palette[i] }
-        }))
-        toast.push("Curated palette", "success")
-        return
+        })
+        const accepted = acceptSafePalette(curatedCandidate)
+        if (accepted) {
+          mutatePalette(() => accepted)
+          toast.push("Curated, UI-safe palette", "success")
+          return
+        }
       }
-      toast.push("No matching curated palette — using smart random")
+      toast.push("Curated palette could not satisfy the current locks and role mapping")
     }
-    mutatePalette(smartRandom)
+    const accepted = generateSafePalette(palette)
+    if (!accepted) {
+      toast.push("Locked colours or role collisions prevent safe text contrast", "error")
+      return
+    }
+    mutatePalette(() => accepted)
+    toast.push("UI-safe palette", "success")
   }
   const toggleLock = (id: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
   const reorder = (activeId: string, overId: string) => mutatePalette((p) => {
@@ -352,12 +489,7 @@ export default function Builder() {
   })
 
   const doReset = () => {
-    skipHistory.current = false
-    setUndoStack((u) => [...u, palette])
-    setRedoStack([])
-    skipHistory.current = true
-    setPalette(createDefaultPalette())
-    setAssignments({})
+    mutateWorkspace({ palette: createDefaultPalette(), assignments: {}, roleBindings: {} })
     setConfirmReset(false)
     toast.push("Palette reset — Undo brings it back", "success")
   }
@@ -385,10 +517,87 @@ export default function Builder() {
     }
   }
 
+  const roleSourceOptions = Array.from(new Set([
+    ...(roleLabels ?? []).filter((role): role is string => Boolean(role)),
+    ...DESIGN_ROLES,
+  ]))
+  const roleMapTarget = palette.find((swatch) => swatch.id === roleMapTargetId) ?? palette[0]
+  const targetIndex = roleMapTarget ? palette.findIndex((swatch) => swatch.id === roleMapTarget.id) : -1
+  const targetDefaultRole = targetIndex >= 0 ? roleLabels?.[targetIndex] ?? null : null
+  const roleMapNoOp = !roleMapTarget
+    || roleBindings[roleMapSource] === roleMapTarget.id
+    || roleMapTarget.name.trim().toLowerCase() === roleMapSource.trim().toLowerCase()
+    || targetDefaultRole?.trim().toLowerCase() === roleMapSource.trim().toLowerCase()
+
+  const roleKind = (role: string) => {
+    const value = role.toLowerCase()
+    if (TEXT_ROLE_HINTS.some((hint) => value.includes(hint))) return "text"
+    if (BACKGROUND_ROLE_HINTS.some((hint) => value.includes(hint))) return "background"
+    return "other"
+  }
+
+  const applyRoleMapping = () => {
+    if (!roleMapTarget) return
+    if (roleMapNoOp) {
+      const message = `${roleMapSource} already uses ${roleMapTarget.name}.`
+      setRoleMapMessage({ text: message, tone: "neutral" })
+      toast.push(message)
+      return
+    }
+
+    const nextBindings = { ...roleBindings, [roleMapSource]: roleMapTarget.id }
+    const rolesUsingTarget = [
+      targetDefaultRole,
+      ...Object.entries(nextBindings).filter(([, id]) => id === roleMapTarget.id).map(([role]) => role),
+    ].filter((role): role is string => Boolean(role))
+    const createsTextBackgroundCollision = rolesUsingTarget.some((role) => roleKind(role) === "text")
+      && rolesUsingTarget.some((role) => roleKind(role) === "background")
+
+    if (createsTextBackgroundCollision) {
+      const message = `${roleMapTarget.name} cannot be both text and a background because the contrast would be 1:1.`
+      setRoleMapMessage({ text: message, tone: "error" })
+      toast.push(message, "error")
+      return
+    }
+
+    const issues = themeContrastIssues(deriveTheme(palette, roleLabels, nextBindings))
+    if (roleKind(roleMapSource) !== "other" && issues.length) {
+      const issue = issues[0]
+      const message = `${issue.foreground} would be ${issue.ratio}:1 on ${issue.background}. Choose a safer colour.`
+      setRoleMapMessage({ text: message, tone: "error" })
+      toast.push(message, "error")
+      return
+    }
+
+    mutateWorkspace({ roleBindings: nextBindings })
+    const message = `${roleMapSource} now uses ${roleMapTarget.name} in every preview.`
+    setRoleMapMessage({ text: message, tone: "success" })
+    toast.push(message, "success")
+  }
+
+  const applyElementAssignment = (swatch: Swatch) => {
+    if (!assignTarget) return
+    const kind = roleKind(assignTarget.label)
+    const backgrounds = [theme.paper, theme.surface]
+    const unsafeText = kind === "text" && backgrounds.some((background) => contrastRatio(swatch.hex, background) < 4.5)
+    const unsafeBackground = kind === "background"
+      && [theme.ink, theme.inkSoft].some((foreground) => contrastRatio(foreground, swatch.hex) < 4.5)
+    if (unsafeText || unsafeBackground) {
+      const ratio = unsafeText
+        ? Math.min(...backgrounds.map((background) => contrastRatio(swatch.hex, background)))
+        : Math.min(contrastRatio(theme.ink, swatch.hex), contrastRatio(theme.inkSoft, swatch.hex))
+      toast.push(`${swatch.name} would only reach ${ratio.toFixed(2)}:1 contrast here`, "error")
+      return
+    }
+    mutateWorkspace({ assignments: { ...assignments, [assignTarget.id]: swatch.id } })
+    setAssignTarget(null)
+    toast.push(`${assignTarget.label} now uses ${swatch.name}`, "success")
+  }
+
   const ctx: PreviewCtxValue = {
     editMode,
     assignments,
-    requestAssign: (id, label) => setAssignTarget({ id, label }),
+    requestAssign: (id, label, currentHex) => setAssignTarget({ id, label, currentHex }),
     roleColor: (swatchId) => palette.find((s) => s.id === swatchId)?.hex,
     brand,
     buttonStyle,
@@ -397,29 +606,32 @@ export default function Builder() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
+    <div className="flex min-h-full flex-col bg-offwhite text-charcoal xl:h-full">
+      {/* Palette roles stay together in their own rail. */}
+      <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
+        <PalettePanel
+          palette={palette}
+          onChange={change}
+          onAdd={add}
+          onRemove={remove}
+          onRandomize={randomize}
+          onToggleLock={toggleLock}
+          onRename={rename}
+          onReorder={reorder}
+          brand={BRAND.brand}
+          roleLabels={roleLabels}
+        />
+      </section>
 
-      {/* ================= Row 2: palette bar + Change Template trigger ================= */}
-      {/* The right column is 369px wide (matches the Properties sidebar
-       * below) so the Change Format card sits centered in the same lane
-       * as the sidebar instead of hugging the viewport edge. */}
-      <section className="flex shrink-0 items-center gap-3 border-b border-softgrey/70 bg-white pl-3 pr-0 py-2 sm:pl-5">
-        <div className="min-w-0 flex-1">
-          <PalettePanel
-            palette={palette}
-            onChange={change}
-            onAdd={add}
-            onRemove={remove}
-            onRandomize={randomize}
-            onToggleLock={toggleLock}
-            onRename={rename}
-            onReorder={reorder}
-            brand={BRAND.brand}
-            roleLabels={roleLabels}
-          />
+      {/* Preview stacks above controls until there is room for a real sidebar. */}
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col">
+
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white px-3 py-2.5 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase text-charcoal/45">Current preview</p>
+          <p className="truncate text-[13px] font-semibold text-charcoal/80">{currentGroup.label} / {currentSub.label} / {currentTemplateLabel}</p>
         </div>
-        <div className="flex w-[369px] shrink-0 justify-center px-3">
         <ChangeTemplatePanel
           open={templatePopoverOpen}
           onToggle={() => setTemplatePopoverOpen((v) => !v)}
@@ -443,19 +655,10 @@ export default function Builder() {
             if (match) trySelectPreview({ group: sel.group, sub: match.key })
           }}
         />
-        </div>
-      </section>
-
-      {/* Design tools row removed — Edit Elements, Brand and Export now live in the Properties sidebar */}
-
-      {/* ================= Main area: preview column + Properties sidebar ================= */}
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col">
-
-      {/* Breadcrumb removed — Layout + Variant in the sidebar drive navigation now */}
+      </div>
 
       {/* ================= Preview (large, immersive) ================= */}
-      <main className="relative min-h-0 flex-1 overflow-y-auto bg-[#171616] p-3 sm:p-5">
+      <main className="relative min-h-[520px] flex-none overflow-y-auto bg-[#171616] p-3 sm:p-5 xl:min-h-0 xl:flex-1">
         <div className="flex h-full min-h-[440px] flex-col gap-3 sm:gap-4">
           <div className="min-h-[300px] flex-1">
             <PreviewProvider value={ctx}>
@@ -493,73 +696,29 @@ export default function Builder() {
 
         {/* ================= Properties sidebar (always visible) ================= */}
         <PropertiesPanel
-          brandColor={BRAND.brand}
           onRandomize={randomize}
           onUndo={undo}
           onRedo={redo}
           onSave={() => toast.push("Palette autosaves as you work", "success")}
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
-          editActive={editMode}
-          onToggleEdit={() => setEditMode((v) => !v)}
-          onCreateElement={() => toast.push("Create Element — coming soon")}
-          onDelete={() => toast.push("Select an element to delete")}
-          onCopy={() => toast.push("Select an element to copy")}
-          onPaste={() => toast.push("Nothing to paste yet")}
-          onDuplicate={() => toast.push("Select an element to duplicate")}
-          hasSelection={false}
-          hasClipboard={false}
-          onSelectRole={() => toast.push("Select a role from a preview element")}
-          onCreateRole={() => toast.push("Create a custom role — coming soon")}
-          onRemoveRole={() => toast.push("Remove a role — coming soon")}
-          availableRoles={["Component"]}
-          hierarchySource={roleMapSource}
-          hierarchyTarget={roleMapTarget}
-          hierarchyOptions={(roleLabels?.filter((r): r is string => Boolean(r)) ?? []).concat(["Background", "Primary", "Secondary", "Tertiary"])}
-          onHierarchySource={setRoleMapSource}
-          onHierarchyTarget={setRoleMapTarget}
-          onHierarchySet={() => toast.push(`${roleMapSource} → ${roleMapTarget}`, "success")}
-          currentHex={palette[selectedSwatchIndex]?.hex ?? "#FF0000"}
-          currentAlpha={1}
-          onOpenColorEditor={() => setColorEditorOpen(true)}
-          onToggleVisible={() => {
-            const sw = palette[selectedSwatchIndex]; if (!sw) return
-            setSwatchVisible((v) => ({ ...v, [sw.id]: !(v[sw.id] ?? true) }))
-          }}
-          visible={swatchVisible[palette[selectedSwatchIndex]?.id ?? ""] ?? true}
-          variant={currentTemplateLabel || "Landing"}
-          variants={["Minimal", "Product", "Landing"]}
-          onVariant={(v: string) => {
-            const match = templates.find((t) => t.label === v)
-            if (match) trySelectTemplate(match.key, match.label)
-          }}
-          layout={currentSub.label}
-          layouts={currentGroup.subs.map((s) => s.label)}
-          onLayout={(l: string) => {
-            const match = currentGroup.subs.find((s) => s.label === l)
-            if (match) trySelectPreview({ group: sel.group, sub: match.key })
-          }}
+          onFormat={() => setTemplatePopoverOpen(true)}
+          formatLabel="Format"
+          roleSource={roleMapSource}
+          roleTargetId={roleMapTargetId}
+          roleSourceOptions={roleSourceOptions}
+          paletteOptions={palette.map(({ id, name, hex }) => ({ id, name, hex }))}
+          onRoleSource={(value) => { setRoleMapSource(value); setRoleMapMessage(null) }}
+          onRoleTarget={(value) => { setRoleMapTargetId(value); setRoleMapMessage(null) }}
+          onRoleSet={applyRoleMapping}
+          roleSetDisabled={roleMapNoOp}
+          roleMessage={roleMapMessage}
           onInsertBrand={() => setBrandOpen(true)}
           onFullscreen={() => setFullscreen(true)}
           onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
-          isPro={ent.isPro}
-          onTogglePro={() => {
-            setEnt((e) => ({ ...e, isPro: !e.isPro }))
-            toast.push(!ent.isPro ? "Pro enabled" : "Back to Free", "success")
-          }}
         />
       </div>{/* /main area flex row */}
-
-      {/* ================= Colour editor popover ================= */}
-      {colorEditorOpen && palette[selectedSwatchIndex] && (
-        <ColorEditor
-          hex={palette[selectedSwatchIndex].hex}
-          alpha={1}
-          onChange={(hex: string) => change(palette[selectedSwatchIndex].id, hex)}
-          onClose={() => setColorEditorOpen(false)}
-        />
-      )}
 
       {/* ================= Preview picker ================= */}
       {previewPickerOpen && (
@@ -669,7 +828,7 @@ export default function Builder() {
               {palette.map((s) => {
                 const on = assignments[assignTarget.id] === s.id
                 return (
-                  <button key={s.id} type="button" onClick={() => { setAssignments((a) => ({ ...a, [assignTarget.id]: s.id })); setAssignTarget(null); toast.push(`${assignTarget.label} → ${s.name}`, "success") }} className="flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]" style={{ outline: on ? `2px solid ${BRAND.brand}` : "1px solid " + BRAND.softgrey }}>
+                  <button key={s.id} type="button" onClick={() => applyElementAssignment(s)} className="flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]" style={{ outline: on ? `2px solid ${BRAND.brand}` : "1px solid " + BRAND.softgrey }}>
                     <span className="h-10 w-full rounded-lg" style={{ background: s.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(readableOn(s.hex), 0.12)}` }} />
                     <span className="text-[11px] font-semibold text-charcoal/70">{s.name}</span>
                   </button>
@@ -677,7 +836,7 @@ export default function Builder() {
               })}
             </div>
             <div className="mt-4 flex justify-between">
-              <button type="button" onClick={() => { setAssignments((a) => { const next = { ...a }; delete next[assignTarget.id]; return next }); setAssignTarget(null); toast.push("Reset to default colour") }} className="rounded-lg px-3 py-2 text-xs font-semibold text-charcoal/55 hover:text-charcoal">Reset to default</button>
+              <button type="button" onClick={() => { const next = { ...assignments }; delete next[assignTarget.id]; mutateWorkspace({ assignments: next }); setAssignTarget(null); toast.push("Reset to default colour") }} className="rounded-lg px-3 py-2 text-xs font-semibold text-charcoal/55 hover:text-charcoal">Reset to default</button>
               <button type="button" onClick={() => setAssignTarget(null)} className="rounded-lg border border-softgrey px-3 py-2 text-xs font-semibold text-charcoal/70 hover:text-charcoal">Cancel</button>
             </div>
           </div>
