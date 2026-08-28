@@ -34,6 +34,8 @@ import {
 } from "../lib/entitlement"
 import ExportPanel from "../components/ExportPanel"
 import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
+import PropertiesPanel from "../components/PropertiesPanel"
+import ColorEditor from "../components/ColorEditor"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -117,6 +119,15 @@ export default function Builder() {
   const [helpOpen, setHelpOpen] = useState(shouldShowIntro)
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+
+  // Colour editor + selected swatch
+  const [colorEditorOpen, setColorEditorOpen] = useState(false)
+  const [selectedSwatchIndex, setSelectedSwatchIndex] = useState(0)
+  const [swatchVisible, setSwatchVisible] = useState<Record<string, boolean>>({})
+
+  // Role Mapping (previously "Assign Hierarchy")
+  const [roleMapSource, setRoleMapSource] = useState("Page Background")
+  const [roleMapTarget, setRoleMapTarget] = useState("Brand Primary")
 
   // Undo / Redo
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
@@ -368,34 +379,13 @@ export default function Builder() {
         />
       </section>
 
-      {/* ================= Row 3: main tools ================= */}
-      <section className="shrink-0 border-b border-softgrey/70 bg-offwhite px-2 py-1.5 sm:px-4" aria-label="Design tools">
-        <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-          <ToolButton
-            onClick={() => setEditMode((v) => !v)}
-            icon={<EditIcon />}
-            label="Edit Elements"
-            active={editMode}
-            title={editMode ? "Turn off Edit Elements" : "Click elements in the preview to change their colour"}
-          />
-          <ToolButton
-            subtle
-            onClick={() => setBrandOpen(true)}
-            icon={<BrandIcon />}
-            label="Brand"
-            title="Company name, logo, app icon and typography"
-          />
-          <ToolButton
-            subtle
-            onClick={() => setExportOpen(true)}
-            icon={<ExportIcon />}
-            label="Export"
-            title="Copy colours, developer formats and download"
-          />
-        </div>
-      </section>
+      {/* Design tools row removed — Edit Elements, Brand and Export now live in the Properties sidebar */}
 
-      {/* ================= Row 4: breadcrumb + full screen ================= */}
+      {/* ================= Main area: preview column + Properties sidebar ================= */}
+      <div className="flex min-h-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
+
+      {/* ================= Row 4: breadcrumb ================= */}
       <section className="flex shrink-0 items-center justify-between gap-2 border-b border-softgrey/60 bg-offwhite px-3 py-1.5 sm:px-4" aria-label="Current location">
         <nav
           className="flex min-w-0 items-center gap-1 truncate text-[11.5px] font-semibold text-charcoal/60"
@@ -412,18 +402,7 @@ export default function Builder() {
             </>
           )}
         </nav>
-        {!isButton && (
-          <button
-            type="button"
-            onClick={() => setFullscreen(true)}
-            title="Enter full screen preview"
-            aria-label="Enter full screen preview"
-            className="flex shrink-0 items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2.5 py-1 text-[11px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-          >
-            <FullscreenIcon />
-            <span className="hidden sm:inline">Full screen</span>
-          </button>
-        )}
+        {/* Full screen now lives in the Properties sidebar */}
       </section>
 
       {/* ================= Preview (large, immersive) ================= */}
@@ -502,6 +481,80 @@ export default function Builder() {
           </div>
         )}
       </main>
+
+        </div>{/* /main column */}
+
+        {/* ================= Properties sidebar (always visible) ================= */}
+        <PropertiesPanel
+          brandName={brand.name}
+          brandColor={BRAND.brand}
+          onRandomize={randomize}
+          onUndo={undo}
+          onRedo={redo}
+          onSave={() => toast.push("Palette autosaves as you work", "success")}
+          canUndo={undoStack.length > 0}
+          canRedo={redoStack.length > 0}
+          editActive={editMode}
+          onToggleEdit={() => setEditMode((v) => !v)}
+          onCreateElement={() => toast.push("Create Element — coming soon")}
+          onDelete={() => toast.push("Select an element to delete")}
+          onCopy={() => toast.push("Select an element to copy")}
+          onPaste={() => toast.push("Nothing to paste yet")}
+          onDuplicate={() => toast.push("Select an element to duplicate")}
+          hasSelection={false}
+          hasClipboard={false}
+          roles={roleLabels?.filter((r): r is string => Boolean(r)) ?? []}
+          onSelectRole={() => toast.push("Select a role from a preview element")}
+          onCreateRole={() => toast.push("Create a custom role — coming soon")}
+          onRemoveRole={() => toast.push("Remove a role — coming soon")}
+          availableRoles={["Component"]}
+          hierarchySource={roleMapSource}
+          hierarchyTarget={roleMapTarget}
+          hierarchyOptions={(roleLabels?.filter((r): r is string => Boolean(r)) ?? []).concat(["Background", "Primary", "Secondary", "Tertiary"])}
+          onHierarchySource={setRoleMapSource}
+          onHierarchyTarget={setRoleMapTarget}
+          onHierarchySet={() => toast.push(`${roleMapSource} → ${roleMapTarget}`, "success")}
+          currentHex={palette[selectedSwatchIndex]?.hex ?? "#FF0000"}
+          currentAlpha={1}
+          onOpenColorEditor={() => setColorEditorOpen(true)}
+          onToggleVisible={() => {
+            const sw = palette[selectedSwatchIndex]; if (!sw) return
+            setSwatchVisible((v) => ({ ...v, [sw.id]: !(v[sw.id] ?? true) }))
+          }}
+          visible={swatchVisible[palette[selectedSwatchIndex]?.id ?? ""] ?? true}
+          variant={currentTemplateLabel || "Landing"}
+          variants={["Minimal", "Product", "Landing"]}
+          onVariant={(v: string) => {
+            const match = templates.find((t) => t.label === v)
+            if (match) trySelectTemplate(match.key, match.label)
+          }}
+          layout={currentSub.label}
+          layouts={currentGroup.subs.map((s) => s.label)}
+          onLayout={(l: string) => {
+            const match = currentGroup.subs.find((s) => s.label === l)
+            if (match) trySelectPreview({ group: sel.group, sub: match.key })
+          }}
+          onInsertBrand={() => setBrandOpen(true)}
+          onFullscreen={() => setFullscreen(true)}
+          onExport={() => setExportOpen(true)}
+          onHelp={() => setHelpOpen(true)}
+          palette={palette}
+          onSwatchClick={(id: string) => {
+            const idx = palette.findIndex((s) => s.id === id)
+            if (idx >= 0) { setSelectedSwatchIndex(idx); setColorEditorOpen(true) }
+          }}
+        />
+      </div>{/* /main area flex row */}
+
+      {/* ================= Colour editor popover ================= */}
+      {colorEditorOpen && palette[selectedSwatchIndex] && (
+        <ColorEditor
+          hex={palette[selectedSwatchIndex].hex}
+          alpha={1}
+          onChange={(hex: string) => change(palette[selectedSwatchIndex].id, hex)}
+          onClose={() => setColorEditorOpen(false)}
+        />
+      )}
 
       {/* ================= Preview picker ================= */}
       {previewPickerOpen && (
