@@ -46,19 +46,27 @@ export default function ChangeTemplatePanel(p: Props) {
 
   return (
     <div className="relative shrink-0" style={UI_FONT}>
-      {/* Compact trigger pill */}
+      {/* Trigger card — sized to match the palette cards so it fills the
+       * top-right area cleanly instead of sitting as a lonely pill */}
       <button
         type="button"
         onClick={p.onToggle}
         aria-expanded={p.open}
         aria-haspopup="dialog"
-        className="flex h-[40px] items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#111827] shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+        className="flex h-[113px] w-[240px] flex-col justify-between rounded-[12px] border border-[#e5e7eb] bg-white p-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
         title="Change template, layout and variant"
       >
-        <LayersIcon />
-        <span className="text-[11px] uppercase tracking-[0.24px] text-[#6b7280]">Template</span>
-        <span className="max-w-[140px] truncate text-[#111827]">{p.template} · {p.layout} · {p.variant}</span>
-        <ChevronDown className={`transition-transform ${p.open ? "rotate-180" : ""}`} />
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.24px] text-[#6b7280]">
+            <LayersIcon /> Change Format
+          </span>
+          <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]">Current</span>
+          <span className="truncate text-[15px] font-bold text-[#111827]" style={DISPLAY_FONT}>{p.template}</span>
+          <span className="truncate text-[11px] font-semibold text-[#6b7280]">{p.layout} · {p.variant}</span>
+        </div>
       </button>
 
       {p.open && (

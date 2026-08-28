@@ -500,6 +500,11 @@ export default function Builder() {
           onFullscreen={() => setFullscreen(true)}
           onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
+          isPro={ent.isPro}
+          onTogglePro={() => {
+            setEnt((e) => ({ ...e, isPro: !e.isPro }))
+            toast.push(!ent.isPro ? "Pro enabled" : "Back to Free", "success")
+          }}
         />
       </div>{/* /main area flex row */}
 

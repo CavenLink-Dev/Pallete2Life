@@ -46,6 +46,8 @@ type Props = {
   onFullscreen: () => void
   onExport: () => void
   onHelp: () => void
+  isPro: boolean
+  onTogglePro: () => void
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` } as const
@@ -200,8 +202,22 @@ export default function PropertiesPanel(p: Props) {
         </div>
       </div>
 
-      {/* Tiny brand mark tucked at the very bottom, subdued */}
-      <div className="shrink-0 border-t border-[#e5e7eb] bg-white px-4 py-2 text-right">
+      {/* Tiny brand mark + Pro toggle tucked at the very bottom, subdued */}
+      <div className="flex shrink-0 items-center justify-between border-t border-[#e5e7eb] bg-white px-4 py-2">
+        <button
+          type="button"
+          onClick={p.onTogglePro}
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.24px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
+            p.isPro
+              ? "border-[#1f9eff] bg-[#1f9eff] text-white"
+              : "border-[#e5e7eb] bg-white text-[#9ca3af] hover:text-[#111827]"
+          }`}
+          title={p.isPro ? "Pro is on — click to switch back to Free" : "Switch to Pro"}
+          aria-pressed={p.isPro}
+          style={UI_FONT}
+        >
+          {p.isPro ? "★ Pro" : "Go Pro"}
+        </button>
         <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]" style={UI_FONT}>Palette Preview</span>
       </div>
     </aside>
