@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import type React from "react"
 
 /* Pixel-close rebuild of the Figma "prev_official_1" Properties sidebar.
@@ -76,7 +77,7 @@ export default function PropertiesPanel(p: Props) {
 
       <div className="h-px w-full bg-[#e5e7eb]" />
 
-      <Section label="Tools" info>
+      <Section label="Tools" info="Switch modes and add new elements. Edit turns on element selection; Create Element inserts a placeholder into the current preview.">
         <ChipRow>
           <Chip active={p.editActive} onClick={p.onToggleEdit}>Edit</Chip>
           <Chip onClick={p.onCreateElement}>Create Element</Chip>
@@ -96,7 +97,7 @@ export default function PropertiesPanel(p: Props) {
 
       <div className="h-px w-full bg-[#e5e7eb]" />
 
-      <Section label="Colour Roles" info>
+      <Section label="Colour Roles" info="Group colours by their purpose (Primary, Text, Border…) so previews stay consistent when you swap palettes.">
         <ChipRow>
           <Chip onClick={p.onSelectRole}>Select</Chip>
           <Chip onClick={p.onCreateRole}>Create  +</Chip>
@@ -114,7 +115,7 @@ export default function PropertiesPanel(p: Props) {
 
       <div className="h-px w-full bg-[#e5e7eb]" />
 
-      <Section label="Assign Hierarchy" info>
+      <Section label="Role Mapping" info="Map a design role to a palette role. Example: bind “Page Background” to “Primary” so every element that uses Page Background updates whenever you change your Primary colour.">
         <div className="flex items-center gap-2">
           <SplitSelect
             leftValue={p.hierarchySource}
@@ -150,7 +151,7 @@ export default function PropertiesPanel(p: Props) {
 
       {/* Variant + Layout moved to the Change Template panel in the top-right */}
 
-      <Section label="Brand" info>
+      <Section label="Brand" info="Upload your logo, app icon and typography. Uploaded assets appear inside applicable previews so palettes are tested with your brand context.">
         <button
           type="button"
           onClick={p.onInsertBrand}
@@ -226,22 +227,59 @@ export default function PropertiesPanel(p: Props) {
 
 /* ---------- helpers ---------- */
 
-function Section({ label, info, children }: { label: string; info?: boolean; children: React.ReactNode }) {
+function Section({ label, info, children }: { label: string; info?: string | boolean; children: React.ReactNode }) {
+  const infoText = typeof info === "string" ? info : undefined
   return (
     <div className="flex w-full flex-col gap-2.5">
       <div className="flex items-center gap-2">
         <span className="text-[12px] font-semibold uppercase tracking-[0.24px] text-[#4b5563]" style={UI_FONT}>{label}</span>
-        {info && <InfoDot />}
+        {info && <InfoDot text={infoText} label={label} />}
       </div>
       {children}
     </div>
   )
 }
 
-function InfoDot() {
+function InfoDot({ text, label }: { text?: string; label: string }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest("[data-info-popover]")) setOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    const t = setTimeout(() => document.addEventListener("mousedown", onDown), 0)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      clearTimeout(t)
+      document.removeEventListener("mousedown", onDown)
+    }
+  }, [open])
+
   return (
-    <span className="grid h-[15px] w-[15px] place-items-center rounded-full bg-[#1f9eff] text-[10px] font-bold italic text-white" aria-hidden>
-      i
+    <span className="relative inline-flex" data-info-popover>
+      <button
+        type="button"
+        onClick={() => text && setOpen((v) => !v)}
+        title={text ?? ""}
+        aria-label={`About ${label}`}
+        aria-expanded={open}
+        className="grid h-[15px] w-[15px] cursor-help place-items-center rounded-full bg-[#1f9eff] text-[10px] font-bold italic text-white transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+      >
+        i
+      </button>
+      {open && text && (
+        <span
+          role="tooltip"
+          className="absolute left-[20px] top-0 z-50 w-[220px] rounded-lg border border-[#e5e7eb] bg-white p-2.5 text-left text-[11px] font-normal normal-case text-[#374151] shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]"
+          style={UI_FONT}
+        >
+          <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.24px] text-[#111827]">{label}</span>
+          <span className="block leading-snug">{text}</span>
+        </span>
+      )}
     </span>
   )
 }

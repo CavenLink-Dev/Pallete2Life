@@ -272,7 +272,7 @@ function SortableCard({
 function CardFace({ swatch, role, dragging = false }: { swatch: Swatch; role: string | null; dragging?: boolean }) {
   return (
     <span className={`${CARD_SIZE} flex flex-col overflow-hidden rounded-lg bg-white ${dragging ? "rotate-1 shadow-2xl" : ""}`} aria-hidden={dragging || undefined}>
-      <span className="min-h-0 flex-1" style={{ background: swatch.hex }} />
+      <span className="min-h-0 flex-1" style={{ background: swatch.hex, boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)" }} />
       <span className="flex h-[52px] shrink-0 items-center justify-between gap-3 px-4">
         <span className="min-w-0">
           <span className="block truncate text-[10px] font-bold uppercase text-charcoal/50" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</span>
@@ -353,9 +353,9 @@ function ColorEditor({
       role="dialog"
       aria-label={`Edit ${role ?? swatch.name}`}
     >
-      <div className="p-4">
+      <div className="p-3">
         <div
-          className="relative aspect-[1.55/1] w-full touch-none cursor-crosshair overflow-hidden rounded-[14px] border border-charcoal/10"
+          className="relative aspect-[2.2/1] w-full touch-none cursor-crosshair overflow-hidden rounded-[10px] border border-charcoal/10"
           style={{ background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent), hsl(${hsv.h} 100% 50%)` }}
           onPointerDown={updateSV}
           onPointerMove={(event) => { if (event.buttons === 1) updateSV(event) }}
@@ -367,29 +367,29 @@ function ColorEditor({
           />
         </div>
 
-        <div className="relative my-4 h-5">
+        <div className="relative my-2.5 h-3">
           <input
             type="range"
             min="0"
             max="360"
             value={Math.round(hsv.h)}
             onChange={(event) => onChange(hsvToHex(Number(event.target.value), hsv.s, hsv.v))}
-            className="palette-hue-slider absolute inset-0 h-5 w-full cursor-pointer appearance-none rounded-full"
+            className="palette-hue-slider absolute inset-0 h-3 w-full cursor-pointer appearance-none rounded-full"
             aria-label="Hue"
           />
         </div>
 
-        <label className="flex h-12 items-center gap-3 rounded-xl border-2 border-brand/85 px-3 focus-within:ring-2 focus-within:ring-brand/20">
+        <label className="flex h-9 items-center gap-2 rounded-lg border border-brand/85 px-2.5 focus-within:ring-2 focus-within:ring-brand/20">
           <span className="sr-only">HEX</span>
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onBlur={() => onChange(normalizeHex(draft))}
             onKeyDown={(event) => { if (event.key === "Enter") onChange(normalizeHex(draft)) }}
-            className="min-w-0 flex-1 bg-transparent text-xl font-medium uppercase outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm font-medium uppercase outline-none"
             style={{ fontFamily: "var(--font-mono)" }}
           />
-          <span className="h-8 w-8 shrink-0 rounded-lg border border-charcoal/10" style={{ background: swatch.hex }} aria-hidden />
+          <span className="h-6 w-6 shrink-0 rounded-md border border-charcoal/10" style={{ background: swatch.hex }} aria-hidden />
         </label>
       </div>
 
@@ -450,7 +450,7 @@ function useAnchoredPosition(anchor: HTMLElement): CSSProperties {
   useLayoutEffect(() => {
     const update = () => {
       const rect = anchor.getBoundingClientRect()
-      const width = Math.min(386, window.innerWidth - 24)
+      const width = Math.min(280, window.innerWidth - 24)
       const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12)
       const estimatedHeight = 474
       const top = window.innerHeight - rect.bottom >= estimatedHeight + 12 ? rect.bottom + 8 : Math.max(12, rect.top - estimatedHeight - 8)

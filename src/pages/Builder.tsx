@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { BRAND, deriveTheme, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "../lib/color"
+import { BRAND, deriveTheme, hslToHex, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "../lib/color"
 import PalettePanel from "../components/PalettePanel"
 import {
   BUTTON_STYLES,
@@ -275,7 +275,45 @@ export default function Builder() {
   // no curated palette is a reasonable match around the locked colours.
   const randomizeClickCount = useRef(0)
   const recentCuratedIdx = useRef<number[]>([])
-  const smartRandom = (p: Swatch[]) => p.map((s) => (s.locked ? s : { ...s, hex: randomHex() }))
+  /* Smart random — picks a base hue, then generates a small harmonious
+   * spread instead of pure noise so the palette actually looks like a
+   * design system. Backgrounds go pale, text goes dark, accents get
+   * saturation. Locked swatches are preserved. */
+  const smartRandom = (p: Swatch[]): Swatch[] => {
+    const baseHue = Math.floor(Math.random() * 360)
+    const dark = Math.random() < 0.35  // 35% of the time try a dark theme
+    const roleFor = (idx: number, label?: string | null): { s: number; l: number; hueShift: number } => {
+      const hint = (label || "").toLowerCase()
+      if (hint.includes("text") || hint.includes("heading") || hint.includes("body")) {
+        return dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 }
+      }
+      if (hint.includes("border") || hint.includes("divider") || hint.includes("secondary text")) {
+        return dark ? { s: 10, l: 65, hueShift: 20 } : { s: 8, l: 55, hueShift: 20 }
+      }
+      if (hint.includes("background") || hint.includes("surface") || hint.includes("page")) {
+        return dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 }
+      }
+      if (hint.includes("primary") || hint.includes("brand") || hint.includes("accent")) {
+        return { s: 65, l: 52, hueShift: 0 }
+      }
+      // Fallback by index: 0=bg, 1=surface, 2=primary, 3=main text, 4=secondary text
+      const fallback = [
+        dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 },      // background
+        dark ? { s: 12, l: 18, hueShift: 0 } : { s: 12, l: 100, hueShift: 0 },     // surface
+        { s: 65, l: 52, hueShift: 0 },                                               // primary
+        dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 },       // main text
+        dark ? { s: 10, l: 65, hueShift: 0 } : { s: 8, l: 42, hueShift: 0 },       // secondary text
+      ]
+      return fallback[idx] ?? { s: 40 + Math.random() * 30, l: 40 + Math.random() * 30, hueShift: (idx * 47) % 360 }
+    }
+    return p.map((s, idx) => {
+      if (s.locked) return s
+      const label = (roleLabels ?? [])[idx]
+      const spec = roleFor(idx, label)
+      const h = (baseHue + spec.hueShift) % 360
+      return { ...s, hex: hslToHex(h, spec.s, spec.l) }
+    })
+  }
   const randomize = () => {
     if (!palette.some((s) => !s.locked)) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
 
