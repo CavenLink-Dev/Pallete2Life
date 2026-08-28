@@ -327,43 +327,9 @@ export default function Builder() {
 
   return (
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* ================= Row 1: slim brand header ================= */}
-      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-softgrey/70 bg-white/90 px-3 py-1.5 backdrop-blur sm:flex-nowrap sm:px-5">
-        <a
-          href="/builder"
-          onClick={navHome("/builder")}
-          className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-          aria-label="Back to Palette Generator"
-        >
-          <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
-          <h1 className="text-[13px] font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Palette <span style={{ color: BRAND.brand }}>Preview</span>
-          </h1>
-        </a>
+      {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
 
-        <div className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap sm:gap-2">
-          {/* Free-preview counter */}
-          {remainingLabel && (
-            <button
-              type="button"
-              onClick={() => navigate("/pricing")}
-              title="Free tier — click to see Pro"
-              className="inline-flex items-center gap-1.5 px-1 py-1 text-[11px] font-medium text-charcoal/50 transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-              aria-label={`${remainingLabel}. Open pricing.`}
-            >
-              {remainingLabel}
-            </button>
-          )}
-          {/* Utility group */}
-          <span className="mx-1 hidden h-4 w-px bg-softgrey sm:inline-block" aria-hidden />
-          <IconButton onClick={undo} disabled={!undoStack.length} label="Undo" title="Undo last change (Ctrl/Cmd+Z)"><UndoIcon /></IconButton>
-          <IconButton onClick={redo} disabled={!redoStack.length} label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)"><RedoIcon /></IconButton>
-          <IconButton onClick={() => setConfirmReset(true)} label="Reset" title="Reset the palette to defaults"><ResetIcon /></IconButton>
-          <IconButton onClick={() => setHelpOpen(true)} label="Help" title="How Palette Preview works"><HelpIcon /></IconButton>
-        </div>
-      </header>
-
-      {/* ================= Row 2: palette bar (with Randomise) ================= */}
+      {/* ================= Row 2: palette bar ================= */}
       <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-3 sm:px-5">
         <PalettePanel
           palette={palette}
@@ -385,25 +351,7 @@ export default function Builder() {
       <div className="flex min-h-0 flex-1">
         <div className="flex min-w-0 flex-1 flex-col">
 
-      {/* ================= Row 4: breadcrumb ================= */}
-      <section className="flex shrink-0 items-center justify-between gap-2 border-b border-softgrey/60 bg-offwhite px-3 py-1.5 sm:px-4" aria-label="Current location">
-        <nav
-          className="flex min-w-0 items-center gap-1 truncate text-[11.5px] font-semibold text-charcoal/60"
-          aria-label="Breadcrumb"
-        >
-          <span aria-hidden className="text-[13px] leading-none" style={{ color: BRAND.brand }}>{GROUP_ICONS[sel.group]}</span>
-          <span className="truncate">{currentGroup.label}</span>
-          <Chevron />
-          <span className="truncate">{currentSub.label}</span>
-          {currentTemplateLabel && (
-            <>
-              <Chevron />
-              <span className="truncate" style={{ color: BRAND.brandDark }}>{currentTemplateLabel}</span>
-            </>
-          )}
-        </nav>
-        {/* Full screen now lives in the Properties sidebar */}
-      </section>
+      {/* Breadcrumb removed — Layout + Variant in the sidebar drive navigation now */}
 
       {/* ================= Preview (large, immersive) ================= */}
       <main className="relative min-h-0 flex-1 overflow-y-auto bg-[#171616] p-3 sm:p-5">
@@ -427,49 +375,7 @@ export default function Builder() {
             </PreviewProvider>
           </div>
 
-          <section className="mx-auto w-full max-w-4xl shrink-0" aria-label="Preview browser">
-            <div className="flex items-center justify-center gap-3 sm:gap-4">
-              <PreviewArrow direction="previous" onClick={() => cyclePreview(-1)} />
-              <button
-                type="button"
-                onClick={() => setPreviewPickerOpen(true)}
-                className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg border border-white/15 bg-white/[0.06] px-4 py-3 text-left text-white transition-colors hover:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] sm:max-w-md"
-                aria-label={`Choose preview. Current: ${currentGroup.label}, ${currentSub.label}`}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/10 text-white/80" aria-hidden><PreviewIcon /></span>
-                  <span className="min-w-0">
-                    <span className="block text-[10px] font-semibold uppercase text-white/45">Preview</span>
-                    <span className="block truncate text-[13px] font-semibold">{currentGroup.label} / {currentSub.label}</span>
-                  </span>
-                </span>
-                <ChevronDownIcon />
-              </button>
-              <PreviewArrow direction="next" onClick={() => cyclePreview(1)} />
-            </div>
-
-            <div className="mt-2 flex min-w-0 items-center gap-2 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.04] p-2 text-white">
-              <span className="shrink-0 px-2 text-[10px] font-semibold uppercase text-white/45">Template</span>
-              <span className="h-5 w-px shrink-0 bg-white/10" aria-hidden />
-              {(isButton ? BUTTON_STYLES.map((key) => ({ key, label: STYLE_META[key].label })) : templates).map((option) => {
-                const active = isButton ? buttonStyle === option.key : tpl === option.key
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => trySelectTemplate(option.key, option.label)}
-                    className="shrink-0 rounded-md border px-3 py-1.5 text-[11.5px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-                    style={active
-                      ? { borderColor: BRAND.brand, background: BRAND.brand, color: "#fff" }
-                      : { borderColor: "rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.72)" }}
-                    aria-pressed={active}
-                  >
-                    {option.label}
-                  </button>
-                )
-              })}
-            </div>
-          </section>
+          {/* Preview browser (arrows + dropdown + Template chips) removed — Variant + Layout in the sidebar drive template and layout switching */}
         </div>
 
         {editMode && (

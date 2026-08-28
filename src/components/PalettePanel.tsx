@@ -156,17 +156,8 @@ export default function PalettePanel({
         </DndContext>
       </div>
 
-      <div className="flex shrink-0 items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onRandomize}
-          className="flex h-10 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-xs font-semibold text-charcoal/75 transition-[border-color,color,box-shadow] hover:border-charcoal/30 hover:text-charcoal hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-          title="Randomise unlocked colours"
-        >
-          <ShuffleIcon /> Randomise
-        </button>
-        {rightSlot}
-      </div>
+      {/* Randomise button removed — the Properties sidebar owns the primary Randomise action */}
+      {rightSlot && <div className="flex shrink-0 items-center justify-end gap-2">{rightSlot}</div>}
 
       {openSwatch && anchor && createPortal(
         <ColorEditor
