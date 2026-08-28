@@ -347,8 +347,14 @@ export default function Builder() {
           />
         </div>
         <ChangeTemplatePanel
-          variant={currentTemplateLabel || "Landing"}
-          variants={["Minimal", "Product", "Landing"]}
+          template={currentGroup.label}
+          templates={GROUPS.map((g) => g.label)}
+          onTemplate={(t: string) => {
+            const nextGroup = GROUPS.find((g) => g.label === t)
+            if (nextGroup) trySelectPreview({ group: nextGroup.key, sub: nextGroup.subs[0].key })
+          }}
+          variant={currentTemplateLabel || (templates[0]?.label ?? "")}
+          variants={templates.map((t) => t.label)}
           onVariant={(v: string) => {
             const match = templates.find((t) => t.label === v)
             if (match) trySelectTemplate(match.key, match.label)
