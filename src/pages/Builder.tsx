@@ -36,6 +36,7 @@ import ExportPanel from "../components/ExportPanel"
 import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
 import PropertiesPanel from "../components/PropertiesPanel"
 import ColorEditor from "../components/ColorEditor"
+import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -329,19 +330,35 @@ export default function Builder() {
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
       {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
 
-      {/* ================= Row 2: palette bar ================= */}
-      <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-3 sm:px-5">
-        <PalettePanel
-          palette={palette}
-          onChange={change}
-          onAdd={add}
-          onRemove={remove}
-          onRandomize={randomize}
-          onToggleLock={toggleLock}
-          onRename={rename}
-          onReorder={reorder}
-          brand={BRAND.brand}
-          roleLabels={roleLabels}
+      {/* ================= Row 2: palette bar + Change Template panel ================= */}
+      <section className="flex shrink-0 items-start gap-3 border-b border-softgrey/70 bg-white px-3 py-3 sm:px-5">
+        <div className="min-w-0 flex-1">
+          <PalettePanel
+            palette={palette}
+            onChange={change}
+            onAdd={add}
+            onRemove={remove}
+            onRandomize={randomize}
+            onToggleLock={toggleLock}
+            onRename={rename}
+            onReorder={reorder}
+            brand={BRAND.brand}
+            roleLabels={roleLabels}
+          />
+        </div>
+        <ChangeTemplatePanel
+          variant={currentTemplateLabel || "Landing"}
+          variants={["Minimal", "Product", "Landing"]}
+          onVariant={(v: string) => {
+            const match = templates.find((t) => t.label === v)
+            if (match) trySelectTemplate(match.key, match.label)
+          }}
+          layout={currentSub.label}
+          layouts={currentGroup.subs.map((s) => s.label)}
+          onLayout={(l: string) => {
+            const match = currentGroup.subs.find((s) => s.label === l)
+            if (match) trySelectPreview({ group: sel.group, sub: match.key })
+          }}
         />
       </section>
 

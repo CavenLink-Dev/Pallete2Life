@@ -146,51 +146,7 @@ export default function PropertiesPanel(p: Props) {
 
       <div className="h-px w-full bg-[#e5e7eb]" />
 
-      <Section label="Variant">
-        <div className="flex h-[36px] w-full rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] p-[2px]">
-          {p.variants.map((v) => {
-            const active = v === p.variant
-            return (
-              <button
-                key={v}
-                type="button"
-                onClick={() => p.onVariant(v)}
-                className={`flex flex-1 items-center justify-center rounded-[4px] text-[13px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
-                  active
-                    ? "border border-[#cecfd0] bg-white font-bold text-[#484848] shadow-[0_1px_1px_rgba(0,0,0,0.04)]"
-                    : "font-medium text-[#7b7b7b] hover:text-[#111827]"
-                }`}
-                aria-pressed={active}
-              >{v}</button>
-            )
-          })}
-        </div>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
-
-      <Section label="Layout">
-        <div className="grid grid-cols-2 gap-2">
-          {p.layouts.map((l) => {
-            const active = l === p.layout
-            return (
-              <button
-                key={l}
-                type="button"
-                onClick={() => p.onLayout(l)}
-                className={`flex h-[32px] items-center justify-center rounded-[5px] border text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
-                  active
-                    ? "border-[#cecfd0] bg-[#f3f4f6] text-[#111827]"
-                    : "border-[#e5e7eb] bg-[#f3f4f6] text-[#7b7b7b] hover:text-[#111827]"
-                }`}
-                aria-pressed={active}
-              >{l}</button>
-            )
-          })}
-        </div>
-      </Section>
-
-      <div className="h-px w-full bg-[#e5e7eb]" />
+      {/* Variant + Layout moved to the Change Template panel in the top-right */}
 
       <Section label="Brand" info>
         <button
