@@ -84,6 +84,7 @@ export function StyledButton({
   disabled = false,
   onEditClick,
   className,
+  styleOverride,
 }: {
   style: ButtonStyle
   colors: Trio
@@ -91,6 +92,7 @@ export function StyledButton({
   disabled?: boolean
   onEditClick?: () => void
   className?: string
+  styleOverride?: CSSProperties
 }) {
   const [hover, setHover] = useState(false)
   const [pressed, setPressed] = useState(false)
@@ -105,7 +107,7 @@ export function StyledButton({
       onMouseUp={() => setPressed(false)}
       onClick={(e) => { if (onEditClick) { e.preventDefault(); e.stopPropagation(); onEditClick() } }}
       className={"select-none font-semibold " + (className ?? "")}
-      style={{ fontFamily: "var(--font-display)", paddingLeft: sz.padX, paddingRight: sz.padX, paddingTop: sz.padY, paddingBottom: sz.padY, fontSize: sz.font, ...styleCss(style, colors, { hover, pressed, disabled }, props) }}
+      style={{ fontFamily: "var(--font-display)", paddingLeft: sz.padX, paddingRight: sz.padX, paddingTop: sz.padY, paddingBottom: sz.padY, fontSize: sz.font, ...styleCss(style, colors, { hover, pressed, disabled }, props), ...styleOverride }}
     >
       {props.text}
     </button>

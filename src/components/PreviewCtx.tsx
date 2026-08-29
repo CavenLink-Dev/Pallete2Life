@@ -1,18 +1,30 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react"
 import { readableOn, withAlpha } from "../lib/color"
 import { StyledButton, type ButtonProps, type ButtonStyle, type Trio } from "./ButtonPreview"
+import {
+  buttonPadding,
+  elementOverrideStyle,
+  elementTokens,
+  elementTokenStyle,
+  type ElementOverrides,
+  type InspectorKind,
+  type InspectorSelection,
+} from "../lib/designTokens"
 
 export type Brand = { name: string; logo: string | null; symbol: string | null }
 
 export type PreviewCtxValue = {
   editMode: boolean
   assignments: Record<string, string>
-  requestAssign: (id: string, label: string, currentHex: string) => void
   roleColor: (name: string) => string | undefined
+  tokenColor: (role: string) => string
   brand: Brand
   buttonStyle: ButtonStyle
   buttonProps: ButtonProps
   trio: Trio
+  selectedElement: InspectorSelection | null
+  elementOverrides: ElementOverrides
+  selectElement: (element: InspectorSelection) => void
 }
 
 const Ctx = createContext<PreviewCtxValue | null>(null)
@@ -34,9 +46,10 @@ type EditableProps = {
   className?: string
   style?: CSSProperties
   children?: ReactNode
+  kind?: InspectorKind
 }
 
-export function Editable({ id, label, color, prop = "color", as = "div", className, style, children }: EditableProps) {
+export function Editable({ id, label, color, prop = "color", as = "div", className, style, children, kind }: EditableProps) {
   const ctx = usePreview()
   const scope = useScope()
   const fullId = scope ? `${scope}:${id}` : id
@@ -44,25 +57,44 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
   const resolved = (assignedRole && ctx?.roleColor(assignedRole)) || color
   const edit = ctx?.editMode
   const Tag = as as any
+  const inferredKind: InspectorKind = kind
+    ?? (prop === "background" ? "card" : label.toLowerCase().includes("nav") || label.toLowerCase().includes("tab") ? "navigation" : "text")
+  const override = ctx?.elementOverrides[fullId]
+  const tokenStyle = ctx ? elementOverrideStyle(inferredKind, override, ctx.tokenColor) : {}
+  const selected = ctx?.selectedElement?.id === fullId
+  const content = inferredKind === "text" && typeof children === "string" && String(override?.textContent || "")
+    ? String(override?.textContent)
+    : inferredKind === "navigation" && typeof children === "string" && String(override?.label || "")
+    ? String(override?.label)
+    : children
 
   const editStyle: CSSProperties = edit
-    ? { outline: `1.5px dashed ${withAlpha("#20B9FA", 0.7)}`, outlineOffset: 2, cursor: "pointer", borderRadius: 4 }
+    ? { outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha("#20B9FA", selected ? 0.95 : 0.7)}`, outlineOffset: 2, cursor: "pointer", borderRadius: 4 }
     : {}
 
   return (
     <Tag
       className={className}
-      style={{ [prop]: resolved, ...style, ...editStyle } as CSSProperties}
+      style={{ [prop]: resolved, ...style, ...tokenStyle, ...editStyle } as CSSProperties}
       onClick={(e: React.MouseEvent) => {
         if (edit && ctx) {
           e.preventDefault()
           e.stopPropagation()
-          ctx.requestAssign(fullId, label, resolved)
+          ctx.selectElement({
+            id: fullId,
+            kind: inferredKind,
+            label,
+            defaults: inferredKind === "text" && typeof children === "string"
+              ? { textContent: children }
+              : inferredKind === "navigation" && typeof children === "string"
+              ? { label: children }
+              : undefined,
+          })
         }
       }}
       title={edit ? `Edit ${label}` : undefined}
     >
-      {children}
+      {content}
     </Tag>
   )
 }
@@ -74,15 +106,44 @@ export function PreviewButton({ id, label = "Button", text, size }: { id: string
   if (!ctx) return null
   const fullId = scope ? `${scope}:${id}` : id
   const assigned = ctx.assignments[fullId]
-  const primary = (assigned && ctx.roleColor(assigned)) || ctx.trio.primary
+  const override = ctx.elementOverrides[fullId]
+  const values = elementTokens("button", override)
+  const tokenStyle = elementOverrideStyle("button", override, ctx.tokenColor)
+  const primary = override?.colourRole
+    ? ctx.tokenColor(String(values.colourRole))
+    : (assigned && ctx.roleColor(assigned)) || ctx.trio.primary
   const colors = primary === ctx.trio.primary ? ctx.trio : { ...ctx.trio, primary, text: readableOn(primary) }
-  const props: ButtonProps = { ...ctx.buttonProps, text: text ?? ctx.buttonProps.text, size: size ?? "md" }
+  const tokenSize = String(values.size ?? "size.md")
+  const resolvedSize: ButtonProps["size"] = tokenSize === "size.sm" ? "sm" : tokenSize === "size.lg" ? "lg" : "md"
+  const props: ButtonProps = {
+    ...ctx.buttonProps,
+    text: String(override?.text ?? text ?? ctx.buttonProps.text),
+    size: override?.size ? resolvedSize : size ?? ctx.buttonProps.size,
+    radius: override?.radius ? Number(elementTokenStyle("button", values, ctx.tokenColor).borderRadius) : ctx.buttonProps.radius,
+    outline: override?.border ? (String(values.border) === "border.strong" ? 2 : String(values.border) === "border.subtle" ? 1 : 0) : ctx.buttonProps.outline,
+  }
+  const selected = ctx.selectedElement?.id === fullId
+  const buttonType = String(values.buttonType ?? "solid")
+  const style: ButtonStyle = override?.buttonType
+    ? buttonType === "outline" || buttonType === "ghost"
+      ? "outline"
+      : buttonType === "glass"
+      ? "glass"
+      : "flat"
+    : ctx.buttonStyle
   return (
     <StyledButton
-      style={ctx.buttonStyle}
+      style={style}
       colors={colors}
       props={props}
-      onEditClick={ctx.editMode ? () => ctx.requestAssign(fullId, label, colors.primary) : undefined}
+      styleOverride={{
+        ...tokenStyle,
+        ...(override?.padding || override?.size ? buttonPadding(String(values.padding), tokenSize) : {}),
+        gap: tokenStyle.gap,
+        outline: selected ? "2px solid #20B9FA" : undefined,
+        outlineOffset: selected ? 3 : undefined,
+      }}
+      onEditClick={ctx.editMode ? () => ctx.selectElement({ id: fullId, kind: "button", label, defaults: { text: text ?? ctx.buttonProps.text } }) : undefined}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { templateAssetById } from "../lib/templateAssets"
 
 type LoadedSvg = {
@@ -50,7 +50,9 @@ function loadSvg(source: string): Promise<LoadedSvg> {
   return request
 }
 
-export default function TemplatePreview({ templateId }: { templateId: string }) {
+export type TemplatePreviewHandle = { fitToScreen: () => void }
+
+const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }>(function TemplatePreview({ templateId }, ref) {
   const template = templateAssetById.get(templateId)
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [svg, setSvg] = useState<LoadedSvg | null>(null)
@@ -66,7 +68,7 @@ export default function TemplatePreview({ templateId }: { templateId: string }) 
     setFitMode(true)
     setZoom(MAX_FIT_ZOOM)
 
-    if (!template) {
+    if (!template?.source) {
       setError("Template not found")
       return () => { active = false }
     }
@@ -100,6 +102,19 @@ export default function TemplatePreview({ templateId }: { templateId: string }) 
     return () => observer.disconnect()
   }, [fitMode, svg, template])
 
+  const changeZoom = (direction: -1 | 1) => {
+    setFitMode(false)
+    setZoom((current) => clamp(Math.round((current + direction * ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM))
+  }
+
+  const fitToScreen = () => {
+    setFitMode(true)
+    setZoom(fitZoom)
+    viewportRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+  }
+
+  useImperativeHandle(ref, () => ({ fitToScreen }), [fitZoom])
+
   if (!template) return <TemplateState message="Template not found" />
   if (error) return <TemplateState message={error} />
   if (!svg) return <TemplateState message="Loading template…" loading />
@@ -112,16 +127,6 @@ export default function TemplatePreview({ templateId }: { templateId: string }) 
   const frameClass = template.category === "Application"
     ? "shrink-0 bg-white shadow-[0_22px_55px_-24px_rgba(14,24,33,0.42)]"
     : "shrink-0 bg-white"
-
-  const changeZoom = (direction: -1 | 1) => {
-    setFitMode(false)
-    setZoom((current) => clamp(Math.round((current + direction * ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM))
-  }
-
-  const fitToScreen = () => {
-    setFitMode(true)
-    setZoom(fitZoom)
-  }
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
@@ -164,7 +169,9 @@ export default function TemplatePreview({ templateId }: { templateId: string }) 
       </div>
     </div>
   )
-}
+})
+
+export default TemplatePreview
 
 function ZoomButton({
   label,

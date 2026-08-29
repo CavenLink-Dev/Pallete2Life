@@ -1,8 +1,10 @@
 import { readableOn, shade, withAlpha, type Theme } from "../lib/color"
 import { BrandLogo, BrandSymbol, Editable, PreviewButton, usePreview } from "./PreviewCtx"
-import type { CSSProperties, ReactNode } from "react"
-import TemplatePreview from "./TemplatePreview"
-import { templateGroups, type TemplateGroupKey } from "../lib/templateAssets"
+import { forwardRef, lazy, Suspense, useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import TemplatePreview, { type TemplatePreviewHandle } from "./TemplatePreview"
+import { templateAssetById, templateGroups, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
+
+const BuiltInTemplatePreview = lazy(() => import("./BuiltInTemplatePreview"))
 
 /* ------------------------------------------------------------------ */
 /* shared primitives                                                   */
@@ -515,14 +517,73 @@ export function TypographyPreview({ theme, tpl }: { theme: Theme; tpl: string })
 /* Registry                                                            */
 /* ================================================================== */
 export type GroupKey = TemplateGroupKey
-export type Sub = { key: string; label: string; templates: { key: string; label: string; layout: string; thumbnail: string; source: string }[] }
+export type Sub = { key: string; label: string; templates: { key: string; label: string; layout: TemplateLayout; thumbnail: string; source: string | null }[] }
 export type Group = { key: GroupKey; label: string; subs: Sub[] }
 
 export const GROUPS: Group[] = templateGroups
 
+export type PreviewRendererHandle = { fitToScreen: () => void }
+
+export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupKey; sub: string; templateId: string; theme: Theme }>(function PreviewRenderer({ group, sub, templateId, theme }, ref) {
+  const importedRef = useRef<TemplatePreviewHandle | null>(null)
+  const builtInRef = useRef<PreviewRendererHandle | null>(null)
+  const asset = templateAssetById.get(templateId)
+  useImperativeHandle(ref, () => ({ fitToScreen: () => (asset?.renderer === "built-in" ? builtInRef.current : importedRef.current)?.fitToScreen() }), [asset])
+
+  if (!asset) return <div className="grid h-full min-h-96 place-items-center bg-white text-sm font-semibold text-charcoal/50">Template not found</div>
+  if (asset.renderer === "built-in") {
+    return (
+      <BuiltInPreviewFrame ref={builtInRef}>
+        <Suspense fallback={<div className="grid h-full min-h-96 place-items-center bg-white text-sm font-semibold text-charcoal/50">Loading template...</div>}>
+          <BuiltInTemplatePreview key={`${group}/${sub}/${templateId}`} asset={asset} theme={theme} />
+        </Suspense>
+      </BuiltInPreviewFrame>
+    )
+  }
+  return <TemplatePreview key={`${group}/${sub}/${templateId}`} ref={importedRef} templateId={templateId} />
+})
+
+const BUILT_IN_FIT_ZOOM = 0.8
+
+const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactNode }>(function BuiltInPreviewFrame({ children }, ref) {
+  const viewportRef = useRef<HTMLDivElement | null>(null)
+  const [zoom, setZoom] = useState(BUILT_IN_FIT_ZOOM)
+  const fit = () => {
+    setZoom(BUILT_IN_FIT_ZOOM)
+    viewportRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+  }
+  useImperativeHandle(ref, () => ({ fitToScreen: fit }), [])
+
+  const changeZoom = (direction: -1 | 1) => setZoom((current) => Math.min(1.5, Math.max(0.5, Math.round((current + direction * 0.1) * 10) / 10)))
+
+  return (
+    <div className="relative h-full w-full bg-[#eceef1]">
+      <div className="absolute right-3 top-3 z-20 flex h-9 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur">
+        <PreviewZoomButton label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= 0.5}><ZoomOutIcon /></PreviewZoomButton>
+        <span className="w-12 text-center text-[11px] font-bold tabular-nums text-charcoal/65" aria-live="polite">{Math.round(zoom * 100)}%</span>
+        <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= 1.5}><ZoomInIcon /></PreviewZoomButton>
+        <span className="mx-0.5 h-5 w-px bg-softgrey" aria-hidden />
+        <PreviewZoomButton label="Fit preview to screen" onClick={fit} pressed={zoom === BUILT_IN_FIT_ZOOM}><FitIcon /></PreviewZoomButton>
+      </div>
+      <div ref={viewportRef} className="h-full w-full overflow-auto pt-14">
+        <div className="mx-auto origin-top" style={{ width: `${100 / zoom}%`, minHeight: `${100 / zoom}%`, transform: `scale(${zoom})` }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+})
+
+function PreviewZoomButton({ label, onClick, disabled, pressed, children }: { label: string; onClick: () => void; disabled?: boolean; pressed?: boolean; children: ReactNode }) {
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed} title={label} className={`grid h-8 w-8 place-items-center rounded-[7px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30 ${pressed ? "bg-[#eef8fc] text-brand-dark" : "text-charcoal/60 hover:bg-[#f3f4f6] hover:text-charcoal"}`}>{children}</button>
+}
+
+const ZoomOutIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4M7.5 10.5h6" /></svg>
+const ZoomInIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4M7.5 10.5h6M10.5 7.5v6" /></svg>
+const FitIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /><circle cx="12" cy="12" r="2.5" /></svg>
+
 export function renderComponentPreview(group: GroupKey, sub: string, tpl: string, theme: Theme): ReactNode {
-  void theme
-  return <TemplatePreview key={`${group}/${sub}/${tpl}`} templateId={tpl} />
+  return <PreviewRenderer key={`${group}/${sub}/${tpl}`} group={group} sub={sub} templateId={tpl} theme={theme} />
 }
 
 /* small schematic thumbnail for the template strip */

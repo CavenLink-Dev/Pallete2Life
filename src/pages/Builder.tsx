@@ -4,7 +4,6 @@ import {
   contrastRatio,
   deriveTheme,
   hslToHex,
-  normalizeHex,
   randomHex,
   readableOn,
   themeContrastIssues,
@@ -15,17 +14,15 @@ import {
 } from "../lib/color"
 import PalettePanel from "../components/PalettePanel"
 import {
-  BUTTON_STYLES,
-  ButtonLab,
   DEFAULT_BUTTON_PROPS,
-  STYLE_META,
   paletteToTrio,
   type ButtonProps,
   type ButtonStyle,
 } from "../components/ButtonPreview"
 import {
   GROUPS,
-  renderComponentPreview,
+  PreviewRenderer,
+  type PreviewRendererHandle,
   type GroupKey,
 } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
@@ -47,17 +44,18 @@ import {
 } from "../lib/entitlement"
 import ExportPanel from "../components/ExportPanel"
 import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
-import PropertiesPanel from "../components/PropertiesPanel"
+import InspectorPanel from "../components/InspectorPanel"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
 import TemplateLibrary from "../components/TemplateLibrary"
-import { defaultTemplate, type TemplateAsset } from "../lib/templateAssets"
+import { defaultTemplate, templateAssetById, type TemplateAsset } from "../lib/templateAssets"
+import { elementTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 
 type Selection = { group: GroupKey; sub: string }
 
 const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
 
 /* Contextual colour roles per preview. Left aligned to palette index; extra
- * swatches keep their custom name. Buttons use STYLE_META (per style). */
+ * swatches keep their custom name. */
 const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
   "website":            ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
   "application":        ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
@@ -92,6 +90,7 @@ type BuilderSnapshot = {
   palette: Swatch[]
   assignments: Record<string, string>
   roleBindings: RoleBindings
+  elementOverrides: ElementOverrides
 }
 
 
@@ -135,7 +134,7 @@ export default function Builder() {
   // ---------- palette + design state ----------
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing-page" })
-  const [tplBySub, setTplBySub] = useState<Record<string, string>>({})
+  const [tplBySub, setTplBySub] = useState<Record<string, string>>({ "website/landing-page": defaultTemplate.id })
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
   const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
 
@@ -143,7 +142,8 @@ export default function Builder() {
   const [editMode, setEditMode] = useState(false)
   const [assignments, setAssignments] = useState<Record<string, string>>(() => migrateSwatchReferences(loadStored("assignments", {}), palette))
   const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => migrateSwatchReferences(loadStored("roleBindings", {}), palette))
-  const [assignTarget, setAssignTarget] = useState<{ id: string; label: string; currentHex: string } | null>(null)
+  const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
+  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}))
 
   // Brand
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
@@ -154,7 +154,9 @@ export default function Builder() {
   const [exportOpen, setExportOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(shouldShowIntro)
   const [confirmReset, setConfirmReset] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const previewAreaRef = useRef<HTMLElement | null>(null)
+  const previewRendererRef = useRef<PreviewRendererHandle | null>(null)
 
   // Role Mapping (previously "Assign Hierarchy")
   const [roleMapSource, setRoleMapSource] = useState("Page Background")
@@ -175,19 +177,19 @@ export default function Builder() {
   useStored("palette", palette)
   useStored("assignments", assignments)
   useStored("roleBindings", roleBindings)
+  useStored("elementOverrides", elementOverrides)
   useStored("brand", brand)
   useStored("buttonStyle", buttonStyle)
   useStored("buttonProps", buttonProps)
 
   const closeHelp = useCallback(() => { markIntroSeen(); setHelpOpen(false) }, [])
 
-  // Fullscreen Escape
+  // Native browser fullscreen state.
   useEffect(() => {
-    if (!fullscreen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false) }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [fullscreen])
+    const onChange = () => setIsFullscreen(document.fullscreenElement === previewAreaRef.current)
+    document.addEventListener("fullscreenchange", onChange)
+    return () => document.removeEventListener("fullscreenchange", onChange)
+  }, [])
 
   const pushHistory = useCallback((snapshot: BuilderSnapshot) => {
     setUndoStack((stack) => stack.length >= MAX_HISTORY ? [...stack.slice(1), snapshot] : [...stack, snapshot])
@@ -198,40 +200,43 @@ export default function Builder() {
   const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
     const next = updater(palette)
     if (JSON.stringify(palette) === JSON.stringify(next)) return
-    pushHistory({ palette, assignments, roleBindings })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides })
     setPalette(next)
-  }, [assignments, palette, pushHistory, roleBindings])
+  }, [assignments, elementOverrides, palette, pushHistory, roleBindings])
 
   const mutateWorkspace = useCallback((next: Partial<BuilderSnapshot>) => {
-    pushHistory({ palette, assignments, roleBindings })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides })
     if (next.palette) setPalette(next.palette)
     if (next.assignments) setAssignments(next.assignments)
     if (next.roleBindings) setRoleBindings(next.roleBindings)
-  }, [assignments, palette, pushHistory, roleBindings])
+    if (next.elementOverrides) setElementOverrides(next.elementOverrides)
+  }, [assignments, elementOverrides, palette, pushHistory, roleBindings])
 
   const undo = useCallback(() => {
     if (!undoStack.length) { toast.push("Nothing to undo"); return }
     const previous = undoStack[undoStack.length - 1]
     setUndoStack(undoStack.slice(0, -1))
-    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings }])
+    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings, elementOverrides }])
     setPalette(previous.palette)
     setAssignments(previous.assignments)
     setRoleBindings(previous.roleBindings)
+    setElementOverrides(previous.elementOverrides)
     setRoleMapMessage(null)
     toast.push("Undone")
-  }, [assignments, palette, roleBindings, toast, undoStack])
+  }, [assignments, elementOverrides, palette, roleBindings, toast, undoStack])
 
   const redo = useCallback(() => {
     if (!redoStack.length) { toast.push("Nothing to redo"); return }
     const next = redoStack[redoStack.length - 1]
     setRedoStack(redoStack.slice(0, -1))
-    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings }])
+    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings, elementOverrides }])
     setPalette(next.palette)
     setAssignments(next.assignments)
     setRoleBindings(next.roleBindings)
+    setElementOverrides(next.elementOverrides)
     setRoleMapMessage(null)
     toast.push("Redone")
-  }, [assignments, palette, redoStack, roleBindings, toast])
+  }, [assignments, elementOverrides, palette, redoStack, roleBindings, toast])
 
   // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
   useEffect(() => {
@@ -252,14 +257,9 @@ export default function Builder() {
   const templates = currentSub.templates
   const currentSelectionKey = `${sel.group}/${currentSub.key}`
   const tpl = tplBySub[currentSelectionKey] ?? templates[0]?.key ?? ""
-  const isButton = false
-  const currentTemplateLabel = isButton
-    ? STYLE_META[buttonStyle].label
-    : templates.find((t) => t.key === tpl)?.label ?? ""
-
-  const roleLabels: (string | null)[] | undefined = isButton
-    ? STYLE_META[buttonStyle].roles.map((r) => r.part)
-    : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
+  const currentAsset = templateAssetById.get(tpl)
+  const currentTemplateName = currentAsset?.name ?? "Untitled template"
+  const roleLabels: (string | null)[] | undefined = ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
 
   const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleBindings, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
@@ -484,7 +484,8 @@ export default function Builder() {
   })
 
   const doReset = () => {
-    mutateWorkspace({ palette: createDefaultPalette(), assignments: {}, roleBindings: {} })
+    mutateWorkspace({ palette: createDefaultPalette(), assignments: {}, roleBindings: {}, elementOverrides: {} })
+    setSelectedElement(null)
     setConfirmReset(false)
     toast.push("Palette reset — Undo brings it back", "success")
   }
@@ -502,6 +503,7 @@ export default function Builder() {
 
     setSel({ group: nextGroup.key, sub: nextSub.key })
     setTplBySub((current) => ({ ...current, [`${nextGroup.key}/${nextSub.key}`]: asset.id }))
+    setSelectedElement(null)
     setEnt((current) => recordSwitch(current, fullKey))
     setPreviewPickerOpen(false)
     toast.push(`Template: ${asset.type} · ${asset.variant}`)
@@ -510,6 +512,13 @@ export default function Builder() {
   const roleSourceOptions = Array.from(new Set([
     ...(roleLabels ?? []).filter((role): role is string => Boolean(role)),
     ...DESIGN_ROLES,
+    "Page Background",
+    "Secondary Background",
+    "Brand Primary",
+    "Heading Text",
+    "Body Text",
+    "Button Text",
+    "Border",
   ]))
   const roleMapTarget = palette.find((swatch) => swatch.id === roleMapTargetId) ?? palette[0]
   const targetIndex = roleMapTarget ? palette.findIndex((swatch) => swatch.id === roleMapTarget.id) : -1
@@ -565,34 +574,60 @@ export default function Builder() {
     toast.push(message, "success")
   }
 
-  const applyElementAssignment = (swatch: Swatch) => {
-    if (!assignTarget) return
-    const kind = roleKind(assignTarget.label)
-    const backgrounds = [theme.paper, theme.surface]
-    const unsafeText = kind === "text" && backgrounds.some((background) => contrastRatio(swatch.hex, background) < 4.5)
-    const unsafeBackground = kind === "background"
-      && [theme.ink, theme.inkSoft].some((foreground) => contrastRatio(foreground, swatch.hex) < 4.5)
-    if (unsafeText || unsafeBackground) {
-      const ratio = unsafeText
-        ? Math.min(...backgrounds.map((background) => contrastRatio(swatch.hex, background)))
-        : Math.min(contrastRatio(theme.ink, swatch.hex), contrastRatio(theme.inkSoft, swatch.hex))
-      toast.push(`${swatch.name} would only reach ${ratio.toFixed(2)}:1 contrast here`, "error")
-      return
+  const tokenColor = (role: string): string => {
+    const boundId = roleBindings[role]
+    const bound = boundId ? palette.find((swatch) => swatch.id === boundId)?.hex : undefined
+    if (bound) return bound
+    const key = role.toLowerCase()
+    if (key.includes("button text")) return theme.onBrand
+    if (key.includes("border") || key.includes("divider") || key.includes("grid")) return theme.border
+    if (key.includes("secondary") || key.includes("surface") || key.includes("card") || key.includes("form")) return theme.surface
+    if (key.includes("heading")) return theme.ink
+    if (key.includes("body") || key.includes("text") || key.includes("caption") || key.includes("label")) return theme.inkSoft
+    if (key.includes("background") || key.includes("canvas")) return theme.paper
+    return theme.accent
+  }
+
+  const selectedElementValues = selectedElement
+    ? elementTokens(selectedElement.kind, { ...selectedElement.defaults, ...elementOverrides[selectedElement.id] })
+    : null
+  const updateSelectedElement = (key: string, value: string | boolean) => {
+    if (!selectedElement) return
+    mutateWorkspace({
+      elementOverrides: {
+        ...elementOverrides,
+        [selectedElement.id]: { ...elementOverrides[selectedElement.id], [key]: value },
+      },
+    })
+  }
+
+  const centerTemplate = () => {
+    previewRendererRef.current?.fitToScreen()
+    previewAreaRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+    toast.push("Template centred", "success")
+  }
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await previewAreaRef.current?.requestFullscreen()
+    } catch {
+      toast.push("Full screen is not available in this browser", "error")
     }
-    mutateWorkspace({ assignments: { ...assignments, [assignTarget.id]: swatch.id } })
-    setAssignTarget(null)
-    toast.push(`${assignTarget.label} now uses ${swatch.name}`, "success")
   }
 
   const ctx: PreviewCtxValue = {
     editMode,
     assignments,
-    requestAssign: (id, label, currentHex) => setAssignTarget({ id, label, currentHex }),
     roleColor: (swatchId) => palette.find((s) => s.id === swatchId)?.hex,
+    tokenColor,
     brand,
     buttonStyle,
     buttonProps,
     trio,
+    selectedElement,
+    elementOverrides,
+    selectElement: setSelectedElement,
   }
 
   return (
@@ -619,40 +654,31 @@ export default function Builder() {
 
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white px-3 py-2.5 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase text-charcoal/45">Current template</p>
-          <p className="truncate text-[13px] font-semibold text-charcoal/80">Template / {currentGroup.label} / {currentSub.label} / {currentTemplateLabel}</p>
+          <p className="text-[10px] font-bold uppercase text-charcoal/45">Current template:</p>
+          <p className="truncate text-[14px] font-bold text-charcoal/80">{currentTemplateName}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setPreviewPickerOpen(true)}
-          className="flex h-10 shrink-0 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          aria-label="Change template"
-          title="Change template"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m12 2 10 6-10 6L2 8Z"/><path d="M2 16l10 6 10-6"/><path d="M2 12l10 6 10-6"/></svg>
-          <span className="hidden sm:inline">Change template</span>
-        </button>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <WorkspaceIconButton label="Auto-center template" onClick={centerTemplate}><CenterIcon /></WorkspaceIconButton>
+          <WorkspaceIconButton label={isFullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen} pressed={isFullscreen}><FullscreenIcon /></WorkspaceIconButton>
+          <button type="button" onClick={() => { setEditMode((current) => !current); if (editMode) setSelectedElement(null) }} className={`flex h-10 items-center gap-2 rounded-[8px] border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${editMode ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#374151] hover:bg-[#f3f4f6]"}`} aria-pressed={editMode}>
+            <EditIcon /><span className="hidden md:inline">Edit elements</span>
+          </button>
+          <button type="button" onClick={() => setPreviewPickerOpen(true)} className="flex h-10 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Change template" title="Change template">
+            <LayersIcon /><span className="hidden sm:inline">Change template</span>
+          </button>
+        </div>
       </div>
 
       {/* ================= Preview (large, immersive) ================= */}
-      <main className="relative min-h-[520px] flex-none overflow-y-auto bg-[#171616] p-3 sm:p-5 xl:min-h-0 xl:flex-1">
+      <main ref={previewAreaRef} className="relative min-h-[520px] flex-none overflow-y-auto bg-[#171616] p-3 sm:p-5 xl:min-h-0 xl:flex-1 fullscreen:h-screen fullscreen:w-screen fullscreen:p-4">
         <div className="flex h-full min-h-[440px] flex-col gap-3 sm:gap-4">
           <div className="min-h-[300px] flex-1">
             <PreviewProvider value={ctx}>
-              {isButton ? (
-                <div className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
-                  <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
+              <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
+                <div key={sel.sub + tpl} className="animate-pop-in relative h-full w-full overflow-hidden rounded-[8px] border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
+                  <PreviewRenderer ref={previewRendererRef} group={sel.group} sub={sel.sub} templateId={tpl} theme={theme} />
                 </div>
-              ) : (
-                <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                  <div
-                    key={sel.sub + tpl}
-                    className="animate-pop-in relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]"
-                  >
-                    {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                  </div>
-                </ScopeProvider>
-              )}
+              </ScopeProvider>
             </PreviewProvider>
           </div>
 
@@ -664,23 +690,26 @@ export default function Builder() {
             role="status"
             className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-charcoal/85 px-3.5 py-1.5 text-[11.5px] font-semibold text-white shadow-lg backdrop-blur"
           >
-            Edit Elements is on — click something in the preview to customise it
+            Edit Elements is on - select an element to inspect its tokens
           </div>
         )}
+        {isFullscreen && <button type="button" onClick={toggleFullscreen} className="absolute left-4 top-4 z-30 flex h-9 items-center gap-2 rounded-[8px] border border-white/20 bg-charcoal/90 px-3 text-xs font-semibold text-white shadow-lg" aria-label="Exit full screen"><CloseIcon /> Exit full screen</button>}
       </main>
 
         </div>{/* /main column */}
 
-        {/* ================= Properties sidebar (always visible) ================= */}
-        <PropertiesPanel
+        {/* ================= Contextual inspector (always visible) ================= */}
+        <InspectorPanel
+          selectedElement={selectedElement}
+          elementValues={selectedElementValues}
+          onElementChange={updateSelectedElement}
+          onClearSelection={() => setSelectedElement(null)}
           onRandomize={randomize}
           onUndo={undo}
           onRedo={redo}
           onSave={() => toast.push("Palette autosaves as you work", "success")}
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
-          onFormat={() => setPreviewPickerOpen(true)}
-          formatLabel="Templates"
           roleSource={roleMapSource}
           roleTargetId={roleMapTargetId}
           roleSourceOptions={roleSourceOptions}
@@ -691,9 +720,10 @@ export default function Builder() {
           roleSetDisabled={roleMapNoOp}
           roleMessage={roleMapMessage}
           onInsertBrand={() => setBrandOpen(true)}
-          onFullscreen={() => setFullscreen(true)}
           onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
+          exportSummary={[`${palette.length} palette colours`, `${Object.keys(roleBindings).length} global mappings`, currentTemplateName]}
+          accessibilityIssues={themeContrastIssues(theme).map((issue) => `${issue.foreground} is ${issue.ratio}:1 on ${issue.background}`)}
         />
       </div>{/* /main area flex row */}
 
@@ -706,52 +736,6 @@ export default function Builder() {
         />
       )}
 
-      {/* ================= Full screen preview ================= */}
-      {fullscreen && !isButton && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-charcoal/95">
-          <div className="min-h-0 flex-1 p-3 sm:p-5">
-            <PreviewProvider value={ctx}>
-              <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                <div className="h-full w-full overflow-hidden rounded-2xl bg-white">
-                  {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                </div>
-              </ScopeProvider>
-            </PreviewProvider>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-charcoal px-4 py-2.5 text-white sm:px-6">
-            <div className="flex items-center gap-2">
-              <img src="/app-icon-64.png" alt="" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
-              <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Palette <span style={{ color: BRAND.brand }}>Preview</span></span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {palette.map((s) => (
-                <label
-                  key={s.id}
-                  className="relative block h-8 w-8 cursor-pointer rounded-full transition-transform hover:scale-110"
-                  style={{ background: s.hex, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)" }}
-                  title={`${s.name} · ${s.hex}${s.locked ? " · locked" : ""}`}
-                >
-                  <input
-                    type="color"
-                    value={s.hex}
-                    onChange={(e) => change(s.id, normalizeHex(e.target.value))}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    aria-label={`Edit ${s.name}`}
-                  />
-                </label>
-              ))}
-              <button type="button" onClick={randomize} className="ml-1 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">Randomise</button>
-              <button type="button" onClick={() => setEditMode((v) => !v)} className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors" style={editMode ? { background: BRAND.brand, color: "#fff" } : { border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }}>{editMode ? "Editing" : "Edit"}</button>
-              <button type="button" onClick={() => setPreviewPickerOpen(true)} className="rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">Change preview</button>
-            </div>
-            <button type="button" onClick={() => setFullscreen(false)} className="flex items-center gap-1.5 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-              Exit
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Brand modal */}
       {brandOpen && (
         <BrandUpload
@@ -759,31 +743,6 @@ export default function Builder() {
           onChange={(b) => { setBrand(b); toast.push("Brand updated", "success") }}
           onClose={() => setBrandOpen(false)}
         />
-      )}
-
-      {/* Assign-colour modal */}
-      {assignTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40 p-4" onClick={() => setAssignTarget(null)}>
-          <div className="animate-pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Assign a colour">
-            <p className="text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>Assign a colour</p>
-            <p className="mt-0.5 text-xs text-charcoal/55">Bind “{assignTarget.label}” to one of your palette colours.</p>
-            <div className="mt-4 grid grid-cols-3 gap-2.5">
-              {palette.map((s) => {
-                const on = assignments[assignTarget.id] === s.id
-                return (
-                  <button key={s.id} type="button" onClick={() => applyElementAssignment(s)} className="flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]" style={{ outline: on ? `2px solid ${BRAND.brand}` : "1px solid " + BRAND.softgrey }}>
-                    <span className="h-10 w-full rounded-lg" style={{ background: s.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(readableOn(s.hex), 0.12)}` }} />
-                    <span className="text-[11px] font-semibold text-charcoal/70">{s.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="mt-4 flex justify-between">
-              <button type="button" onClick={() => { const next = { ...assignments }; delete next[assignTarget.id]; mutateWorkspace({ assignments: next }); setAssignTarget(null); toast.push("Reset to default colour") }} className="rounded-lg px-3 py-2 text-xs font-semibold text-charcoal/55 hover:text-charcoal">Reset to default</button>
-              <button type="button" onClick={() => setAssignTarget(null)} className="rounded-lg border border-softgrey px-3 py-2 text-xs font-semibold text-charcoal/70 hover:text-charcoal">Cancel</button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* Export */}
@@ -821,79 +780,31 @@ export default function Builder() {
   )
 }
 
-/* ---------- shared components ---------- */
-
-function ToolButton({
-  onClick, icon, label, valueLabel, title, active, subtle,
+function WorkspaceIconButton({
+  label, onClick, pressed = false, children,
 }: {
-  onClick: () => void
-  icon: React.ReactNode
   label: string
-  valueLabel?: string
-  title?: string
-  active?: boolean
-  subtle?: boolean
-}) {
-  const iconColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.55)" : BRAND.brand
-  const textColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.7)" : BRAND.charcoal
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-label={valueLabel ? `${label}: ${valueLabel}` : label}
-      className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1"
-      style={active
-        ? { background: BRAND.brand, color: "#fff", border: `1px solid ${BRAND.brand}` }
-        : subtle
-        ? { background: "transparent", color: textColor, border: "1px solid transparent" }
-        : { background: "#fff", color: BRAND.charcoal, border: `1px solid ${BRAND.softgrey}` }}
-    >
-      <span className="flex h-4 w-4 items-center justify-center" aria-hidden style={{ color: iconColor }}>{icon}</span>
-      <span>{label}</span>
-      {valueLabel && !active && (
-        <>
-          <span className="text-charcoal/30" aria-hidden>·</span>
-          <span className="max-w-[140px] truncate text-charcoal/55">{valueLabel}</span>
-        </>
-      )}
-    </button>
-  )
-}
-
-function IconButton({
-  onClick, disabled, label, title, children,
-}: {
   onClick: () => void
-  disabled?: boolean
-  label: string
-  title?: string
+  pressed?: boolean
   children: React.ReactNode
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
-      title={title ?? label}
+      title={label}
       aria-label={label}
-      className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2 py-1.5 text-[11px] font-semibold text-charcoal/65 outline-none transition-colors hover:text-charcoal focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35"
+      aria-pressed={pressed}
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${pressed ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#4b5563] hover:bg-[#f3f4f6]"}`}
     >
       {children}
-      <span className="hidden md:inline">{label}</span>
     </button>
   )
 }
 
 /* ---------- icons ---------- */
-const Chevron = () => (<span aria-hidden className="text-charcoal/25">›</span>)
-const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
 const EditIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.5 4.5 5 5-11 11H3.5v-5.5z" /><path d="m12 7 5 5" /></svg>)
-const BrandIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>)
-const ExportIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
-const ChevronDownIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>)
+const CenterIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="3" /></svg>)
+const LayersIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m12 2 10 6-10 6L2 8Z" /><path d="m2 12 10 6 10-6M2 16l10 6 10-6" /></svg>)
+const CloseIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>)
 const FullscreenIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
-const UndoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></svg>)
-const RedoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></svg>)
-const ResetIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>)
-const HelpIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7" /><path d="M12 17.01V17" /></svg>)
