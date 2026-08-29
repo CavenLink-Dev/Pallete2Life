@@ -48,8 +48,9 @@ import {
 import ExportPanel from "../components/ExportPanel"
 import { createDefaultPalette, loadPalette } from "../lib/paletteStore"
 import PropertiesPanel from "../components/PropertiesPanel"
-import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
+import TemplateLibrary from "../components/TemplateLibrary"
+import { defaultTemplate, type TemplateAsset } from "../lib/templateAssets"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -58,6 +59,8 @@ const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary"
 /* Contextual colour roles per preview. Left aligned to palette index; extra
  * swatches keep their custom name. Buttons use STYLE_META (per style). */
 const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
+  "website":            ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
+  "application":        ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
   // Websites
   "website/landing":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
   "website/saas":     ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
@@ -123,11 +126,6 @@ function migrateSwatchReferences(records: Record<string, string>, palette: Swatc
 }
 
 const MAX_HISTORY = 40
-const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
-const PREVIEW_CHOICES = GROUPS.flatMap((group) =>
-  group.subs.map((sub) => ({ group: group.key, sub: sub.key, groupLabel: group.label, label: sub.label })),
-)
-
 export default function Builder() {
   const navHome = useNav()
   const [, navigate] = useRoute()
@@ -135,7 +133,7 @@ export default function Builder() {
 
   // ---------- palette + design state ----------
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
-  const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing" })
+  const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing-page" })
   const [tplBySub, setTplBySub] = useState<Record<string, string>>({})
   const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
   const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
@@ -161,9 +159,6 @@ export default function Builder() {
   const [roleMapSource, setRoleMapSource] = useState("Page Background")
   const [roleMapTargetId, setRoleMapTargetId] = useState(() => palette[2]?.id ?? palette[0]?.id ?? "")
   const [roleMapMessage, setRoleMapMessage] = useState<{ text: string; tone: "success" | "error" | "neutral" } | null>(null)
-
-  // Change Template popover
-  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false)
 
   // Undo / Redo
   const [undoStack, setUndoStack] = useState<BuilderSnapshot[]>([])
@@ -254,8 +249,9 @@ export default function Builder() {
   const currentGroup = GROUPS.find((g) => g.key === sel.group)!
   const currentSub = currentGroup.subs.find((s) => s.key === sel.sub) ?? currentGroup.subs[0]
   const templates = currentSub.templates
-  const tpl = tplBySub[sel.sub] ?? templates[0]?.key ?? ""
-  const isButton = sel.group === "components" && sel.sub === "button"
+  const currentSelectionKey = `${sel.group}/${currentSub.key}`
+  const tpl = tplBySub[currentSelectionKey] ?? templates[0]?.key ?? ""
+  const isButton = false
   const currentTemplateLabel = isButton
     ? STYLE_META[buttonStyle].label
     : templates.find((t) => t.key === tpl)?.label ?? ""
@@ -279,9 +275,7 @@ export default function Builder() {
   const trySelectPreview = useCallback((next: Selection): boolean => {
     const nextGroup = GROUPS.find((group) => group.key === next.group)!
     const nextSub = nextGroup.subs.find((sub) => sub.key === next.sub) ?? nextGroup.subs[0]
-    const variant = next.group === "components" && next.sub === "button"
-      ? buttonStyle
-      : tplBySub[next.sub] ?? nextSub.templates[0]?.key ?? "default"
+    const variant = tplBySub[`${next.group}/${nextSub.key}`] ?? nextSub.templates[0]?.key ?? "default"
     const key = previewKey(next.group, next.sub, variant)
     if (needsPaywall(ent, key)) {
       setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
@@ -290,7 +284,7 @@ export default function Builder() {
     setSel(next)
     setEnt((e) => recordSwitch(e, key))
     return true
-  }, [buttonStyle, ent, tplBySub])
+  }, [ent, tplBySub])
 
   // Entering the workspace applies the current palette to the default preview.
   // That is the first chargeable preview action; palette work remains unlimited.
@@ -298,7 +292,7 @@ export default function Builder() {
   useEffect(() => {
     if (initialPreviewRecorded.current) return
     initialPreviewRecorded.current = true
-    const key = previewKey("website", "landing", "landing-bold")
+    const key = previewKey("website", "landing-page", defaultTemplate.id)
     setEnt((current) => {
       if (needsPaywall(current, key)) {
         setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Your palette is still available in the free generator.` })
@@ -494,27 +488,22 @@ export default function Builder() {
     toast.push("Palette reset — Undo brings it back", "success")
   }
 
-  const selectTpl = (key: string) => setTplBySub((m) => ({ ...m, [sel.sub]: key }))
+  const trySelectAsset = (asset: TemplateAsset) => {
+    const nextGroup = GROUPS.find((group) => group.label === asset.category)
+    const nextSub = nextGroup?.subs.find((sub) => sub.templates.some((template) => template.key === asset.id))
+    if (!nextGroup || !nextSub) return
 
-  const trySelectTemplate = (key: string, label: string) => {
-    const fullKey = previewKey(sel.group, sel.sub, key)
+    const fullKey = previewKey(nextGroup.key, nextSub.key, asset.id)
     if (needsPaywall(ent, fullKey)) {
       setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Return to the Palette Generator to keep creating and exporting for free.` })
       return
     }
-    setEnt((current) => recordSwitch(current, fullKey))
-    if (isButton) setButtonStyle(key as ButtonStyle)
-    else selectTpl(key)
-    toast.push(`Template: ${label}`)
-  }
 
-  const activePreviewIndex = PREVIEW_CHOICES.findIndex((choice) => choice.group === sel.group && choice.sub === sel.sub)
-  const cyclePreview = (direction: -1 | 1) => {
-    const nextIndex = (activePreviewIndex + direction + PREVIEW_CHOICES.length) % PREVIEW_CHOICES.length
-    const next = PREVIEW_CHOICES[nextIndex]
-    if (trySelectPreview({ group: next.group, sub: next.sub })) {
-      toast.push(`Now previewing ${next.groupLabel} · ${next.label}`)
-    }
+    setSel({ group: nextGroup.key, sub: nextSub.key })
+    setTplBySub((current) => ({ ...current, [`${nextGroup.key}/${nextSub.key}`]: asset.id }))
+    setEnt((current) => recordSwitch(current, fullKey))
+    setPreviewPickerOpen(false)
+    toast.push(`Template: ${asset.type} · ${asset.variant}`)
   }
 
   const roleSourceOptions = Array.from(new Set([
@@ -629,32 +618,19 @@ export default function Builder() {
 
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white px-3 py-2.5 sm:px-5">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase text-charcoal/45">Current preview</p>
-          <p className="truncate text-[13px] font-semibold text-charcoal/80">{currentGroup.label} / {currentSub.label} / {currentTemplateLabel}</p>
+          <p className="text-[10px] font-bold uppercase text-charcoal/45">Current template</p>
+          <p className="truncate text-[13px] font-semibold text-charcoal/80">Template / {currentGroup.label} / {currentSub.label} / {currentTemplateLabel}</p>
         </div>
-        <ChangeTemplatePanel
-          open={templatePopoverOpen}
-          onToggle={() => setTemplatePopoverOpen((v) => !v)}
-          onClose={() => setTemplatePopoverOpen(false)}
-          template={currentGroup.label}
-          templates={GROUPS.map((g) => g.label)}
-          onTemplate={(t: string) => {
-            const nextGroup = GROUPS.find((g) => g.label === t)
-            if (nextGroup) trySelectPreview({ group: nextGroup.key, sub: nextGroup.subs[0].key })
-          }}
-          variant={currentTemplateLabel || (templates[0]?.label ?? "")}
-          variants={templates.map((t) => t.label)}
-          onVariant={(v: string) => {
-            const match = templates.find((t) => t.label === v)
-            if (match) trySelectTemplate(match.key, match.label)
-          }}
-          layout={currentSub.label}
-          layouts={currentGroup.subs.map((s) => s.label)}
-          onLayout={(l: string) => {
-            const match = currentGroup.subs.find((s) => s.label === l)
-            if (match) trySelectPreview({ group: sel.group, sub: match.key })
-          }}
-        />
+        <button
+          type="button"
+          onClick={() => setPreviewPickerOpen(true)}
+          className="flex h-10 shrink-0 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          aria-label="Change template"
+          title="Change template"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m12 2 10 6-10 6L2 8Z"/><path d="M2 16l10 6 10-6"/><path d="M2 12l10 6 10-6"/></svg>
+          <span className="hidden sm:inline">Change template</span>
+        </button>
       </div>
 
       {/* ================= Preview (large, immersive) ================= */}
@@ -702,8 +678,8 @@ export default function Builder() {
           onSave={() => toast.push("Palette autosaves as you work", "success")}
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
-          onFormat={() => setTemplatePopoverOpen(true)}
-          formatLabel="Format"
+          onFormat={() => setPreviewPickerOpen(true)}
+          formatLabel="Templates"
           roleSource={roleMapSource}
           roleTargetId={roleMapTargetId}
           roleSourceOptions={roleSourceOptions}
@@ -722,45 +698,11 @@ export default function Builder() {
 
       {/* ================= Preview picker ================= */}
       {previewPickerOpen && (
-        <PickerOverlay onClose={() => setPreviewPickerOpen(false)} title="Choose what to preview">
-          <div className="grid gap-6 sm:grid-cols-3">
-            {GROUPS.map((g) => (
-              <div key={g.key}>
-                <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">
-                  <span aria-hidden>{GROUP_ICONS[g.key]}</span>
-                  {g.label}
-                </p>
-                <div className="flex flex-col gap-1">
-                  {g.subs.map((s) => {
-                    const on = sel.group === g.key && sel.sub === s.key
-                    const defaultTemplate = g.key === "components" && s.key === "button"
-                      ? buttonStyle
-                      : s.templates[0]?.key ?? "default"
-                    const key = previewKey(g.key, s.key, defaultTemplate)
-                    const locked = needsPaywall(ent, key)
-                    return (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => {
-                          setPreviewPickerOpen(false)
-                          const ok = trySelectPreview({ group: g.key, sub: s.key })
-                          if (ok) toast.push(`Now previewing ${g.label} · ${s.label}`)
-                        }}
-                        className="flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-                        style={on ? { background: withAlpha(BRAND.brand, 0.12), color: BRAND.brandDark } : { color: BRAND.medgrey }}
-                        aria-current={on ? "true" : undefined}
-                      >
-                        <span>{s.label}</span>
-                        {locked && <ProBadge />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </PickerOverlay>
+        <TemplateLibrary
+          selectedId={tpl}
+          onSelect={trySelectAsset}
+          onClose={() => setPreviewPickerOpen(false)}
+        />
       )}
 
       {/* ================= Full screen preview ================= */}
@@ -941,55 +883,6 @@ function IconButton({
     </button>
   )
 }
-
-function PickerOverlay({
-  title, onClose, children,
-}: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-  return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center bg-charcoal/40 p-4 pt-[6vh]" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div onClick={(e) => e.stopPropagation()} className="animate-pop-in w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg border border-softgrey px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/60 hover:text-charcoal">Close</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function PreviewArrow({ direction, onClick }: { direction: "previous" | "next"; onClick: () => void }) {
-  const previous = direction === "previous"
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/30 text-white/85 transition-colors hover:border-white/60 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-      aria-label={`${previous ? "Previous" : "Next"} preview`}
-      title={`${previous ? "Previous" : "Next"} preview`}
-    >
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        {previous ? <path d="m15 18-6-6 6-6" /> : <path d="m9 18 6-6-6-6" />}
-      </svg>
-    </button>
-  )
-}
-
-const ProBadge = () => (
-  <span
-    className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
-    style={{ background: `${BRAND.brand}18`, color: BRAND.brandDark }}
-    aria-label="Pro feature"
-  >
-    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-    Pro
-  </span>
-)
 
 /* ---------- icons ---------- */
 const Chevron = () => (<span aria-hidden className="text-charcoal/25">›</span>)

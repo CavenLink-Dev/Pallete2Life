@@ -1,6 +1,8 @@
 import { readableOn, shade, withAlpha, type Theme } from "../lib/color"
 import { BrandLogo, BrandSymbol, Editable, PreviewButton, usePreview } from "./PreviewCtx"
 import type { CSSProperties, ReactNode } from "react"
+import TemplatePreview from "./TemplatePreview"
+import { templateGroups, type TemplateGroupKey } from "../lib/templateAssets"
 
 /* ------------------------------------------------------------------ */
 /* shared primitives                                                   */
@@ -512,52 +514,15 @@ export function TypographyPreview({ theme, tpl }: { theme: Theme; tpl: string })
 /* ================================================================== */
 /* Registry                                                            */
 /* ================================================================== */
-export type GroupKey = "website" | "mobile" | "components"
-export type Sub = { key: string; label: string; templates: { key: string; label: string; layout: string }[] }
+export type GroupKey = TemplateGroupKey
+export type Sub = { key: string; label: string; templates: { key: string; label: string; layout: string; thumbnail: string; source: string }[] }
 export type Group = { key: GroupKey; label: string; subs: Sub[] }
 
-export const GROUPS: Group[] = [
-  {
-    key: "website", label: "Website", subs: [
-      { key: "landing", label: "Landing Page", templates: [{ key: "landing-bold", label: "Bold Hero", layout: "hero-dark" }, { key: "landing-minimal", label: "Minimal", layout: "centered" }, { key: "landing-product", label: "Product", layout: "split" }] },
-      { key: "saas", label: "SaaS", templates: [{ key: "saas-classic", label: "Classic", layout: "hero" }, { key: "saas-centered", label: "Centered", layout: "centered" }] },
-      { key: "ecom", label: "E-commerce", templates: [{ key: "ecom-grid", label: "Grid", layout: "grid" }, { key: "ecom-featured", label: "Featured", layout: "hero" }] },
-      { key: "signin", label: "Sign-In", templates: [{ key: "signin-split", label: "Split Screen", layout: "split" }, { key: "signin-centered", label: "Centered", layout: "card" }] },
-      { key: "paywall", label: "Paywall", templates: [{ key: "paywall-simple", label: "Simple Plan", layout: "card" }, { key: "paywall-comparison", label: "Comparison", layout: "table" }] },
-    ],
-  },
-  {
-    key: "mobile", label: "Mobile App", subs: [
-      { key: "standard", label: "Standard", templates: [{ key: "app-standard", label: "Wallet", layout: "phone" }] },
-      { key: "dashboard", label: "Dashboard", templates: [{ key: "app-dashboard", label: "Metrics", layout: "phone" }] },
-      { key: "cards", label: "Cards", templates: [{ key: "app-cards", label: "Feed", layout: "phone" }] },
-      { key: "profile", label: "Profile", templates: [{ key: "app-profile", label: "Profile", layout: "phone" }] },
-    ],
-  },
-  {
-    key: "components", label: "Components", subs: [
-      { key: "button", label: "Button", templates: [] }, // styles handled by ButtonLab
-      { key: "cards", label: "Cards", templates: [{ key: "elevated", label: "Elevated", layout: "cards" }, { key: "simple", label: "Simple", layout: "cards" }, { key: "outlined", label: "Outlined", layout: "cards" }] },
-      { key: "forms", label: "Forms", templates: [{ key: "card", label: "Card Form", layout: "card" }, { key: "minimal", label: "Minimal", layout: "form" }] },
-      { key: "nav", label: "Navigation", templates: [{ key: "topbar", label: "Top Bar", layout: "topbar" }, { key: "sidebar", label: "Sidebar", layout: "sidebar" }, { key: "bottom", label: "Bottom Nav", layout: "phone" }] },
-      { key: "states", label: "Status States", templates: [{ key: "cards", label: "Cards", layout: "states" }, { key: "compact", label: "Compact", layout: "states" }] },
-      { key: "charts", label: "Charts", templates: [{ key: "bars", label: "Bar Chart", layout: "chart" }, { key: "summary", label: "Summary", layout: "chart" }] },
-      { key: "typography", label: "Typography", templates: [{ key: "modern", label: "Modern", layout: "type" }, { key: "friendly", label: "Friendly", layout: "type" }, { key: "professional", label: "Professional", layout: "type" }, { key: "editorial", label: "Editorial", layout: "type" }] },
-    ],
-  },
-]
+export const GROUPS: Group[] = templateGroups
 
 export function renderComponentPreview(group: GroupKey, sub: string, tpl: string, theme: Theme): ReactNode {
-  if (group === "website") return <WebsitePreview theme={theme} tpl={tpl} />
-  if (group === "mobile") return <AppPreview theme={theme} tpl={tpl} />
-  // components
-  if (sub === "cards") return <CardsPreview theme={theme} tpl={tpl} />
-  if (sub === "forms") return <FormsPreview theme={theme} tpl={tpl} />
-  if (sub === "nav") return <NavPreview theme={theme} tpl={tpl} />
-  if (sub === "states") return <StatesPreview theme={theme} tpl={tpl} />
-  if (sub === "charts") return <ChartsPreview theme={theme} tpl={tpl} />
-  if (sub === "typography") return <TypographyPreview theme={theme} tpl={tpl} />
-  return null
+  void theme
+  return <TemplatePreview key={`${group}/${sub}/${tpl}`} templateId={tpl} />
 }
 
 /* small schematic thumbnail for the template strip */

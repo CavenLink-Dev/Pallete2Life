@@ -103,6 +103,31 @@ body {
   height: 120px;
 }
 
+.template-filter-select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--color-softgrey);
+  border-radius: 7px;
+  background: white;
+  padding: 0 30px 0 10px;
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+}
+
+.template-filter-select:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px rgba(32, 185, 250, 0.15);
+}
+
+.template-svg-stage > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 @media (min-width: 640px) {
   .palette-card-size {
     width: clamp(184px, calc((100vw - 233px) / 6), 228px);
