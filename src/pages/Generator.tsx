@@ -16,7 +16,7 @@ import {
   type Swatch,
 } from "../lib/color"
 import { createDefaultPalette, loadPalette, savePalette } from "../lib/paletteStore"
-import { useNav, useRoute } from "../lib/router"
+import { useNav } from "../lib/router"
 import { useToast } from "../components/Toast"
 import SimpleExportPanel from "../components/SimpleExportPanel"
 
@@ -27,7 +27,6 @@ const MIN_COLOURS = 2
 /* #PaletteGenerator /builder - #QuickPalette is the focused palette experience. */
 export default function Generator() {
   const nav = useNav()
-  const [, navigate] = useRoute()
   const toast = useToast()
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -132,11 +131,6 @@ export default function Generator() {
     toast.push("Palette reset", "success")
   }
 
-  const openDesignSystem = () => {
-    savePalette(palette)
-    navigate("/preview")
-  }
-
   const copyHex = async (swatch: Swatch) => {
     try {
       await navigator.clipboard.writeText(swatch.hex.toUpperCase())
@@ -173,21 +167,13 @@ export default function Generator() {
           <ToolbarButton onClick={add} icon={<PlusIcon />} disabled={palette.length >= MAX_COLOURS}>Add colour</ToolbarButton>
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="ml-auto flex shrink-0 items-center">
           <button
             type="button"
             onClick={() => setExportOpen(true)}
             className="flex h-9 items-center gap-2 rounded-md border border-softgrey bg-white px-3.5 text-[12.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
           >
             <ExportIcon /> Export
-          </button>
-          <button
-            type="button"
-            onClick={openDesignSystem}
-            className="flex h-9 items-center gap-2 rounded-md px-3.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-            style={{ background: BRAND.brandDark }}
-          >
-            <PreviewIcon /> <span className="hidden md:inline">Create A Design System</span><span className="md:hidden">Create Design</span>
           </button>
         </div>
       </header>
@@ -392,7 +378,6 @@ const RedoIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="no
 const ResetIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>)
 const ShuffleIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5" /></svg>)
 const PlusIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>)
-const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
 const ExportIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
 const LockedIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>)
 const UnlockedIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.6-1.7" /></svg>)

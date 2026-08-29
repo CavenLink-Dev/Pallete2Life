@@ -21,7 +21,7 @@ export default function Help() {
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
             <li><b>Create your colours.</b> Click any large colour column to edit HEX, RGB or HSL. Lock colours you want Randomise to keep.</li>
             <li><b>Export for free.</b> Copy your HEX, RGB or HSL values, or download a basic palette file.</li>
-            <li><b>Generate a design.</b> Choose <b>Create A Design System</b> to apply the current palette to website, application, and component previews.</li>
+            <li><b>Generate a design when needed.</b> Use <b>Generate A Design</b> from the main navigation to open the separate design workflow.</li>
           </ol>
         </Section>
 
