@@ -17,15 +17,15 @@ export default function Help() {
         </div>
 
         <Section title="How Palette Preview works">
-          <p>Palette Preview starts with the free Palette Generator: a simple toolbar above large colour columns. Create and export as many palettes as you like, then open Preview when you want to apply one to a real design.</p>
+          <p>Palette Preview gives you two clear starting points. Quick Palette keeps the familiar colour columns and export tools, while Generate A Design applies your saved palette to a real interface.</p>
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
             <li><b>Create your colours.</b> Click any large colour column to edit HEX, RGB or HSL. Lock colours you want Randomise to keep.</li>
             <li><b>Export for free.</b> Copy your HEX, RGB or HSL values, or download a basic palette file.</li>
-            <li><b>Preview when useful.</b> Press <b>Preview</b> to apply the current palette to Websites, Mobile Apps or Components.</li>
+            <li><b>Generate a design.</b> Choose <b>Create A Design System</b> to apply the current palette to website, application, and component previews.</li>
           </ol>
         </Section>
 
-        <Section title="The Palette Generator">
+        <Section title="Quick Palette">
           <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
             <li><b>Click a colour</b> to open its HEX, RGB and HSL editor.</li>
             <li><b>Lock a colour</b> so Randomise keeps it while the others change.</li>

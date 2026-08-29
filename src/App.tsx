@@ -3,6 +3,7 @@ import { ToastProvider } from "./components/Toast"
 import Home from "./pages/Home"
 import Generator from "./pages/Generator"
 import Builder from "./pages/Builder"
+import LiveChanges from "./pages/LiveChanges"
 import Pricing from "./pages/Pricing"
 import Help from "./pages/Help"
 import Privacy from "./pages/Privacy"
@@ -16,6 +17,7 @@ export default function App() {
   switch (route) {
     case "/builder":  page = <Generator />;  break
     case "/preview":  page = <Builder />;  break
+    case "/live-changes": page = <LiveChanges />; break
     case "/pricing":  page = <Pricing />;  break
     case "/help":     page = <Help />;     break
     case "/privacy":  page = <Privacy />;  break

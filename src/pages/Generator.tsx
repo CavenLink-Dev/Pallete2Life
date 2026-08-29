@@ -24,6 +24,7 @@ const MAX_HISTORY = 40
 const MAX_COLOURS = 8
 const MIN_COLOURS = 2
 
+/* #PaletteGenerator /builder - #QuickPalette is the focused palette experience. */
 export default function Generator() {
   const nav = useNav()
   const [, navigate] = useRoute()
@@ -131,7 +132,7 @@ export default function Generator() {
     toast.push("Palette reset", "success")
   }
 
-  const openPreview = () => {
+  const openDesignSystem = () => {
     savePalette(palette)
     navigate("/preview")
   }
@@ -175,26 +176,19 @@ export default function Generator() {
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
-            onClick={openPreview}
-            className="flex h-9 items-center gap-2 rounded-md border border-charcoal bg-charcoal px-3.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-[#263542] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-          >
-            <PreviewIcon /> Preview
-          </button>
-          <button
-            type="button"
             onClick={() => setExportOpen(true)}
             className="flex h-9 items-center gap-2 rounded-md border border-softgrey bg-white px-3.5 text-[12.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
           >
             <ExportIcon /> Export
           </button>
-          <a
-            href="/pricing"
-            onClick={nav("/pricing")}
+          <button
+            type="button"
+            onClick={openDesignSystem}
             className="flex h-9 items-center gap-2 rounded-md px-3.5 text-[12.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             style={{ background: BRAND.brandDark }}
           >
-            <LockIcon /> Unlock Pro
-          </a>
+            <PreviewIcon /> <span className="hidden md:inline">Create A Design System</span><span className="md:hidden">Create Design</span>
+          </button>
         </div>
       </header>
 
@@ -400,7 +394,6 @@ const ShuffleIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill=
 const PlusIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>)
 const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
 const ExportIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
-const LockIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>)
 const LockedIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>)
 const UnlockedIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 7.6-1.7" /></svg>)
 const EditIcon = () => (<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.5 4.5 5 5-11 11H3.5v-5.5z" /><path d="m12 7 5 5" /></svg>)

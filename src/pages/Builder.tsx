@@ -126,6 +126,7 @@ function migrateSwatchReferences(records: Record<string, string>, palette: Swatc
 }
 
 const MAX_HISTORY = 40
+/* #PreviewWorkspace /preview - foundation for #GenerateDesignWorkflow. */
 export default function Builder() {
   const navHome = useNav()
   const [, navigate] = useRoute()
@@ -278,7 +279,7 @@ export default function Builder() {
     const variant = tplBySub[`${next.group}/${nextSub.key}`] ?? nextSub.templates[0]?.key ?? "default"
     const key = previewKey(next.group, next.sub, variant)
     if (needsPaywall(ent, key)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
+      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Go Pro + to keep exploring - your current work stays exactly where it is.` })
       return false
     }
     setSel(next)
@@ -495,7 +496,7 @@ export default function Builder() {
 
     const fullKey = previewKey(nextGroup.key, nextSub.key, asset.id)
     if (needsPaywall(ent, fullKey)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Return to the Palette Generator to keep creating and exporting for free.` })
+      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Return to Quick Palette to keep creating and exporting for free.` })
       return
     }
 

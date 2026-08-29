@@ -81,7 +81,7 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
             className="rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             style={{ background: BRAND.brand }}
           >
-            Unlock Pro — $9.99/mo
+            Go Pro + · $9.99/mo
           </button>
         </div>
         <p className="mt-3 text-[11px] text-charcoal/45">Your palette is saved in your browser and won't be lost.</p>
