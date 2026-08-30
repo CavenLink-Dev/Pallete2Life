@@ -5,19 +5,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
-.preview-token-button:focus-visible {
-  outline: var(--token-focus-width, 2px) solid var(--token-focus-colour, #20b9fa);
-  outline-offset: var(--token-focus-offset, 2px);
-}
-
-.preview-token-button:hover:not(:disabled) {
-  opacity: var(--token-hover-opacity, 0.9);
-}
-
-.preview-token-button:disabled {
-  opacity: var(--token-disabled-opacity, 0.45);
-}
-
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
@@ -111,34 +98,10 @@ body {
   box-shadow: 0 1px 4px rgba(14, 24, 33, 0.45);
 }
 
+/* Mobile: single-column stack, each swatch a full-width 64px row */
 .palette-card-size {
-  width: 204px;
-  height: 120px;
-}
-
-.template-filter-select {
   width: 100%;
-  height: 44px;
-  border: 1px solid var(--color-softgrey);
-  border-radius: 7px;
-  background: white;
-  padding: 0 30px 0 10px;
-  color: var(--color-charcoal);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  outline: none;
-}
-
-.template-filter-select:focus {
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 2px rgba(32, 185, 250, 0.15);
-}
-
-.template-svg-stage > svg {
-  display: block;
-  width: 100%;
-  height: auto;
+  height: 64px;
 }
 
 @media (min-width: 640px) {

@@ -1,5 +1,7 @@
 {
+  "cleanUrls": false,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|.*\\.(?:js|css|png|jpg|jpeg|gif|svg|webp|ico|woff|woff2|ttf|otf|map|json|txt|xml|webmanifest)).*)", "destination": "/index.html" }
   ]
 }

@@ -1,20 +1,60 @@
 import { uid, type Swatch } from "./color"
 
 const STORE_KEY = "hueframe:v1"
+const HASH_KEY = "p"
 
 const DEFAULT_COLOURS = [
-  { name: "Cloud", hex: "#F8FAFC" },
-  { name: "White", hex: "#FFFFFF" },
-  { name: "Clear Blue", hex: "#2563EB" },
-  { name: "Ink Navy", hex: "#0F172A" },
-  { name: "Slate", hex: "#475569" },
+  { name: "Pale Sky Blue", hex: "#D5E4ED" },
+  { name: "Muted Teal", hex: "#4F9A94" },
+  { name: "Coral Red", hex: "#F46B5E" },
+  { name: "Golden Yellow", hex: "#F6C453" },
+  { name: "Deep Navy", hex: "#102A43" },
 ]
 
 export function createDefaultPalette(): Swatch[] {
   return DEFAULT_COLOURS.map((colour) => ({ ...colour, id: uid() }))
 }
 
+/* Reads a palette from the location hash: `#p=RRGGBB,RRGGBB,...`
+ * Returns null if there is no hash, if the value doesn't parse, or if
+ * every hex is invalid. Malformed hexes are dropped silently. */
+export function readHashPalette(): Swatch[] | null {
+  if (typeof window === "undefined") return null
+  const raw = window.location.hash.replace(/^#/, "")
+  if (!raw) return null
+  const params = new URLSearchParams(raw)
+  const value = params.get(HASH_KEY)
+  if (!value) return null
+  const parts = value.split(",").map((p) => p.trim()).filter(Boolean)
+  const swatches: Swatch[] = []
+  for (const part of parts) {
+    const cleaned = part.replace(/^#/, "").toUpperCase()
+    if (!/^[0-9A-F]{6}$/.test(cleaned)) continue
+    swatches.push({ id: uid(), name: `Colour ${swatches.length + 1}`, hex: `#${cleaned}` })
+  }
+  return swatches.length ? swatches : null
+}
+
+/* Writes the current palette into the location hash. Debounced ~200ms
+ * so rapid palette edits don't spam history. Uses replaceState so the
+ * user's browser Back button stays useful. */
+let hashWriteTimer: ReturnType<typeof setTimeout> | null = null
+export function writeHashPalette(palette: Swatch[]) {
+  if (typeof window === "undefined") return
+  if (hashWriteTimer) clearTimeout(hashWriteTimer)
+  hashWriteTimer = setTimeout(() => {
+    const hexes = palette.map((s) => s.hex.replace(/^#/, "").toUpperCase()).join(",")
+    const next = `#${HASH_KEY}=${hexes}`
+    if (window.location.hash === next) return
+    window.history.replaceState({}, "", window.location.pathname + window.location.search + next)
+  }, 200)
+}
+
+/* Priority: URL hash > localStorage > default palette. This lets a
+ * pasted share link deterministically restore a palette. */
 export function loadPalette(): Swatch[] {
+  const fromHash = readHashPalette()
+  if (fromHash) return fromHash
   try {
     const raw = localStorage.getItem(STORE_KEY)
     const palette = raw ? JSON.parse(raw)?.palette : null
