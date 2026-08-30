@@ -5,13 +5,14 @@ export type Route =
   | "/app"
   | "/builder"
   | "/preview"
+  | "/live-changes"
   | "/pricing"
   | "/help"
   | "/privacy"
   | "/terms"
   | "/contact"
 
-const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/live-changes", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
 function currentPath(): Route {

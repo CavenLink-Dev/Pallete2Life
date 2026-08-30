@@ -1,82 +1,44 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { BRAND, deriveTheme, hslToHex, normalizeHex, randomHex, readableOn, uid, withAlpha, type Swatch } from "../lib/color"
-import PalettePanel from "../components/PalettePanel"
-import {
-  BUTTON_STYLES,
-  ButtonLab,
-  DEFAULT_BUTTON_PROPS,
-  STYLE_META,
-  paletteToTrio,
-  type ButtonProps,
-  type ButtonStyle,
-} from "../components/ButtonPreview"
-import {
-  GROUPS,
-  renderComponentPreview,
-  type GroupKey,
-} from "../components/Previews"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { deriveTheme, hslToHex, randomHex, uid, type Swatch } from "../lib/color"
+import { DEFAULT_BUTTON_PROPS, paletteToTrio, type ButtonStyle } from "../components/ButtonPreview"
+import { GROUPS, PreviewRenderer, type GroupKey, type PreviewRendererHandle } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
 import BrandUpload from "../components/BrandUpload"
-import { useNav, useRoute } from "../lib/router"
-import { useToast } from "../components/Toast"
-import ConfirmDialog from "../components/ConfirmDialog"
-import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard"
-import PaywallOverlay from "../components/PaywallOverlay"
-import {
-  FREE_PREVIEW_LIMIT,
-  freeRemaining,
-  loadEntitlement,
-  needsPaywall,
-  previewKey,
-  recordSwitch,
-  saveEntitlement,
-  type Entitlement,
-} from "../lib/entitlement"
-import ExportPanel from "../components/ExportPanel"
-import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
-import PropertiesPanel from "../components/PropertiesPanel"
-import ColorEditor from "../components/ColorEditor"
 import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
+import ConfirmDialog from "../components/ConfirmDialog"
+import ExportPanel, { type ImportedProject } from "../components/ExportPanel"
+import InspectorShell from "../components/InspectorShell"
+import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard"
+import PaletteRail from "../components/PaletteRail"
+import PaywallOverlay from "../components/PaywallOverlay"
+import { useToast } from "../components/Toast"
+import { FREE_PREVIEW_LIMIT, freeRemaining, loadEntitlement, needsPaywall, previewKey, recordSwitch, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
+import { useNav, useRoute } from "../lib/router"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
+import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
+import { templateAssetById } from "../lib/templateAssets"
 
 type Selection = { group: GroupKey; sub: string }
 
-const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
-
-/* Contextual colour roles per preview. Left aligned to palette index; extra
- * swatches keep their custom name. Buttons use STYLE_META (per style). */
-const ROLES_BY_PREVIEW: Record<string, (string | null)[]> = {
-  // Websites
-  "website/landing":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/saas":     ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/ecom":     ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/signin":   ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "website/paywall":  ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  // Mobile
-  "mobile/standard":  ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "mobile/dashboard": ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "mobile/cards":     ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  "mobile/profile":   ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-  // Components (non-button)
-  "components/cards":      ["Card Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Card Border"],
-  "components/forms":      ["Form Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Input Border"],
-  "components/nav":        ["Nav Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Divider"],
-  "components/states":     ["Canvas Background", "Success Accent", "Warning Accent", "Heading Text", "Body Text", "Error Accent"],
-  "components/charts":     ["Chart Background", "Grid Lines", "Primary Series", "Heading Text", "Body Text", "Secondary Series"],
-  "components/typography": ["Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"],
-}
-
-
-/* localStorage persistence */
 const STORE_KEY = "hueframe:v1"
+const MAX_HISTORY = 40
+const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
+const DEFAULT_SELECTION: Selection = { group: "website", sub: "landing-page" }
+const EMPTY_OVERRIDES = {}
+const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
+const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
+
 function loadStored<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(STORE_KEY)
     if (!raw) return fallback
-    const data = JSON.parse(raw)
-    return data?.[key] ?? fallback
-  } catch { return fallback }
+    return JSON.parse(raw)?.[key] ?? fallback
+  } catch {
+    return fallback
+  }
 }
+
 function useStored(key: string, value: unknown) {
   useEffect(() => {
     try {
@@ -84,108 +46,69 @@ function useStored(key: string, value: unknown) {
       const data = raw ? JSON.parse(raw) : {}
       data[key] = value
       localStorage.setItem(STORE_KEY, JSON.stringify(data))
-    } catch { /* storage unavailable — ignore */ }
+    } catch {
+      /* storage unavailable */
+    }
   }, [key, value])
 }
 
-const MAX_HISTORY = 40
-const GROUP_ICONS: Record<GroupKey, string> = { website: "▦", mobile: "▯", components: "◉" }
-const PREVIEW_CHOICES = GROUPS.flatMap((group) =>
-  group.subs.map((sub) => ({ group: group.key, sub: sub.key, groupLabel: group.label, label: sub.label })),
-)
-
 export default function Builder() {
-  const navHome = useNav()
+  const nav = useNav()
   const [, navigate] = useRoute()
   const toast = useToast()
+  const previewRef = useRef<PreviewRendererHandle | null>(null)
+  const canvasRef = useRef<HTMLElement | null>(null)
+  const skipHistory = useRef(false)
+  const randomiseCount = useRef(0)
+  const recentCurated = useRef<number[]>([])
 
-  // ---------- palette + design state ----------
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
-  const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing" })
-  const [tplBySub, setTplBySub] = useState<Record<string, string>>({})
-  const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
-  const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
-
-  // Edit Elements
-  const [editMode, setEditMode] = useState(false)
-  const [assignments, setAssignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
-  const [assignTarget, setAssignTarget] = useState<{ id: string; label: string } | null>(null)
-
-  // Brand
+  const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
+  const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => loadStored("templateByType", {}))
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
-  const [brandOpen, setBrandOpen] = useState(false)
-
-  // Overlays
-  const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(false)
-  const [confirmReset, setConfirmReset] = useState(false)
-  const [fullscreen, setFullscreen] = useState(false)
-
-  // Colour editor + selected swatch
-  const [colorEditorOpen, setColorEditorOpen] = useState(false)
-  const [selectedSwatchIndex, setSelectedSwatchIndex] = useState(0)
-  const [swatchVisible, setSwatchVisible] = useState<Record<string, boolean>>({})
-
-  // Role Mapping (previously "Assign Hierarchy")
-  const [roleMapSource, setRoleMapSource] = useState("Page Background")
-  const [roleMapTarget, setRoleMapTarget] = useState("Brand Primary")
-
-  // Change Template popover
-  const [templatePopoverOpen, setTemplatePopoverOpen] = useState(false)
-
-  // Undo / Redo
+  const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
+  const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle))
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
-  const skipHistory = useRef(false)
-
-  // Free / Pro entitlement
-  const [ent, setEnt] = useState<Entitlement>(loadEntitlement)
-  useEffect(() => { saveEntitlement(ent) }, [ent])
+  const [templateOpen, setTemplateOpen] = useState(false)
+  const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
+  const [inspectorOpen, setInspectorOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
+  const [brandOpen, setBrandOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
-  const remaining = freeRemaining(ent)
-  const remainingLabel = ent.isPro ? null : `${remaining} preview${remaining === 1 ? "" : "s"} left`
 
   useStored("palette", palette)
+  useStored("templateByType", templateByType)
+  useStored("brand", brand)
 
-  // URL-encoded palette state — write hash on every palette change (debounced
-  // inside the store), and listen for external hash changes so pasting a
-  // share link in the address bar hydrates the palette.
+  useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
   useEffect(() => { writeHashPalette(palette) }, [palette])
+
   useEffect(() => {
-    const onHash = () => {
+    const onHashChange = () => {
       const next = readHashPalette()
-      if (next && JSON.stringify(next.map((s) => s.hex)) !== JSON.stringify(palette.map((s) => s.hex))) {
-        skipHistory.current = true
-        setPalette(next)
-      }
+      if (!next || next.map((swatch) => swatch.hex).join() === palette.map((swatch) => swatch.hex).join()) return
+      skipHistory.current = true
+      setPalette(next)
     }
-    window.addEventListener("hashchange", onHash)
-    return () => window.removeEventListener("hashchange", onHash)
+    window.addEventListener("hashchange", onHashChange)
+    return () => window.removeEventListener("hashchange", onHashChange)
   }, [palette])
 
-  useStored("assignments", assignments)
-  useStored("brand", brand)
-  useStored("buttonStyle", buttonStyle)
-  useStored("buttonProps", buttonProps)
-
-  const closeHelp = useCallback(() => { setHelpOpen(false) }, [])
-  void closeHelp
-
-  // Fullscreen Escape
   useEffect(() => {
-    if (!fullscreen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setFullscreen(false) }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [fullscreen])
+    const query = window.matchMedia("(min-width: 1200px)")
+    const update = () => setInspectorOpen(query.matches)
+    query.addEventListener("change", update)
+    return () => query.removeEventListener("change", update)
+  }, [])
 
-  // Undo history mutator
-  const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
-    setPalette((prev) => {
-      const next = updater(prev)
-      if (!skipHistory.current && JSON.stringify(prev) !== JSON.stringify(next)) {
-        setUndoStack((s) => (s.length >= MAX_HISTORY ? [...s.slice(1), prev] : [...s, prev]))
+  const mutatePalette = useCallback((updater: (current: Swatch[]) => Swatch[]) => {
+    setPalette((current) => {
+      const next = updater(current)
+      if (!skipHistory.current && JSON.stringify(next) !== JSON.stringify(current)) {
+        setUndoStack((stack) => stack.length >= MAX_HISTORY ? [...stack.slice(1), current] : [...stack, current])
         setRedoStack([])
       }
       skipHistory.current = false
@@ -194,715 +117,333 @@ export default function Builder() {
   }, [])
 
   const undo = useCallback(() => {
-    setUndoStack((s) => {
-      if (!s.length) { toast.push("Nothing to undo"); return s }
-      const prev = s[s.length - 1]
-      setRedoStack((r) => [...r, palette])
+    setUndoStack((stack) => {
+      if (!stack.length) return stack
+      const previous = stack[stack.length - 1]
+      setRedoStack((redo) => [...redo, palette])
       skipHistory.current = true
-      setPalette(prev)
-      toast.push("Undone")
-      return s.slice(0, -1)
+      setPalette(previous)
+      return stack.slice(0, -1)
     })
-  }, [palette, toast])
+  }, [palette])
 
   const redo = useCallback(() => {
-    setRedoStack((r) => {
-      if (!r.length) { toast.push("Nothing to redo"); return r }
-      const next = r[r.length - 1]
-      setUndoStack((s) => [...s, palette])
+    setRedoStack((stack) => {
+      if (!stack.length) return stack
+      const next = stack[stack.length - 1]
+      setUndoStack((undoHistory) => [...undoHistory, palette])
       skipHistory.current = true
       setPalette(next)
-      toast.push("Redone")
-      return r.slice(0, -1)
+      return stack.slice(0, -1)
     })
-  }, [palette, toast])
+  }, [palette])
 
-  // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      const target = e.target as HTMLElement | null
-      const tag = target?.tagName
-      if (tag === "INPUT" || tag === "TEXTAREA" || target?.isContentEditable) return
-      if (mod && !e.shiftKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo() }
-      else if (mod && ((e.shiftKey && e.key.toLowerCase() === "z") || e.key.toLowerCase() === "y")) { e.preventDefault(); redo() }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPaletteSheetOpen(false)
+        setInspectorOpen(false)
+        setTemplateOpen(false)
+        return
+      }
+      const target = event.target as HTMLElement | null
+      if (target?.matches("input, textarea, [contenteditable='true']")) return
+      const modifier = event.metaKey || event.ctrlKey
+      if (modifier && !event.shiftKey && event.key.toLowerCase() === "z") {
+        event.preventDefault()
+        undo()
+      } else if (modifier && ((event.shiftKey && event.key.toLowerCase() === "z") || event.key.toLowerCase() === "y")) {
+        event.preventDefault()
+        redo()
+      }
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [undo, redo])
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [redo, undo])
 
-  const currentGroup = GROUPS.find((g) => g.key === sel.group)!
-  const currentSub = currentGroup.subs.find((s) => s.key === sel.sub) ?? currentGroup.subs[0]
-  const templates = currentSub.templates
-  const tpl = tplBySub[sel.sub] ?? templates[0]?.key ?? ""
-  const isButton = sel.group === "components" && sel.sub === "button"
-  const currentTemplateLabel = isButton
-    ? STYLE_META[buttonStyle].label
-    : templates.find((t) => t.key === tpl)?.label ?? ""
-
-  const roleLabels: (string | null)[] | undefined = isButton
-    ? STYLE_META[buttonStyle].roles.map((r) => r.part)
-    : ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
-
+  const currentGroup = GROUPS.find((group) => group.key === selection.group) ?? GROUPS[0]
+  const currentType = currentGroup.subs.find((type) => type.key === selection.sub) ?? currentGroup.subs[0]
+  const selectionKey = `${currentGroup.key}/${currentType.key}`
+  const templateId = templateByType[selectionKey] ?? currentType.templates[0]?.key ?? ""
+  const templateAsset = templateAssetById.get(templateId)
+  const templateName = templateAsset?.name ?? `${currentType.templates.find((item) => item.key === templateId)?.label ?? "Default"} ${currentType.label}`
+  const roleLabels = selection.group === "application" ? APPLICATION_ROLE_LABELS : WEBSITE_ROLE_LABELS
   const theme = useMemo(() => deriveTheme(palette, roleLabels), [palette, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
+  const tokenSystem = useMemo(() => createTokenSystem(palette), [palette])
 
-  // ---------- entitlement-aware preview switching ----------
-  const goPro = () => { setPaywall({ open: false }); navigate("/pricing") }
-  const dismissPaywall = () => setPaywall({ open: false })
+  const previewContext = useMemo<PreviewCtxValue>(() => ({
+    editMode: false,
+    assignments,
+    roleColor: (swatchId) => palette.find((swatch) => swatch.id === swatchId)?.hex,
+    tokenColor: (role) => {
+      const key = semanticKeyForRole(role)
+      return key ? semanticColour(tokenSystem, palette, key, theme.accent) : theme.accent
+    },
+    brand,
+    buttonStyle,
+    buttonProps: DEFAULT_BUTTON_PROPS,
+    trio,
+    selectedElement: null,
+    elementOverrides: EMPTY_OVERRIDES,
+    tokenSystem,
+    selectElement: () => undefined,
+  }), [assignments, brand, buttonStyle, palette, theme.accent, tokenSystem, trio])
 
-  const trySelectPreview = useCallback((next: Selection): boolean => {
-    const nextGroup = GROUPS.find((group) => group.key === next.group)!
-    const nextSub = nextGroup.subs.find((sub) => sub.key === next.sub) ?? nextGroup.subs[0]
-    const variant = next.group === "components" && next.sub === "button"
-      ? buttonStyle
-      : tplBySub[next.sub] ?? nextSub.templates[0]?.key ?? "default"
-    const key = previewKey(next.group, next.sub, variant)
-    if (needsPaywall(ent, key)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} of your free previews. Unlock Pro to keep exploring — your current work stays exactly where it is.` })
+  const trySelect = useCallback((next: Selection, nextTemplate?: string) => {
+    const group = GROUPS.find((item) => item.key === next.group)
+    const type = group?.subs.find((item) => item.key === next.sub) ?? group?.subs[0]
+    if (!group || !type) return false
+    const id = nextTemplate ?? templateByType[`${group.key}/${type.key}`] ?? type.templates[0]?.key ?? "default"
+    const key = previewKey(group.key, type.key, id)
+    if (needsPaywall(entitlement, key)) {
+      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Upgrade to keep exploring templates; your palette remains saved.` })
       return false
     }
-    setSel(next)
-    setEnt((e) => recordSwitch(e, key))
+    setSelection({ group: group.key, sub: type.key })
+    setEntitlement((current) => recordSwitch(current, key))
     return true
-  }, [buttonStyle, ent, tplBySub])
+  }, [entitlement, templateByType])
 
-  // Entering the workspace applies the current palette to the default preview.
-  // That is the first chargeable preview action; palette work remains unlimited.
-  const initialPreviewRecorded = useRef(false)
-  useEffect(() => {
-    if (initialPreviewRecorded.current) return
-    initialPreviewRecorded.current = true
-    const key = previewKey("website", "landing", "landing-bold")
-    setEnt((current) => {
-      if (needsPaywall(current, key)) {
-        setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Your palette is still available in the free generator.` })
-        return current
-      }
-      return recordSwitch(current, key)
-    })
-  }, [])
+  const chooseTemplate = (id: string, label: string) => {
+    if (!trySelect(selection, id)) return
+    setTemplateByType((current) => ({ ...current, [selectionKey]: id }))
+    markOnboardingStep("template")
+    toast.push(`Template: ${label}`, "success")
+  }
 
-  // ---------- palette mutations ----------
-  const change = (id: string, hex: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, hex } : s)))
-  const rename = (id: string, name: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, name: name.trim() || s.name } : s)))
-  const add = () => { mutatePalette((p) => [...p, { id: uid(), name: START_NAMES[p.length] ?? `Colour ${p.length + 1}`, hex: randomHex() }]); toast.push("Colour added", "success") }
-  const remove = (id: string) => mutatePalette((p) => (p.length > 1 ? p.filter((s) => s.id !== id) : p))
-  // Randomise: 1st + 2nd click = smart random, every 3rd click = curated
-  // palette (recency-aware, respects locks). Falls back to smart random if
-  // no curated palette is a reasonable match around the locked colours.
-  const randomizeClickCount = useRef(0)
-  const recentCuratedIdx = useRef<number[]>([])
-  /* Smart random — picks a base hue, then generates a small harmonious
-   * spread instead of pure noise so the palette actually looks like a
-   * design system. Backgrounds go pale, text goes dark, accents get
-   * saturation. Locked swatches are preserved. */
-  const smartRandom = (p: Swatch[]): Swatch[] => {
-    const baseHue = Math.floor(Math.random() * 360)
-    const dark = Math.random() < 0.35  // 35% of the time try a dark theme
-    const roleFor = (idx: number, label?: string | null): { s: number; l: number; hueShift: number } => {
-      const hint = (label || "").toLowerCase()
-      if (hint.includes("text") || hint.includes("heading") || hint.includes("body")) {
-        return dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 }
-      }
-      if (hint.includes("border") || hint.includes("divider") || hint.includes("secondary text")) {
-        return dark ? { s: 10, l: 65, hueShift: 20 } : { s: 8, l: 55, hueShift: 20 }
-      }
-      if (hint.includes("background") || hint.includes("surface") || hint.includes("page")) {
-        return dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 }
-      }
-      if (hint.includes("primary") || hint.includes("brand") || hint.includes("accent")) {
-        return { s: 65, l: 52, hueShift: 0 }
-      }
-      // Fallback by index: 0=bg, 1=surface, 2=primary, 3=main text, 4=secondary text
-      const fallback = [
-        dark ? { s: 15, l: 12, hueShift: 0 } : { s: 20, l: 96, hueShift: 0 },      // background
-        dark ? { s: 12, l: 18, hueShift: 0 } : { s: 12, l: 100, hueShift: 0 },     // surface
-        { s: 65, l: 52, hueShift: 0 },                                               // primary
-        dark ? { s: 5, l: 92, hueShift: 0 } : { s: 12, l: 15, hueShift: 0 },       // main text
-        dark ? { s: 10, l: 65, hueShift: 0 } : { s: 8, l: 42, hueShift: 0 },       // secondary text
-      ]
-      return fallback[idx] ?? { s: 40 + Math.random() * 30, l: 40 + Math.random() * 30, hueShift: (idx * 47) % 360 }
-    }
-    return p.map((s, idx) => {
-      if (s.locked) return s
-      const label = (roleLabels ?? [])[idx]
-      const spec = roleFor(idx, label)
-      const h = (baseHue + spec.hueShift) % 360
-      return { ...s, hex: hslToHex(h, spec.s, spec.l) }
+  const changeColour = (id: string, hex: string) => {
+    mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, hex } : swatch))
+    markOnboardingStep("pick")
+  }
+  const renameColour = (id: string, name: string) => mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, name } : swatch))
+  const toggleLock = (id: string) => mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, locked: !swatch.locked } : swatch))
+  const addColour = () => {
+    mutatePalette((current) => [...current, { id: uid(), name: START_NAMES[current.length] ?? `Colour ${current.length + 1}`, hex: randomHex() }])
+    markOnboardingStep("pick")
+  }
+  const removeColour = (id: string) => mutatePalette((current) => current.length > 1 ? current.filter((swatch) => swatch.id !== id) : current)
+
+  const smartRandomise = (current: Swatch[]) => {
+    const hue = Math.floor(Math.random() * 360)
+    const dark = Math.random() < 0.35
+    const roles = [
+      { s: dark ? 15 : 20, l: dark ? 12 : 96 },
+      { s: dark ? 12 : 12, l: dark ? 18 : 100 },
+      { s: 65, l: 52 },
+      { s: dark ? 5 : 12, l: dark ? 92 : 15 },
+      { s: dark ? 10 : 8, l: dark ? 65 : 42 },
+    ]
+    return current.map((swatch, index) => swatch.locked ? swatch : {
+      ...swatch,
+      hex: hslToHex((hue + Math.max(0, index - roles.length + 1) * 43) % 360, roles[index]?.s ?? 55, roles[index]?.l ?? 55),
     })
   }
-  const randomize = () => {
-    if (!palette.some((s) => !s.locked)) { toast.push("All colours are locked — unlock one to randomise", "error"); return }
 
-    randomizeClickCount.current += 1
-    const isCuratedTurn = randomizeClickCount.current % 3 === 0
-
-    if (isCuratedTurn) {
-      const locks = palette
-        .map((s, idx) => ({ idx, hex: s.hex, locked: !!s.locked }))
-        .filter((l) => l.locked && l.idx < 5)
-        .map(({ idx, hex }) => ({ idx, hex }))
-      const chosen = pickCuratedPalette(locks, recentCuratedIdx.current)
-      if (chosen) {
-        recentCuratedIdx.current = [chosen.index, ...recentCuratedIdx.current].slice(0, 20)
-        mutatePalette((p) => p.map((s, i) => {
-          if (s.locked) return s
-          if (i >= chosen.palette.length) return { ...s, hex: randomHex() }
-          return { ...s, hex: chosen.palette[i] }
-        }))
+  const randomise = () => {
+    if (!palette.some((swatch) => !swatch.locked)) {
+      toast.push("Unlock a colour before randomising", "error")
+      return
+    }
+    randomiseCount.current += 1
+    markOnboardingStep("pick")
+    if (randomiseCount.current % 3 === 0) {
+      const locks = palette.flatMap((swatch, index) => swatch.locked && index < 5 ? [{ idx: index, hex: swatch.hex }] : [])
+      const curated = pickCuratedPalette(locks, recentCurated.current)
+      if (curated) {
+        recentCurated.current = [curated.index, ...recentCurated.current].slice(0, 20)
+        mutatePalette((current) => current.map((swatch, index) => swatch.locked ? swatch : { ...swatch, hex: curated.palette[index] ?? randomHex() }))
         toast.push("Curated palette", "success")
         return
       }
-      toast.push("No matching curated palette — using smart random")
     }
-    mutatePalette(smartRandom)
+    mutatePalette(smartRandomise)
   }
-  const toggleLock = (id: string) => mutatePalette((p) => p.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s)))
-  const reorder = (activeId: string, overId: string) => mutatePalette((p) => {
-    const from = p.findIndex((swatch) => swatch.id === activeId)
-    const to = p.findIndex((swatch) => swatch.id === overId)
-    if (from < 0 || to < 0 || from === to) return p
-    const next = [...p]
-    const [moved] = next.splice(from, 1)
-    next.splice(to, 0, moved)
-    return next
-  })
 
-  const doReset = () => {
-    skipHistory.current = false
-    setUndoStack((u) => [...u, palette])
+  const reset = () => {
+    setUndoStack((history) => [...history, palette])
     setRedoStack([])
     skipHistory.current = true
     setPalette(createDefaultPalette())
-    setAssignments({})
     setConfirmReset(false)
-    toast.push("Palette reset — Undo brings it back", "success")
+    toast.push("Palette reset", "success")
   }
 
-  const selectTpl = (key: string) => setTplBySub((m) => ({ ...m, [sel.sub]: key }))
-
-  const trySelectTemplate = (key: string, label: string) => {
-    const fullKey = previewKey(sel.group, sel.sub, key)
-    if (needsPaywall(ent, fullKey)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Return to the Palette Generator to keep creating and exporting for free.` })
-      return
-    }
-    setEnt((current) => recordSwitch(current, fullKey))
-    if (isButton) setButtonStyle(key as ButtonStyle)
-    else selectTpl(key)
-    toast.push(`Template: ${label}`)
-  }
-
-  const activePreviewIndex = PREVIEW_CHOICES.findIndex((choice) => choice.group === sel.group && choice.sub === sel.sub)
-  const cyclePreview = (direction: -1 | 1) => {
-    const nextIndex = (activePreviewIndex + direction + PREVIEW_CHOICES.length) % PREVIEW_CHOICES.length
-    const next = PREVIEW_CHOICES[nextIndex]
-    if (trySelectPreview({ group: next.group, sub: next.sub })) {
-      toast.push(`Now previewing ${next.groupLabel} · ${next.label}`)
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else await canvasRef.current?.requestFullscreen()
+    } catch {
+      toast.push("Full screen is not available in this browser", "error")
     }
   }
 
-  const ctx: PreviewCtxValue = {
-    editMode,
-    assignments,
-    requestAssign: (id, label) => setAssignTarget({ id, label }),
-    roleColor: (swatchId) => palette.find((s) => s.id === swatchId)?.hex,
-    brand,
-    buttonStyle,
-    buttonProps,
-    trio,
+  const reopenProject = (project: ImportedProject) => {
+    skipHistory.current = false
+    mutatePalette(() => project.palette)
+    const id = project.project?.templateId
+    const asset = id ? templateAssetById.get(id) : undefined
+    if (asset) {
+      const group = asset.category.toLowerCase() as GroupKey
+      const type = GROUPS.find((item) => item.key === group)?.subs.find((item) => item.templates.some((template) => template.key === id))
+      if (type) {
+        setSelection({ group, sub: type.key })
+        setTemplateByType((current) => ({ ...current, [`${group}/${type.key}`]: id! }))
+      }
+    }
   }
+
+  const remaining = freeRemaining(entitlement)
 
   return (
-    <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* ================= Row 1: slim workspace toolbar (~48px) ================= */}
-      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white px-3 sm:px-5">
-        <div className="flex min-w-0 items-center gap-2">
-          <a
-            href="/"
-            onClick={navHome("/")}
-            className="flex shrink-0 items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-            aria-label="Palette Preview home"
-          >
-            <img src="/app-icon-64.png" alt="" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
-            <span className="hidden text-[13px] font-bold tracking-tight sm:inline" style={{ fontFamily: "var(--font-display)" }}>
-              Palette <span style={{ color: BRAND.brand }}>Preview</span>
-            </span>
-          </a>
-          <span className="hidden text-[#d1d5db] sm:inline" aria-hidden>·</span>
-          <span className="truncate text-[12px] font-semibold text-[#4b5563]" title={`${currentGroup.label} / ${currentSub.label}${currentTemplateLabel ? " / " + currentTemplateLabel : ""}`}>
-            {currentGroup.label}<span className="text-[#9ca3af]"> / </span>{currentSub.label}{currentTemplateLabel && <><span className="text-[#9ca3af]"> / </span>{currentTemplateLabel}</>}
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => { randomize(); markOnboardingStep("pick") }}
-            className="flex h-[32px] items-center gap-1.5 rounded-[8px] bg-[#0E1821] px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-            title="Randomise palette (Space)"
-            aria-label="Randomise palette"
-          >
-            <DiceIcon /><span className="hidden sm:inline">Randomise</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmReset(true)}
-            className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-            title="Reset palette to defaults"
-            aria-label="Reset palette"
-          >
-            <ResetIcon /><span className="hidden sm:inline">Reset</span>
-          </button>
-          <ChangeTemplatePanel
-            compact
-            open={templatePopoverOpen}
-            onToggle={() => setTemplatePopoverOpen((v) => !v)}
-            onClose={() => setTemplatePopoverOpen(false)}
-            template={currentGroup.label}
-            templates={GROUPS.map((g) => g.label)}
-            onTemplate={(t: string) => {
-              const nextGroup = GROUPS.find((g) => g.label === t)
-              if (nextGroup && trySelectPreview({ group: nextGroup.key, sub: nextGroup.subs[0].key })) markOnboardingStep("template")
-            }}
-            variant={currentTemplateLabel || (templates[0]?.label ?? "")}
-            variants={templates.map((t) => t.label)}
-            onVariant={(v: string) => {
-              const match = templates.find((t) => t.label === v)
-              if (match) { trySelectTemplate(match.key, match.label); markOnboardingStep("template") }
-            }}
-            layout={currentSub.label}
-            layouts={currentGroup.subs.map((s) => s.label)}
-            onLayout={(l: string) => {
-              const match = currentGroup.subs.find((s) => s.label === l)
-              if (match && trySelectPreview({ group: sel.group, sub: match.key })) markOnboardingStep("template")
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => { setExportOpen(true); markOnboardingStep("export") }}
-            className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-            title="Export palette and tokens"
-            aria-label="Export"
-          >
-            <ExportIcon /><span className="hidden sm:inline">Export</span>
-          </button>
-        </div>
-      </header>
+    <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-offwhite text-charcoal">
+      <PaletteRail
+        className="hidden w-[280px] shrink-0 border-r border-softgrey lg:flex"
+        palette={palette}
+        onAdd={addColour}
+        onRandomise={randomise}
+        onReset={() => setConfirmReset(true)}
+        onChange={changeColour}
+        onRename={renameColour}
+        onRemove={removeColour}
+        onToggleLock={toggleLock}
+      />
 
-      {/* ================= Row 2: palette bar (full width, no Change Format card) ================= */}
-      <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
-        <PalettePanel
-          palette={palette}
-          onChange={(id, hex) => { change(id, hex); markOnboardingStep("pick") }}
-          onAdd={add}
-          onRemove={remove}
-          onRandomize={randomize}
-          onToggleLock={toggleLock}
-          onRename={rename}
-          onReorder={reorder}
-          brand={BRAND.brand}
-          roleLabels={roleLabels}
-        />
-      </section>
-
-      {/* Design tools row removed — Edit Elements, Brand and Export now live in the Properties sidebar */}
-
-      {/* ================= Main area: preview column + Properties sidebar ================= */}
-      <div className="flex min-h-0 flex-1">
-        <div className="flex min-w-0 flex-1 flex-col">
-
-      {/* Breadcrumb removed — Layout + Variant in the sidebar drive navigation now */}
-
-      {/* ================= Preview (large, immersive) ================= */}
-      <main className="relative min-h-0 flex-1 overflow-y-auto bg-[#171616] p-3 sm:p-5">
-        <div className="flex h-full min-h-[440px] flex-col gap-3 sm:gap-4">
-          <div className="min-h-[300px] flex-1">
-            <PreviewProvider value={ctx}>
-              {isButton ? (
-                <div className="h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]">
-                  <ButtonLab colors={trio} style={buttonStyle} props={buttonProps} setProps={setButtonProps} />
-                </div>
-              ) : (
-                <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                  <div
-                    key={sel.sub + tpl}
-                    className="animate-pop-in relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.6)]"
-                  >
-                    {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                  </div>
-                </ScopeProvider>
-              )}
-            </PreviewProvider>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-softgrey bg-white px-2 sm:px-3">
+          <div className="flex min-w-0 items-center gap-1">
+            <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Palette Preview home" title="Palette Preview home">
+              <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
+            </a>
+            <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setInspectorOpen(false) }}><PaletteIcon /></ToolbarButton>
+            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
+            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
           </div>
 
-          {/* Preview browser (arrows + dropdown + Template chips) removed — Variant + Layout in the sidebar drive template and layout switching */}
-        </div>
-
-        {editMode && (
-          <div
-            role="status"
-            className="pointer-events-none absolute left-1/2 top-4 z-10 -translate-x-1/2 rounded-full bg-charcoal/85 px-3.5 py-1.5 text-[11.5px] font-semibold text-white shadow-lg backdrop-blur"
-          >
-            Edit Elements is on — click something in the preview to customise it
+          <div className="flex shrink-0 items-center gap-1">
+            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 xl:inline">{remaining} previews left</span>}
+            <ToolbarButton label="Brand assets" onClick={() => setBrandOpen(true)}><BrandIcon /></ToolbarButton>
+            <ToolbarButton label="Center template" onClick={() => previewRef.current?.fitToScreen()}><CenterIcon /></ToolbarButton>
+            <ToolbarButton label="Full screen" onClick={toggleFullscreen}><FullscreenIcon /></ToolbarButton>
+            <ToolbarButton label="Export" onClick={() => { setExportOpen(true); markOnboardingStep("export") }}><ExportIcon /></ToolbarButton>
+            <ToolbarButton label={inspectorOpen ? "Hide inspector" : "Show inspector"} pressed={inspectorOpen} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false) }}><InspectorIcon /></ToolbarButton>
           </div>
-        )}
-      </main>
+        </header>
 
-        </div>{/* /main column */}
-
-        {/* ================= Properties sidebar (always visible) ================= */}
-        <PropertiesPanel
-          brandColor={BRAND.brand}
-          onRandomize={randomize}
-          onUndo={undo}
-          onRedo={redo}
-          onSave={() => toast.push("Palette autosaves as you work", "success")}
-          canUndo={undoStack.length > 0}
-          canRedo={redoStack.length > 0}
-          editActive={editMode}
-          onToggleEdit={() => setEditMode((v) => { if (!v) markOnboardingStep("edit"); return !v })}
-          onCreateElement={() => toast.push("Create Element — coming soon")}
-          onDelete={() => toast.push("Select an element to delete")}
-          onCopy={() => toast.push("Select an element to copy")}
-          onPaste={() => toast.push("Nothing to paste yet")}
-          onDuplicate={() => toast.push("Select an element to duplicate")}
-          hasSelection={false}
-          hasClipboard={false}
-          onSelectRole={() => toast.push("Select a role from a preview element")}
-          onCreateRole={() => toast.push("Create a custom role — coming soon")}
-          onRemoveRole={() => toast.push("Remove a role — coming soon")}
-          availableRoles={["Component"]}
-          hierarchySource={roleMapSource}
-          hierarchyTarget={roleMapTarget}
-          hierarchyOptions={(roleLabels?.filter((r): r is string => Boolean(r)) ?? []).concat(["Background", "Primary", "Secondary", "Tertiary"])}
-          onHierarchySource={setRoleMapSource}
-          onHierarchyTarget={setRoleMapTarget}
-          onHierarchySet={() => toast.push(`${roleMapSource} → ${roleMapTarget}`, "success")}
-          currentHex={palette[selectedSwatchIndex]?.hex ?? "#FF0000"}
-          currentAlpha={1}
-          onOpenColorEditor={() => setColorEditorOpen(true)}
-          onToggleVisible={() => {
-            const sw = palette[selectedSwatchIndex]; if (!sw) return
-            setSwatchVisible((v) => ({ ...v, [sw.id]: !(v[sw.id] ?? true) }))
-          }}
-          visible={swatchVisible[palette[selectedSwatchIndex]?.id ?? ""] ?? true}
-          variant={currentTemplateLabel || "Landing"}
-          variants={["Minimal", "Product", "Landing"]}
-          onVariant={(v: string) => {
-            const match = templates.find((t) => t.label === v)
-            if (match) trySelectTemplate(match.key, match.label)
-          }}
-          layout={currentSub.label}
-          layouts={currentGroup.subs.map((s) => s.label)}
-          onLayout={(l: string) => {
-            const match = currentGroup.subs.find((s) => s.label === l)
-            if (match) trySelectPreview({ group: sel.group, sub: match.key })
-          }}
-          onInsertBrand={() => setBrandOpen(true)}
-          onFullscreen={() => setFullscreen(true)}
-          onExport={() => setExportOpen(true)}
-          onHelp={() => setHelpOpen(true)}
-          isPro={ent.isPro}
-          onTogglePro={() => {
-            setEnt((e) => ({ ...e, isPro: !e.isPro }))
-            toast.push(!ent.isPro ? "Pro enabled" : "Back to Free", "success")
-          }}
-        />
-      </div>{/* /main area flex row */}
-
-      {/* ================= Colour editor popover ================= */}
-      {colorEditorOpen && palette[selectedSwatchIndex] && (
-        <ColorEditor
-          hex={palette[selectedSwatchIndex].hex}
-          alpha={1}
-          onChange={(hex: string) => change(palette[selectedSwatchIndex].id, hex)}
-          onClose={() => setColorEditorOpen(false)}
-        />
-      )}
-
-      {/* ================= Preview picker ================= */}
-      {previewPickerOpen && (
-        <PickerOverlay onClose={() => setPreviewPickerOpen(false)} title="Choose what to preview">
-          <div className="grid gap-6 sm:grid-cols-3">
-            {GROUPS.map((g) => (
-              <div key={g.key}>
-                <p className="mb-2 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wide text-charcoal/45">
-                  <span aria-hidden>{GROUP_ICONS[g.key]}</span>
-                  {g.label}
-                </p>
-                <div className="flex flex-col gap-1">
-                  {g.subs.map((s) => {
-                    const on = sel.group === g.key && sel.sub === s.key
-                    const defaultTemplate = g.key === "components" && s.key === "button"
-                      ? buttonStyle
-                      : s.templates[0]?.key ?? "default"
-                    const key = previewKey(g.key, s.key, defaultTemplate)
-                    const locked = needsPaywall(ent, key)
-                    return (
-                      <button
-                        key={s.key}
-                        type="button"
-                        onClick={() => {
-                          setPreviewPickerOpen(false)
-                          const ok = trySelectPreview({ group: g.key, sub: s.key })
-                          if (ok) toast.push(`Now previewing ${g.label} · ${s.label}`)
-                        }}
-                        className="flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-                        style={on ? { background: withAlpha(BRAND.brand, 0.12), color: BRAND.brandDark } : { color: BRAND.medgrey }}
-                        aria-current={on ? "true" : undefined}
-                      >
-                        <span>{s.label}</span>
-                        {locked && <ProBadge />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
+        <main ref={canvasRef} className="relative min-h-0 flex-1 overflow-hidden bg-softgrey p-2 sm:p-3" aria-label="Preview canvas">
+          <div className="absolute right-3 top-3 z-30 max-w-[calc(100%-24px)]">
+            <ChangeTemplatePanel
+              compact
+              triggerLabel={templateName}
+              open={templateOpen}
+              onToggle={() => setTemplateOpen((open) => !open)}
+              onClose={() => setTemplateOpen(false)}
+              template={currentGroup.label}
+              templates={GROUPS.map((group) => group.label)}
+              onTemplate={(label) => {
+                const group = GROUPS.find((item) => item.label === label)
+                const firstType = group?.subs[0]
+                if (group && firstType) trySelect({ group: group.key, sub: firstType.key })
+              }}
+              layout={currentType.label}
+              layouts={currentGroup.subs.map((type) => type.label)}
+              onLayout={(label) => {
+                const type = currentGroup.subs.find((item) => item.label === label)
+                if (type) trySelect({ group: currentGroup.key, sub: type.key })
+              }}
+              variant={currentType.templates.find((template) => template.key === templateId)?.label ?? "Default"}
+              variants={currentType.templates.map((template) => template.label)}
+              onVariant={(label) => {
+                const template = currentType.templates.find((item) => item.label === label)
+                if (template) chooseTemplate(template.key, template.label)
+              }}
+            />
           </div>
-        </PickerOverlay>
-      )}
 
-      {/* ================= Full screen preview ================= */}
-      {fullscreen && !isButton && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-charcoal/95">
-          <div className="min-h-0 flex-1 p-3 sm:p-5">
-            <PreviewProvider value={ctx}>
-              <ScopeProvider value={`${sel.group}/${sel.sub}/${tpl}`}>
-                <div className="h-full w-full overflow-hidden rounded-2xl bg-white">
-                  {renderComponentPreview(sel.group, sel.sub, tpl, theme)}
-                </div>
+          <div className="h-full w-full overflow-hidden rounded-[8px] border border-charcoal/10 bg-white">
+            <PreviewProvider value={previewContext}>
+              <ScopeProvider value={`${selection.group}/${selection.sub}/${templateId}`}>
+                <PreviewRenderer ref={previewRef} group={selection.group} sub={selection.sub} templateId={templateId} theme={theme} />
               </ScopeProvider>
             </PreviewProvider>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-charcoal px-4 py-2.5 text-white sm:px-6">
-            <div className="flex items-center gap-2">
-              <img src="/app-icon-64.png" alt="" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
-              <span className="hidden text-xs font-semibold sm:block" style={{ fontFamily: "var(--font-display)" }}>Palette <span style={{ color: BRAND.brand }}>Preview</span></span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {palette.map((s) => (
-                <label
-                  key={s.id}
-                  className="relative block h-8 w-8 cursor-pointer rounded-full transition-transform hover:scale-110"
-                  style={{ background: s.hex, boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.35)" }}
-                  title={`${s.name} · ${s.hex}${s.locked ? " · locked" : ""}`}
-                >
-                  <input
-                    type="color"
-                    value={s.hex}
-                    onChange={(e) => change(s.id, normalizeHex(e.target.value))}
-                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                    aria-label={`Edit ${s.name}`}
-                  />
-                </label>
-              ))}
-              <button type="button" onClick={randomize} className="ml-1 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">Randomise</button>
-              <button type="button" onClick={() => setEditMode((v) => !v)} className="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors" style={editMode ? { background: BRAND.brand, color: "#fff" } : { border: "1px solid rgba(255,255,255,0.25)", color: "rgba(255,255,255,0.85)" }}>{editMode ? "Editing" : "Edit"}</button>
-              <button type="button" onClick={() => setPreviewPickerOpen(true)} className="rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">Change preview</button>
-            </div>
-            <button type="button" onClick={() => setFullscreen(false)} className="flex items-center gap-1.5 rounded-lg border border-white/25 px-3 py-1.5 text-xs font-semibold text-white/85 transition-colors hover:border-white/60 hover:text-white">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-              Exit
-            </button>
-          </div>
-        </div>
+        </main>
+      </div>
+
+      {inspectorOpen && <InspectorShell onClose={() => setInspectorOpen(false)} className="hidden w-[320px] shrink-0 border-l border-softgrey min-[1200px]:flex" />}
+
+      {paletteSheetOpen && (
+        <SheetBackdrop className="lg:hidden" onClose={() => setPaletteSheetOpen(false)}>
+          <PaletteRail
+            className="h-[min(72dvh,680px)] w-full rounded-t-[8px] border-t border-softgrey"
+            palette={palette}
+            onAdd={addColour}
+            onRandomise={randomise}
+            onReset={() => setConfirmReset(true)}
+            onChange={changeColour}
+            onRename={renameColour}
+            onRemove={removeColour}
+            onToggleLock={toggleLock}
+          />
+        </SheetBackdrop>
       )}
 
-      {/* Brand modal */}
-      {brandOpen && (
-        <BrandUpload
-          brand={brand}
-          onChange={(b) => { setBrand(b); toast.push("Brand updated", "success") }}
-          onClose={() => setBrandOpen(false)}
-        />
+      {inspectorOpen && (
+        <>
+          <div className="fixed inset-0 z-40 hidden bg-charcoal/25 lg:block min-[1200px]:hidden" onClick={() => setInspectorOpen(false)} aria-hidden />
+          <InspectorShell onClose={() => setInspectorOpen(false)} className="fixed bottom-0 right-0 top-12 z-50 hidden w-[320px] border-l border-softgrey shadow-xl lg:flex min-[1200px]:hidden" />
+          <SheetBackdrop className="lg:hidden" onClose={() => setInspectorOpen(false)}>
+            <InspectorShell onClose={() => setInspectorOpen(false)} className="h-[min(52dvh,420px)] w-full rounded-t-[8px] border-t border-softgrey" />
+          </SheetBackdrop>
+        </>
       )}
 
-      {/* Assign-colour modal */}
-      {assignTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/40 p-4" onClick={() => setAssignTarget(null)}>
-          <div className="animate-pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Assign a colour">
-            <p className="text-sm font-bold" style={{ fontFamily: "var(--font-display)" }}>Assign a colour</p>
-            <p className="mt-0.5 text-xs text-charcoal/55">Bind “{assignTarget.label}” to one of your palette colours.</p>
-            <div className="mt-4 grid grid-cols-3 gap-2.5">
-              {palette.map((s) => {
-                const on = assignments[assignTarget.id] === s.id
-                return (
-                  <button key={s.id} type="button" onClick={() => { setAssignments((a) => ({ ...a, [assignTarget.id]: s.id })); setAssignTarget(null); toast.push(`${assignTarget.label} → ${s.name}`, "success") }} className="flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]" style={{ outline: on ? `2px solid ${BRAND.brand}` : "1px solid " + BRAND.softgrey }}>
-                    <span className="h-10 w-full rounded-lg" style={{ background: s.hex, boxShadow: `inset 0 0 0 1px ${withAlpha(readableOn(s.hex), 0.12)}` }} />
-                    <span className="text-[11px] font-semibold text-charcoal/70">{s.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-            <div className="mt-4 flex justify-between">
-              <button type="button" onClick={() => { setAssignments((a) => { const next = { ...a }; delete next[assignTarget.id]; return next }); setAssignTarget(null); toast.push("Reset to default colour") }} className="rounded-lg px-3 py-2 text-xs font-semibold text-charcoal/55 hover:text-charcoal">Reset to default</button>
-              <button type="button" onClick={() => setAssignTarget(null)} className="rounded-lg border border-softgrey px-3 py-2 text-xs font-semibold text-charcoal/70 hover:text-charcoal">Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {brandOpen && <BrandUpload brand={brand} onChange={setBrand} onClose={() => setBrandOpen(false)} />}
 
-      {/* Export */}
       <ExportPanel
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         palette={palette}
-        isPro={ent.isPro}
-        onUpgrade={() => { setExportOpen(false); setPaywall({ open: true, reason: "High-resolution image exports are part of Pro." }) }}
-        onToast={(m, k) => toast.push(m, k)}
+        tokenSystem={tokenSystem}
+        project={{ templateId, brand }}
+        onImportProject={reopenProject}
+        onToast={(message, kind) => toast.push(message, kind)}
       />
 
-      {/* Onboarding — dismissible bottom-right card, replaces the old
-       * blocking IntroTour modal. Ticks off as the user does each action. */}
       <OnboardingCard />
 
-      {/* Reset confirmation */}
       <ConfirmDialog
         open={confirmReset}
         title="Reset your palette?"
-        body="Your current colours and element assignments will be replaced by the defaults. You can Undo (Ctrl/Cmd+Z) if you change your mind."
+        body="Your current colours will be replaced by the defaults. You can undo this change."
         confirmLabel="Reset palette"
         destructive
-        onConfirm={doReset}
+        onConfirm={reset}
         onCancel={() => setConfirmReset(false)}
       />
 
-      {/* Pro paywall */}
-      <PaywallOverlay
-        open={paywall.open}
-        reason={paywall.reason}
-        onUnlock={goPro}
-        onLater={dismissPaywall}
-      />
+      <PaywallOverlay open={paywall.open} reason={paywall.reason} onUnlock={() => navigate("/pricing")} onLater={() => setPaywall({ open: false })} />
     </div>
   )
 }
 
-/* ---------- shared components ---------- */
-
-function ToolButton({
-  onClick, icon, label, valueLabel, title, active, subtle,
-}: {
-  onClick: () => void
-  icon: React.ReactNode
-  label: string
-  valueLabel?: string
-  title?: string
-  active?: boolean
-  subtle?: boolean
-}) {
-  const iconColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.55)" : BRAND.brand
-  const textColor = active ? "#fff" : subtle ? "rgba(14,24,33,0.7)" : BRAND.charcoal
+function ToolbarButton({ label, onClick, children, disabled = false, pressed, className = "" }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; pressed?: boolean; className?: string }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      aria-label={valueLabel ? `${label}: ${valueLabel}` : label}
-      className="flex items-center gap-2 rounded-xl px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1"
-      style={active
-        ? { background: BRAND.brand, color: "#fff", border: `1px solid ${BRAND.brand}` }
-        : subtle
-        ? { background: "transparent", color: textColor, border: "1px solid transparent" }
-        : { background: "#fff", color: BRAND.charcoal, border: `1px solid ${BRAND.softgrey}` }}
-    >
-      <span className="flex h-4 w-4 items-center justify-center" aria-hidden style={{ color: iconColor }}>{icon}</span>
-      <span>{label}</span>
-      {valueLabel && !active && (
-        <>
-          <span className="text-charcoal/30" aria-hidden>·</span>
-          <span className="max-w-[140px] truncate text-charcoal/55">{valueLabel}</span>
-        </>
-      )}
-    </button>
-  )
-}
-
-function IconButton({
-  onClick, disabled, label, title, children,
-}: {
-  onClick: () => void
-  disabled?: boolean
-  label: string
-  title?: string
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title ?? label}
-      aria-label={label}
-      className="flex items-center gap-1.5 rounded-lg border border-softgrey bg-white px-2 py-1.5 text-[11px] font-semibold text-charcoal/65 outline-none transition-colors hover:text-charcoal focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-35"
-    >
+    <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed} title={label} className={`grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30 ${pressed ? "bg-offwhite text-charcoal" : ""} ${className}`}>
       {children}
-      <span className="hidden md:inline">{label}</span>
     </button>
   )
 }
 
-function PickerOverlay({
-  title, onClose, children,
-}: { title: string; onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-  return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center bg-charcoal/40 p-4 pt-[6vh]" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <div onClick={(e) => e.stopPropagation()} className="animate-pop-in w-full max-w-3xl rounded-2xl bg-white p-5 shadow-2xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[15px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
-          <button type="button" onClick={onClose} className="rounded-lg border border-softgrey px-2.5 py-1.5 text-[11px] font-semibold text-charcoal/60 hover:text-charcoal">Close</button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
+function SheetBackdrop({ children, onClose, className = "" }: { children: ReactNode; onClose: () => void; className?: string }) {
+  return <div className={`fixed inset-0 z-50 flex items-end bg-charcoal/30 ${className}`} onMouseDown={onClose} role="dialog" aria-modal="true"><div className="w-full" onMouseDown={(event) => event.stopPropagation()}>{children}</div></div>
 }
 
-function PreviewArrow({ direction, onClick }: { direction: "previous" | "next"; onClick: () => void }) {
-  const previous = direction === "previous"
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/30 text-white/85 transition-colors hover:border-white/60 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-      aria-label={`${previous ? "Previous" : "Next"} preview`}
-      title={`${previous ? "Previous" : "Next"} preview`}
-    >
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        {previous ? <path d="m15 18-6-6 6-6" /> : <path d="m9 18 6-6-6-6" />}
-      </svg>
-    </button>
-  )
-}
-
-const ProBadge = () => (
-  <span
-    className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wide"
-    style={{ background: `${BRAND.brand}18`, color: BRAND.brandDark }}
-    aria-label="Pro feature"
-  >
-    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-    Pro
-  </span>
-)
-
-/* ---------- icons ---------- */
-const Chevron = () => (<span aria-hidden className="text-charcoal/25">›</span>)
-const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
-const EditIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.5 4.5 5 5-11 11H3.5v-5.5z" /><path d="m12 7 5 5" /></svg>)
-const BrandIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>)
-const ExportIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
-const DiceIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="16" cy="8" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="8" cy="16" r="1.2" fill="currentColor" /><circle cx="16" cy="16" r="1.2" fill="currentColor" /></svg>)
-const ChevronDownIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>)
-const FullscreenIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
-const UndoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></svg>)
-const RedoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 14 5-5-5-5" /><path d="M20 9H9a5 5 0 0 0 0 10h4" /></svg>)
-const ResetIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>)
-const HelpIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7" /><path d="M12 17.01V17" /></svg>)
+const PaletteIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16M4 12h16M4 19h10" /><circle cx="7" cy="5" r="2" fill="currentColor" stroke="none" /><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none" /><circle cx="9" cy="19" r="2" fill="currentColor" stroke="none" /></svg>
+const UndoIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 6 6v1" /></svg>
+const RedoIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0-6 6v1" /></svg>
+const BrandIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v18M3 12h18" /><circle cx="12" cy="12" r="9" /></svg>
+const CenterIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /><circle cx="12" cy="12" r="2" /></svg>
+const FullscreenIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
+const ExportIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 13v7h14v-7" /></svg>
+const InspectorIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>

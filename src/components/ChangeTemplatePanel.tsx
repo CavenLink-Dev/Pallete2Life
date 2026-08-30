@@ -23,6 +23,7 @@ type Props = {
   onLayout: (v: string) => void
 
   compact?: boolean
+  triggerLabel?: string
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif` } as const
@@ -54,11 +55,11 @@ export default function ChangeTemplatePanel(p: Props) {
           onClick={p.onToggle}
           aria-expanded={p.open}
           aria-haspopup="dialog"
-          className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex h-[32px] max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
           title="Change template, layout and variant"
         >
           <LayersIcon />
-          <span className="hidden sm:inline">Change template</span>
+          <span className="min-w-0 max-w-[190px] truncate">{p.triggerLabel ?? "Change template"}</span>
           <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
         </button>
       ) : (

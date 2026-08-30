@@ -1,6 +1,6 @@
 import { readableOn, shade, withAlpha, type Theme } from "../lib/color"
 import { BrandLogo, BrandSymbol, Editable, PreviewButton, usePreview } from "./PreviewCtx"
-import { forwardRef, lazy, Suspense, useImperativeHandle, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { forwardRef, lazy, Suspense, useImperativeHandle, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import TemplatePreview, { type TemplatePreviewHandle } from "./TemplatePreview"
 import { templateAssetById, templateGroups, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
 
@@ -543,27 +543,47 @@ export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupK
   return <TemplatePreview key={`${group}/${sub}/${templateId}`} ref={importedRef} templateId={templateId} />
 })
 
-const BUILT_IN_FIT_ZOOM = 0.8
+const BUILT_IN_DEFAULT_ZOOM = 1
 
 const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactNode }>(function BuiltInPreviewFrame({ children }, ref) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
-  const [zoom, setZoom] = useState(BUILT_IN_FIT_ZOOM)
+  const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [zoom, setZoom] = useState(BUILT_IN_DEFAULT_ZOOM)
   const fit = () => {
-    setZoom(BUILT_IN_FIT_ZOOM)
-    viewportRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+    setZoom(BUILT_IN_DEFAULT_ZOOM)
+    requestAnimationFrame(() => {
+      const viewport = viewportRef.current
+      if (viewport) viewport.scrollTo({ top: 0, left: Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2), behavior: "smooth" })
+    })
   }
   useImperativeHandle(ref, () => ({ fitToScreen: fit }), [])
 
   const changeZoom = (direction: -1 | 1) => setZoom((current) => Math.min(1.5, Math.max(0.5, Math.round((current + direction * 0.1) * 10) / 10)))
+  const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const viewport = viewportRef.current
+    if (!viewport || event.button !== 0) return
+    dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
+    viewport.setPointerCapture(event.pointerId)
+    setDragging(true)
+  }
+  const movePan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const viewport = viewportRef.current
+    const drag = dragRef.current
+    if (!viewport || !drag) return
+    viewport.scrollLeft = drag.left - (event.clientX - drag.x)
+    viewport.scrollTop = drag.top - (event.clientY - drag.y)
+  }
+  const endPan = () => { dragRef.current = null; setDragging(false) }
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
-      <div className="absolute right-3 top-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
+      <div className="absolute bottom-3 right-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
         <PreviewZoomButton label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= 0.5}><ZoomOutIcon /></PreviewZoomButton>
         <span className="w-12 text-center text-[11px] font-bold tabular-nums text-charcoal/65" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= 1.5}><ZoomInIcon /></PreviewZoomButton>
       </div>
-      <div ref={viewportRef} className="h-full w-full overflow-auto pt-16">
+      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : "cursor-grab"}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
         <div className="mx-auto origin-top" style={{ width: `${100 / zoom}%`, minHeight: `${100 / zoom}%`, transform: `scale(${zoom})` }}>
           {children}
         </div>

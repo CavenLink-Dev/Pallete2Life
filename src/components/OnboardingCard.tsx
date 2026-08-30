@@ -65,7 +65,7 @@ export default function OnboardingCard() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-40 w-[260px] rounded-2xl border border-[#e5e7eb] bg-white p-3.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)]"
+      className="fixed bottom-20 right-4 z-40 w-[260px] rounded-[8px] border border-[#e5e7eb] bg-white p-3.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)]"
       role="region"
       aria-label="Getting started"
     >

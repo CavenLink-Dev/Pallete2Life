@@ -8,6 +8,7 @@ import Help from "./pages/Help"
 import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
+import LiveChanges from "./pages/LiveChanges"
 
 export default function App() {
   const [route, navigate] = useRoute()
@@ -25,6 +26,7 @@ export default function App() {
     case "/preview":
       page = <Builder />
       break
+    case "/live-changes": page = <LiveChanges />; break
     case "/pricing":  page = <Pricing />;  break
     case "/help":     page = <Help />;     break
     case "/privacy":  page = <Privacy />;  break

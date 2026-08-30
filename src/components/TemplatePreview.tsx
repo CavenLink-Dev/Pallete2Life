@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import { templateAssetById } from "../lib/templateAssets"
 
 type LoadedSvg = {
@@ -9,7 +9,6 @@ type LoadedSvg = {
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 2
-const MAX_FIT_ZOOM = 0.5
 const ZOOM_STEP = 0.1
 const sourceCache = new Map<string, Promise<LoadedSvg>>()
 
@@ -55,18 +54,17 @@ export type TemplatePreviewHandle = { fitToScreen: () => void }
 const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }>(function TemplatePreview({ templateId }, ref) {
   const template = templateAssetById.get(templateId)
   const viewportRef = useRef<HTMLDivElement | null>(null)
+  const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [svg, setSvg] = useState<LoadedSvg | null>(null)
   const [error, setError] = useState("")
-  const [fitZoom, setFitZoom] = useState(MAX_FIT_ZOOM)
-  const [zoom, setZoom] = useState(MAX_FIT_ZOOM)
-  const [fitMode, setFitMode] = useState(true)
+  const [zoom, setZoom] = useState(1)
+  const [dragging, setDragging] = useState(false)
 
   useEffect(() => {
     let active = true
     setSvg(null)
     setError("")
-    setFitMode(true)
-    setZoom(MAX_FIT_ZOOM)
+    setZoom(1)
 
     if (!template?.source) {
       setError("Template not found")
@@ -80,40 +78,35 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
     return () => { active = false }
   }, [template])
 
-  useLayoutEffect(() => {
-    const viewport = viewportRef.current
-    if (!viewport || !svg || !template) return
-
-    const updateFitZoom = () => {
-      const availableWidth = Math.max(1, viewport.clientWidth - 32)
-      const availableHeight = Math.max(1, viewport.clientHeight - 72)
-      const baseWidth = Math.min(availableWidth, template.category === "Application" ? 390 : 1440)
-      const renderedHeightAtFullSize = baseWidth * (svg.height / svg.width)
-      const nextFitZoom = clamp(availableHeight / renderedHeightAtFullSize, MIN_ZOOM, MAX_FIT_ZOOM)
-      const roundedFitZoom = Math.round(nextFitZoom * 100) / 100
-
-      setFitZoom(roundedFitZoom)
-      if (fitMode) setZoom(roundedFitZoom)
-    }
-
-    updateFitZoom()
-    const observer = new ResizeObserver(updateFitZoom)
-    observer.observe(viewport)
-    return () => observer.disconnect()
-  }, [fitMode, svg, template])
-
   const changeZoom = (direction: -1 | 1) => {
-    setFitMode(false)
     setZoom((current) => clamp(Math.round((current + direction * ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM))
   }
 
   const fitToScreen = () => {
-    setFitMode(true)
-    setZoom(fitZoom)
-    viewportRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" })
+    setZoom(1)
+    requestAnimationFrame(() => {
+      const viewport = viewportRef.current
+      if (viewport) viewport.scrollTo({ top: 0, left: Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2), behavior: "smooth" })
+    })
   }
 
-  useImperativeHandle(ref, () => ({ fitToScreen }), [fitZoom])
+  useImperativeHandle(ref, () => ({ fitToScreen }), [])
+
+  const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const viewport = viewportRef.current
+    if (!viewport || event.button !== 0) return
+    dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
+    viewport.setPointerCapture(event.pointerId)
+    setDragging(true)
+  }
+  const movePan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const viewport = viewportRef.current
+    const drag = dragRef.current
+    if (!viewport || !drag) return
+    viewport.scrollLeft = drag.left - (event.clientX - drag.x)
+    viewport.scrollTop = drag.top - (event.clientY - drag.y)
+  }
+  const endPan = () => { dragRef.current = null; setDragging(false) }
 
   if (!template) return <TemplateState message="Template not found" />
   if (error) return <TemplateState message={error} />
@@ -121,16 +114,15 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
 
   const baseWidth = template.category === "Application" ? 390 : 1440
   const frameStyle: CSSProperties = {
-    width: `${Math.round(zoom * 100)}%`,
-    maxWidth: `${Math.round(baseWidth * zoom)}px`,
+    width: `${Math.round(baseWidth * zoom)}px`,
   }
   const frameClass = template.category === "Application"
-    ? "shrink-0 bg-white shadow-[0_22px_55px_-24px_rgba(14,24,33,0.42)]"
-    : "shrink-0 bg-white"
+    ? "mx-auto shrink-0 bg-white shadow-[0_22px_55px_-24px_rgba(14,24,33,0.42)]"
+    : "mx-auto shrink-0 bg-white"
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
-      <div className="absolute right-3 top-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
+      <div className="absolute bottom-3 right-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
         <ZoomButton
           label="Zoom out"
           onClick={() => changeZoom(-1)}
@@ -148,8 +140,8 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
         />
       </div>
 
-      <div ref={viewportRef} className="h-full w-full overflow-auto pt-16">
-        <div className="flex min-h-full items-start justify-center px-4 pb-5 sm:px-8">
+      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : "cursor-grab"}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
+        <div className="min-h-full p-3 sm:p-4">
           <div className={frameClass} style={frameStyle}>
             <div
               className="template-svg-stage w-full"
