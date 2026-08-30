@@ -16,7 +16,7 @@ import {
   withAlpha,
   type Swatch,
 } from "../lib/color"
-import { createDefaultPalette, loadPalette, savePalette } from "../lib/paletteStore"
+import { createDefaultPalette, loadPalette, savePalette, writeHashPalette } from "../lib/paletteStore"
 import { useNav } from "../lib/router"
 import { useToast } from "../components/Toast"
 import ExportPanel from "../components/ExportPanel"
@@ -39,7 +39,10 @@ export default function Generator() {
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const skipHistory = useRef(false)
 
-  useEffect(() => savePalette(palette), [palette])
+  useEffect(() => {
+    savePalette(palette)
+    writeHashPalette(palette)
+  }, [palette])
 
   const mutatePalette = useCallback((updater: (previous: Swatch[]) => Swatch[]) => {
     setPalette((previous) => {
@@ -183,14 +186,14 @@ export default function Generator() {
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto" aria-label="Palette Generator">
+      <main className="flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto sm:flex-row sm:snap-x sm:snap-mandatory sm:overflow-x-auto sm:overflow-y-hidden" aria-label="Palette Generator">
         {palette.map((swatch) => {
           const foreground = readableOn(swatch.hex)
           const active = activeId === swatch.id
           return (
             <article
               key={swatch.id}
-              className="group relative min-w-[78vw] flex-1 snap-start overflow-hidden sm:min-w-[42vw] lg:min-w-0"
+              className="group relative h-16 w-full shrink-0 overflow-hidden sm:h-auto sm:min-w-[42vw] sm:flex-1 sm:snap-start lg:min-w-0"
               style={{ background: swatch.hex }}
             >
               <button
@@ -202,7 +205,7 @@ export default function Generator() {
               />
 
               <div
-                className={`absolute left-1/2 top-[44%] z-10 flex -translate-x-1/2 flex-col gap-2 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 ${active ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"}`}
+                className={`absolute right-2 top-1/2 z-10 flex -translate-y-1/2 flex-row gap-1 transition-opacity sm:left-1/2 sm:right-auto sm:top-[44%] sm:-translate-x-1/2 sm:translate-y-0 sm:flex-col sm:gap-2 sm:group-focus-within:pointer-events-auto sm:group-focus-within:opacity-100 sm:group-hover:pointer-events-auto sm:group-hover:opacity-100 ${active ? "pointer-events-auto opacity-100" : "pointer-events-auto opacity-100 sm:pointer-events-none sm:opacity-0"}`}
               >
                 <ColumnAction label="Edit colour" onClick={() => setActiveId(swatch.id)} foreground={foreground}><EditIcon /></ColumnAction>
                 <ColumnAction label={swatch.locked ? "Unlock colour" : "Lock colour"} onClick={() => toggleLock(swatch.id)} foreground={foreground} active={!!swatch.locked}>
@@ -214,7 +217,7 @@ export default function Generator() {
                 <button
                   type="button"
                   onClick={(event) => { event.stopPropagation(); remove(swatch.id) }}
-                  className="absolute left-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full text-[24px] font-light leading-none opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current group-hover:opacity-100"
+                  className="absolute left-3 top-3 z-20 hidden h-9 w-9 items-center justify-center rounded-full text-[24px] font-light leading-none opacity-0 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current group-hover:opacity-100 sm:flex"
                   style={{ background: withAlpha(foreground, 0.14), color: foreground }}
                   aria-label={`Remove ${swatch.name}`}
                   title="Remove colour"
@@ -225,7 +228,7 @@ export default function Generator() {
 
               {swatch.locked && (
                 <span
-                  className="pointer-events-none absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full"
+                  className="pointer-events-none absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full sm:flex"
                   style={{ background: withAlpha(foreground, 0.14), color: foreground }}
                   aria-hidden
                 >
@@ -233,17 +236,17 @@ export default function Generator() {
                 </span>
               )}
 
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-6 text-center sm:p-8">
+              <div className="pointer-events-none absolute left-3 right-24 top-1/2 z-10 -translate-y-1/2 text-left sm:inset-x-0 sm:bottom-0 sm:top-auto sm:translate-y-0 sm:p-8 sm:text-center">
                 <button
                   type="button"
                   onClick={(event) => { event.stopPropagation(); copyHex(swatch) }}
-                  className="pointer-events-auto text-[24px] font-bold leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current sm:text-[26px]"
+                  className="pointer-events-auto text-[16px] font-bold leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current sm:text-[26px]"
                   style={{ color: foreground, fontFamily: "var(--font-mono)" }}
                   title="Copy HEX value"
                 >
                   {swatch.hex.replace("#", "").toUpperCase()}
                 </button>
-                <p className="mt-3 text-[13px] font-semibold" style={{ color: withAlpha(foreground, 0.72) }}>
+                <p className="mt-1 truncate text-[11px] font-semibold sm:mt-3 sm:text-[13px]" style={{ color: withAlpha(foreground, 0.72) }}>
                   {swatch.name}
                 </p>
               </div>

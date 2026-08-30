@@ -8,7 +8,7 @@ import {
   uid,
   type Swatch,
 } from "../lib/color"
-import { loadPalette, savePalette } from "../lib/paletteStore"
+import { loadPalette, savePalette, writeHashPalette } from "../lib/paletteStore"
 import PublicFooter from "../components/PublicFooter"
 import PublicHeader from "../components/PublicHeader"
 import BrandUpload from "../components/BrandUpload"
@@ -91,7 +91,10 @@ export default function LiveChanges() {
   const [brandOpen, setBrandOpen] = useState(false)
   const [preview, setPreview] = useState<LivePreviewKind>("website")
 
-  useEffect(() => savePalette(palette), [palette])
+  useEffect(() => {
+    savePalette(palette)
+    writeHashPalette(palette)
+  }, [palette])
   useEffect(() => saveStored("liveRoles", roles), [roles])
   useEffect(() => saveStored("brand", brand), [brand])
 

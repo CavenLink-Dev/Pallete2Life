@@ -15,24 +15,25 @@ export function createDefaultPalette(): Swatch[] {
   return DEFAULT_COLOURS.map((colour) => ({ ...colour, id: uid() }))
 }
 
-/* Reads a palette from the location hash: `#p=RRGGBB,RRGGBB,...`
- * Returns null if there is no hash, if the value doesn't parse, or if
- * every hex is invalid. Malformed hexes are dropped silently. */
+/* Reads a palette from the location hash: `#p=RRGGBB,RRGGBB,...`.
+ * A present but malformed palette falls back to the defaults as one
+ * unit; accepting only the valid fragments would silently change a
+ * shared palette. Null means there is no palette hash at all. */
 export function readHashPalette(): Swatch[] | null {
   if (typeof window === "undefined") return null
   const raw = window.location.hash.replace(/^#/, "")
   if (!raw) return null
   const params = new URLSearchParams(raw)
   const value = params.get(HASH_KEY)
-  if (!value) return null
-  const parts = value.split(",").map((p) => p.trim()).filter(Boolean)
-  const swatches: Swatch[] = []
-  for (const part of parts) {
-    const cleaned = part.replace(/^#/, "").toUpperCase()
-    if (!/^[0-9A-F]{6}$/.test(cleaned)) continue
-    swatches.push({ id: uid(), name: `Colour ${swatches.length + 1}`, hex: `#${cleaned}` })
+  if (value === null) return null
+
+  const parts = value.split(",").map((part) => part.trim())
+  const colours = parts.map((part) => part.replace(/^#/, "").toUpperCase())
+  if (!colours.length || colours.some((colour) => !/^[0-9A-F]{6}$/.test(colour))) {
+    return createDefaultPalette()
   }
-  return swatches.length ? swatches : null
+
+  return colours.map((hex, index) => ({ id: uid(), name: `Colour ${index + 1}`, hex: `#${hex}` }))
 }
 
 /* Writes the current palette into the location hash. Debounced ~200ms
