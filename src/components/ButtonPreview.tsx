@@ -85,6 +85,7 @@ export function StyledButton({
   onEditClick,
   className,
   styleOverride,
+  tokenTag,
 }: {
   style: ButtonStyle
   colors: Trio
@@ -93,6 +94,7 @@ export function StyledButton({
   onEditClick?: () => void
   className?: string
   styleOverride?: CSSProperties
+  tokenTag?: string
 }) {
   const [hover, setHover] = useState(false)
   const [pressed, setPressed] = useState(false)
@@ -101,6 +103,7 @@ export function StyledButton({
     <button
       type="button"
       disabled={disabled}
+      data-token={tokenTag}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setPressed(false) }}
       onMouseDown={() => setPressed(true)}

@@ -5,6 +5,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
+.preview-token-button:focus-visible {
+  outline: var(--token-focus-width, 2px) solid var(--token-focus-colour, #20b9fa);
+  outline-offset: var(--token-focus-offset, 2px);
+}
+
+.preview-token-button:hover:not(:disabled) {
+  opacity: var(--token-hover-opacity, 0.9);
+}
+
+.preview-token-button:disabled {
+  opacity: var(--token-disabled-opacity, 0.45);
+}
+
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;

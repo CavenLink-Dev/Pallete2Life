@@ -4,6 +4,7 @@ import {
   colorName,
   normalizeHex,
   randomHex,
+  readableOn,
   uid,
   type Swatch,
 } from "../lib/color"
@@ -19,6 +20,8 @@ import {
   type LiveRole,
   type LiveRoleColors,
 } from "../components/LiveChangePreviews"
+import { createTokenSystem } from "../lib/tokenSystem"
+import { ACCESSIBILITY_STATUS_LABEL, evaluateAccessibility, worstAccessibilityStatus } from "../lib/accessibility"
 
 const STORE_KEY = "hueframe:v1"
 const MAX_COLOURS = 8
@@ -96,6 +99,19 @@ export default function LiveChanges() {
   const colours = useMemo(() => Object.fromEntries(
     ROLE_OPTIONS.map(({ key }) => [key, paletteById.get(roles[key])?.hex ?? palette[0]?.hex ?? "#FFFFFF"]),
   ) as LiveRoleColors, [palette, paletteById, roles])
+  const accessibilityChecks = useMemo(() => evaluateAccessibility({
+    brand: colours.button,
+    accent: colours.button,
+    secondary: colours.accent,
+    ink: colours.text,
+    inkSoft: colours.text,
+    inkFaint: colours.border,
+    paper: colours.background,
+    surface: colours.surface,
+    border: colours.border,
+    onBrand: readableOn(colours.button),
+    onInk: readableOn(colours.text),
+  }, createTokenSystem(palette)), [colours, palette])
 
   const changeColour = (id: string, value: string) => {
     const hex = normalizeHex(value)
@@ -215,6 +231,7 @@ export default function LiveChanges() {
                 </div>
               </div>
             </div>
+            <LiveAccessibilitySummary checks={accessibilityChecks} />
           </div>
         </section>
 
@@ -245,8 +262,9 @@ export default function LiveChanges() {
               </div>
             </div>
 
-            <div className="mt-5 overflow-hidden rounded-lg border border-softgrey bg-white shadow-sm" role="tabpanel">
+            <div className="relative mt-5 overflow-hidden rounded-lg border border-softgrey bg-white shadow-sm" role="tabpanel">
               <LiveChangePreview kind={preview} colours={colours} brand={brand} />
+              <LiveAccessibilityBadge checks={accessibilityChecks} />
             </div>
           </div>
         </section>
@@ -256,6 +274,15 @@ export default function LiveChanges() {
       {brandOpen && <BrandUpload brand={brand} onChange={setBrand} onClose={() => setBrandOpen(false)} />}
     </div>
   )
+}
+
+function LiveAccessibilitySummary({ checks }: { checks: ReturnType<typeof evaluateAccessibility> }) {
+  return <div className="mt-6 border-t border-softgrey pt-5"><div className="flex flex-wrap items-center gap-2"><span className="text-[11px] font-bold uppercase text-charcoal/45">Accessibility</span>{checks.map((check) => <span key={check.id} className={`rounded-[6px] px-2 py-1 text-[10.5px] font-semibold ${check.status === "good" ? "bg-[#ecfdf3] text-[#067647]" : check.status === "review" ? "bg-[#fff7ed] text-[#9a3412]" : "bg-[#fef2f2] text-[#b42318]"}`} title={check.status === "good" ? check.value : `${check.value}. ${check.suggestion}`}>{check.label}: {ACCESSIBILITY_STATUS_LABEL[check.status]}</span>)}</div></div>
+}
+
+function LiveAccessibilityBadge({ checks }: { checks: ReturnType<typeof evaluateAccessibility> }) {
+  const status = worstAccessibilityStatus(checks)
+  return <span className={`pointer-events-none absolute bottom-3 left-3 rounded-[6px] border px-2.5 py-1.5 text-[10.5px] font-semibold shadow-sm ${status === "good" ? "border-[#a7e0c2] bg-[#ecfdf3] text-[#067647]" : status === "review" ? "border-[#fed7aa] bg-[#fff7ed] text-[#9a3412]" : "border-[#fecaca] bg-[#fef2f2] text-[#b42318]"}`}>Accessibility: {ACCESSIBILITY_STATUS_LABEL[status]}</span>
 }
 
 function PaletteColour({

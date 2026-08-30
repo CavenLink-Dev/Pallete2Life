@@ -502,10 +502,11 @@ function hsvToHex(h: number, s: number, v: number) {
 
 export function ContrastBadge({ fg, bg, label }: { fg: string; bg: string; label?: string }) {
   const { ratio, aa, aaLarge } = aaCheck(fg, bg)
-  const status = aa ? "AA Pass" : aaLarge ? "AA Large" : "AA Fail"
+  const status = aa ? "Good" : aaLarge ? "Needs review" : "Poor contrast"
   const color = aa ? "#0E8A4E" : aaLarge ? "#9A6B00" : "#C22F2F"
   const tint = aa ? "rgba(14,138,78,0.1)" : aaLarge ? "rgba(154,107,0,0.12)" : "rgba(194,47,47,0.1)"
-  return <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: tint, color }} title={`${label ?? "Contrast"}: ${ratio}:1`}><span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold" style={{ background: bg, color: fg }}>A</span>{label && <span style={{ color: "#7A818B" }}>{label}</span>}{ratio}:1 · {status}</span>
+  const suggestion = aa ? "Readable for normal text" : aaLarge ? "Use for large text or strengthen the contrast" : "Choose a lighter or darker text colour"
+  return <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[10px] font-semibold" style={{ background: tint, color }} title={`${label ?? "Contrast"}: ${ratio}:1. ${suggestion}`}><span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold" style={{ background: bg, color: fg }}>A</span>{label && <span style={{ color: "#7A818B" }}>{label}</span>}{ratio}:1 · {status}</span>
 }
 
 function ReadField({ label, value }: { label: string; value: string }) {

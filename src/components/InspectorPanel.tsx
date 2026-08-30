@@ -1,5 +1,6 @@
 import type React from "react"
 import { ELEMENT_DEFAULTS, TOKEN_OPTIONS, type ElementTokenValues, type InspectorSelection } from "../lib/designTokens"
+import { ACCESSIBILITY_STATUS_LABEL, worstAccessibilityStatus, type AccessibilityCheck } from "../lib/accessibility"
 
 type PaletteOption = { id: string; name: string; hex: string }
 
@@ -17,6 +18,7 @@ type Props = {
   onExport: () => void
   onHelp: () => void
   onInsertBrand: () => void
+  onTokens: () => void
   roleSource: string
   roleTargetId: string
   roleSourceOptions: string[]
@@ -27,7 +29,7 @@ type Props = {
   roleSetDisabled: boolean
   roleMessage: { text: string; tone: "success" | "error" | "neutral" } | null
   exportSummary: string[]
-  accessibilityIssues: string[]
+  accessibilityChecks: AccessibilityCheck[]
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif` } as const
@@ -67,7 +69,11 @@ export default function InspectorPanel(p: Props) {
         <Divider />
 
         {p.selectedElement && values ? (
-          <ElementControls selection={p.selectedElement} values={values} roleOptions={p.roleSourceOptions} onChange={p.onElementChange} />
+          <>
+            <ElementControls selection={p.selectedElement} values={values} roleOptions={p.roleSourceOptions} onChange={p.onElementChange} />
+            <Divider />
+            <AccessibilitySection checks={p.accessibilityChecks} compact />
+          </>
         ) : (
           <ProjectControls {...p} selectedTarget={selectedTarget} />
         )}
@@ -134,6 +140,7 @@ function ProjectControls(p: Props & { selectedTarget?: PaletteOption }) {
       <h3 id="project-tools-title" className="mb-2 text-[11px] font-bold uppercase text-[#6b7280]">Project</h3>
       <div className="grid grid-cols-2 gap-2">
         <ActionButton onClick={p.onInsertBrand} icon={<SparklesIcon />} strong>Brand assets</ActionButton>
+        <ActionButton onClick={p.onTokens} icon={<TokenIcon />} strong>Design tokens</ActionButton>
         <ActionButton onClick={p.onExport} icon={<DownloadIcon />} strong>Export</ActionButton>
       </div>
     </section>
@@ -154,18 +161,25 @@ function ProjectControls(p: Props & { selectedTarget?: PaletteOption }) {
         </label>
         <button type="button" onClick={p.onRoleSet} disabled={p.roleSetDisabled} className="h-10 rounded-[7px] bg-[#111827] px-4 text-[13px] font-bold text-white hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:bg-[#e5e7eb] disabled:text-[#9ca3af]">Set mapping</button>
         {p.roleMessage && <p role="status" className={`rounded-[7px] px-3 py-2 text-[12px] leading-relaxed ${p.roleMessage.tone === "error" ? "bg-[#fef2f2] text-[#b42318]" : p.roleMessage.tone === "success" ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#f3f4f6] text-[#4b5563]"}`}>{p.roleMessage.text}</p>}
+        <AccessibilityInline checks={p.accessibilityChecks} />
       </div>
     </section>
     <Divider />
     <SummarySection title="Export summary" items={p.exportSummary} />
     <Divider />
-    <section aria-labelledby="accessibility-title">
-      <h3 id="accessibility-title" className="text-[11px] font-bold uppercase text-[#6b7280]">Accessibility checks</h3>
-      {p.accessibilityIssues.length ? (
-        <ul className="mt-2 grid gap-2">{p.accessibilityIssues.map((issue) => <li key={issue} className="rounded-[7px] bg-[#fff7ed] px-3 py-2 text-[12px] text-[#9a3412]">{issue}</li>)}</ul>
-      ) : <p className="mt-2 rounded-[7px] bg-[#ecfdf3] px-3 py-2 text-[12px] font-semibold text-[#067647]">Core colour contrast checks pass.</p>}
-    </section>
+    <AccessibilitySection checks={p.accessibilityChecks} />
   </>
+}
+
+function AccessibilityInline({ checks }: { checks: AccessibilityCheck[] }) {
+  const status = worstAccessibilityStatus(checks)
+  const count = checks.filter((check) => check.status !== "good").length
+  return <p className={`rounded-[7px] px-3 py-2 text-[11.5px] ${status === "good" ? "bg-[#ecfdf3] text-[#067647]" : status === "review" ? "bg-[#fff7ed] text-[#9a3412]" : "bg-[#fef2f2] text-[#b42318]"}`}><b>{ACCESSIBILITY_STATUS_LABEL[status]}.</b> {count ? `${count} check${count === 1 ? "" : "s"} may need attention after this mapping.` : "Current roles remain readable."}</p>
+}
+
+function AccessibilitySection({ checks, compact = false }: { checks: AccessibilityCheck[]; compact?: boolean }) {
+  const visible = compact ? checks.filter((check) => check.id === "button" || check.id === "focus" || check.id === "touch-target") : checks
+  return <section aria-labelledby={compact ? undefined : "accessibility-title"}><h3 id={compact ? undefined : "accessibility-title"} className="text-[11px] font-bold uppercase text-[#6b7280]">Accessibility checks</h3><ul className="mt-2 grid gap-2">{visible.map((check) => <li key={check.id} className={`rounded-[7px] border px-3 py-2 ${check.status === "good" ? "border-[#b7e4ca] bg-[#ecfdf3]" : check.status === "review" ? "border-[#fed7aa] bg-[#fff7ed]" : "border-[#fecaca] bg-[#fef2f2]"}`}><div className="flex items-center justify-between gap-3"><span className="text-[12px] font-semibold text-[#374151]">{check.label}</span><span className={`text-[10px] font-bold ${check.status === "good" ? "text-[#067647]" : check.status === "review" ? "text-[#9a3412]" : "text-[#b42318]"}`}>{ACCESSIBILITY_STATUS_LABEL[check.status]}</span></div><p className="mt-0.5 text-[10.5px] text-[#6b7280]">{check.value}{check.status !== "good" ? ` · ${check.suggestion}` : ""}</p></li>)}</ul></section>
 }
 
 function SummarySection({ title, items }: { title: string; items: string[] }) {
@@ -207,4 +221,5 @@ const SaveIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
 const DownloadIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 12 5 5 5-5" /><path d="M5 21h14" /></svg>
 const HelpCircleIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 1 1 5.83 1c0 2-3 3-3 3" /><path d="M12 17.01V17" /></svg>
 const SparklesIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" /></svg>
+const TokenIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 2 4 4-4 4-4-4 4-4ZM6 14l4 4-4 4-4-4 4-4ZM18 14l4 4-4 4-4-4 4-4Z" /></svg>
 const CloseIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>

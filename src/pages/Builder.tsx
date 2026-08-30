@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   BRAND,
   contrastRatio,
@@ -8,7 +8,6 @@ import {
   readableOn,
   themeContrastIssues,
   uid,
-  withAlpha,
   type RoleBindings,
   type Swatch,
 } from "../lib/color"
@@ -27,14 +26,13 @@ import {
 } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
 import BrandUpload from "../components/BrandUpload"
-import { useNav, useRoute } from "../lib/router"
+import { useRoute } from "../lib/router"
 import { useToast } from "../components/Toast"
 import ConfirmDialog from "../components/ConfirmDialog"
 import IntroTour, { markIntroSeen, shouldShowIntro } from "../components/IntroTour"
 import PaywallOverlay from "../components/PaywallOverlay"
 import {
   FREE_PREVIEW_LIMIT,
-  freeRemaining,
   loadEntitlement,
   needsPaywall,
   previewKey,
@@ -49,6 +47,19 @@ import { pickCuratedPalette } from "../lib/curatedPalettes"
 import TemplateLibrary from "../components/TemplateLibrary"
 import { defaultTemplate, templateAssetById, type TemplateAsset } from "../lib/templateAssets"
 import { elementTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
+import {
+  buttonMainElementTokens,
+  cardDefaultElementTokens,
+  createTokenSystem,
+  normalizeTokenSystem,
+  semanticColour,
+  semanticKeyForRole,
+  semanticRoleBindings,
+  type DesignTokenSystem,
+} from "../lib/tokenSystem"
+import { ACCESSIBILITY_STATUS_LABEL, evaluateAccessibility, worstAccessibilityStatus, type AccessibilityCheck } from "../lib/accessibility"
+
+const TokenSystemPanel = lazy(() => import("../components/TokenSystemPanel"))
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -91,6 +102,8 @@ type BuilderSnapshot = {
   assignments: Record<string, string>
   roleBindings: RoleBindings
   elementOverrides: ElementOverrides
+  tokenSystem: DesignTokenSystem
+  componentIds: string[]
 }
 
 
@@ -127,7 +140,6 @@ function migrateSwatchReferences(records: Record<string, string>, palette: Swatc
 const MAX_HISTORY = 40
 /* #PreviewWorkspace /preview - foundation for #GenerateDesignWorkflow. */
 export default function Builder() {
-  const navHome = useNav()
   const [, navigate] = useRoute()
   const toast = useToast()
 
@@ -135,8 +147,8 @@ export default function Builder() {
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [sel, setSel] = useState<Selection>({ group: "website", sub: "landing-page" })
   const [tplBySub, setTplBySub] = useState<Record<string, string>>({ "website/landing-page": defaultTemplate.id })
-  const [buttonStyle, setButtonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
-  const [buttonProps, setButtonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
+  const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "depth" as ButtonStyle))
+  const [buttonProps] = useState<ButtonProps>(() => loadStored("buttonProps", DEFAULT_BUTTON_PROPS))
 
   // Edit Elements
   const [editMode, setEditMode] = useState(false)
@@ -144,6 +156,9 @@ export default function Builder() {
   const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => migrateSwatchReferences(loadStored("roleBindings", {}), palette))
   const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
   const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}))
+  const [tokenSystem, setTokenSystem] = useState<DesignTokenSystem>(() => normalizeTokenSystem(loadStored<unknown>("tokenSystem", null), palette))
+  const [componentIds, setComponentIds] = useState<string[]>(() => loadStored("componentIds", []))
+  const [colourWayChosen, setColourWayChosen] = useState<boolean>(() => loadStored("colourWayChosen", false))
 
   // Brand
   const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
@@ -151,6 +166,9 @@ export default function Builder() {
 
   // Overlays
   const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
+  const [libraryStartCategory, setLibraryStartCategory] = useState<"Website" | "Application" | "Components">("Website")
+  const [libraryMode, setLibraryMode] = useState<"template" | "component">("template")
+  const [tokenPanelOpen, setTokenPanelOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(shouldShowIntro)
   const [confirmReset, setConfirmReset] = useState(false)
@@ -171,13 +189,13 @@ export default function Builder() {
   const [ent, setEnt] = useState<Entitlement>(loadEntitlement)
   useEffect(() => { saveEntitlement(ent) }, [ent])
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
-  const remaining = freeRemaining(ent)
-  const remainingLabel = ent.isPro ? null : `${remaining} preview${remaining === 1 ? "" : "s"} left`
-
   useStored("palette", palette)
   useStored("assignments", assignments)
   useStored("roleBindings", roleBindings)
   useStored("elementOverrides", elementOverrides)
+  useStored("tokenSystem", tokenSystem)
+  useStored("componentIds", componentIds)
+  useStored("colourWayChosen", colourWayChosen)
   useStored("brand", brand)
   useStored("buttonStyle", buttonStyle)
   useStored("buttonProps", buttonProps)
@@ -200,43 +218,49 @@ export default function Builder() {
   const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
     const next = updater(palette)
     if (JSON.stringify(palette) === JSON.stringify(next)) return
-    pushHistory({ palette, assignments, roleBindings, elementOverrides })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds })
     setPalette(next)
-  }, [assignments, elementOverrides, palette, pushHistory, roleBindings])
+  }, [assignments, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
 
   const mutateWorkspace = useCallback((next: Partial<BuilderSnapshot>) => {
-    pushHistory({ palette, assignments, roleBindings, elementOverrides })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds })
     if (next.palette) setPalette(next.palette)
     if (next.assignments) setAssignments(next.assignments)
     if (next.roleBindings) setRoleBindings(next.roleBindings)
     if (next.elementOverrides) setElementOverrides(next.elementOverrides)
-  }, [assignments, elementOverrides, palette, pushHistory, roleBindings])
+    if (next.tokenSystem) setTokenSystem(next.tokenSystem)
+    if (next.componentIds) setComponentIds(next.componentIds)
+  }, [assignments, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
 
   const undo = useCallback(() => {
     if (!undoStack.length) { toast.push("Nothing to undo"); return }
     const previous = undoStack[undoStack.length - 1]
     setUndoStack(undoStack.slice(0, -1))
-    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings, elementOverrides }])
+    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds }])
     setPalette(previous.palette)
     setAssignments(previous.assignments)
     setRoleBindings(previous.roleBindings)
     setElementOverrides(previous.elementOverrides)
+    setTokenSystem(previous.tokenSystem)
+    setComponentIds(previous.componentIds)
     setRoleMapMessage(null)
     toast.push("Undone")
-  }, [assignments, elementOverrides, palette, roleBindings, toast, undoStack])
+  }, [assignments, componentIds, elementOverrides, palette, roleBindings, toast, tokenSystem, undoStack])
 
   const redo = useCallback(() => {
     if (!redoStack.length) { toast.push("Nothing to redo"); return }
     const next = redoStack[redoStack.length - 1]
     setRedoStack(redoStack.slice(0, -1))
-    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings, elementOverrides }])
+    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds }])
     setPalette(next.palette)
     setAssignments(next.assignments)
     setRoleBindings(next.roleBindings)
     setElementOverrides(next.elementOverrides)
+    setTokenSystem(next.tokenSystem)
+    setComponentIds(next.componentIds)
     setRoleMapMessage(null)
     toast.push("Redone")
-  }, [assignments, elementOverrides, palette, redoStack, roleBindings, toast])
+  }, [assignments, componentIds, elementOverrides, palette, redoStack, roleBindings, toast, tokenSystem])
 
   // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
   useEffect(() => {
@@ -261,8 +285,27 @@ export default function Builder() {
   const currentTemplateName = currentAsset?.name ?? "Untitled template"
   const roleLabels: (string | null)[] | undefined = ROLES_BY_PREVIEW[`${sel.group}/${sel.sub}`] ?? ROLES_BY_PREVIEW[sel.group]
 
-  const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleBindings, roleLabels])
+  const effectiveRoleBindings = useMemo(() => ({ ...roleBindings, ...semanticRoleBindings(tokenSystem) }), [roleBindings, tokenSystem])
+  const theme = useMemo(() => deriveTheme(palette, roleLabels, effectiveRoleBindings), [effectiveRoleBindings, palette, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
+  const accessibilityChecks = useMemo(() => {
+    const checks = evaluateAccessibility(theme, tokenSystem)
+    const buttonBackground = semanticColour(tokenSystem, palette, tokenSystem.component.buttonMain.background, theme.accent)
+    const textToken = tokenSystem.component.buttonMain.text
+    const buttonText = textToken === "textInverse" ? readableOn(buttonBackground) : semanticColour(tokenSystem, palette, textToken, theme.onBrand)
+    const buttonRatio = contrastRatio(buttonText, buttonBackground)
+    const focusColour = semanticColour(tokenSystem, palette, tokenSystem.state.focusRing.colour, theme.accent)
+    const focusRatio = contrastRatio(focusColour, theme.paper)
+    return checks.map((check) => {
+      if (check.id === "button") return { ...check, status: buttonRatio >= 4.5 ? "good" as const : buttonRatio >= 3 ? "review" as const : "poor" as const, value: `${Math.round(buttonRatio * 100) / 100}:1` }
+      if (check.id === "focus") return { ...check, status: focusRatio >= 3 && tokenSystem.state.focusRing.width >= 2 ? "good" as const : focusRatio >= 2 || tokenSystem.state.focusRing.width >= 2 ? "review" as const : "poor" as const, value: `${Math.round(focusRatio * 100) / 100}:1 · ${tokenSystem.state.focusRing.width}px ring` }
+      return check
+    })
+  }, [palette, theme, tokenSystem])
+
+  useEffect(() => {
+    setTokenSystem((current) => normalizeTokenSystem(current, palette))
+  }, [palette])
 
   useEffect(() => {
     if (palette.some((swatch) => swatch.id === roleMapTargetId)) return
@@ -403,7 +446,7 @@ export default function Builder() {
 
   const repairTextContrast = (candidate: Swatch[]): Swatch[] => {
     const next = candidate.map((swatch) => ({ ...swatch }))
-    const candidateTheme = deriveTheme(next, roleLabels, roleBindings)
+    const candidateTheme = deriveTheme(next, roleLabels, effectiveRoleBindings)
     const backgrounds = [candidateTheme.paper, candidateTheme.surface]
     const choices = ["#101828", "#FFFFFF"]
     const safeText = choices.sort((a, b) =>
@@ -414,7 +457,7 @@ export default function Builder() {
       const id = swatchIdForRole(next, role)
       const swatch = next.find((item) => item.id === id)
       if (!swatch || swatch.locked) continue
-      const currentTheme = deriveTheme(next, roleLabels, roleBindings)
+      const currentTheme = deriveTheme(next, roleLabels, effectiveRoleBindings)
       const foreground = role === "Heading Text" ? currentTheme.ink : currentTheme.inkSoft
       if ([currentTheme.paper, currentTheme.surface].some((bg) => contrastRatio(foreground, bg) < 4.5)) {
         swatch.hex = safeText
@@ -425,7 +468,7 @@ export default function Builder() {
 
   const acceptSafePalette = (candidate: Swatch[]): Swatch[] | null => {
     const repaired = repairTextContrast(candidate)
-    return themeContrastIssues(deriveTheme(repaired, roleLabels, roleBindings)).length ? null : repaired
+    return themeContrastIssues(deriveTheme(repaired, roleLabels, effectiveRoleBindings)).length ? null : repaired
   }
 
   const generateSafePalette = (source: Swatch[]): Swatch[] | null => {
@@ -484,13 +527,24 @@ export default function Builder() {
   })
 
   const doReset = () => {
-    mutateWorkspace({ palette: createDefaultPalette(), assignments: {}, roleBindings: {}, elementOverrides: {} })
+    const nextPalette = createDefaultPalette()
+    mutateWorkspace({ palette: nextPalette, assignments: {}, roleBindings: {}, elementOverrides: {}, tokenSystem: createTokenSystem(nextPalette), componentIds: [] })
     setSelectedElement(null)
     setConfirmReset(false)
     toast.push("Palette reset — Undo brings it back", "success")
   }
 
   const trySelectAsset = (asset: TemplateAsset) => {
+    if (libraryMode === "component" && asset.category === "Components") {
+      if (componentIds.includes(asset.id)) {
+        toast.push(`${asset.name} is already in this project`)
+      } else {
+        mutateWorkspace({ componentIds: [...componentIds, asset.id] })
+        toast.push(`${asset.name} added to project components`, "success")
+      }
+      setPreviewPickerOpen(false)
+      return
+    }
     const nextGroup = GROUPS.find((group) => group.label === asset.category)
     const nextSub = nextGroup?.subs.find((sub) => sub.templates.some((template) => template.key === asset.id))
     if (!nextGroup || !nextSub) return
@@ -509,6 +563,12 @@ export default function Builder() {
     toast.push(`Template: ${asset.type} · ${asset.variant}`)
   }
 
+  const openLibrary = (mode: "template" | "component") => {
+    setLibraryMode(mode)
+    setLibraryStartCategory(mode === "component" ? "Components" : currentAsset?.category ?? "Website")
+    setPreviewPickerOpen(true)
+  }
+
   const roleSourceOptions = Array.from(new Set([
     ...(roleLabels ?? []).filter((role): role is string => Boolean(role)),
     ...DESIGN_ROLES,
@@ -523,8 +583,10 @@ export default function Builder() {
   const roleMapTarget = palette.find((swatch) => swatch.id === roleMapTargetId) ?? palette[0]
   const targetIndex = roleMapTarget ? palette.findIndex((swatch) => swatch.id === roleMapTarget.id) : -1
   const targetDefaultRole = targetIndex >= 0 ? roleLabels?.[targetIndex] ?? null : null
+  const roleMapSemanticKey = semanticKeyForRole(roleMapSource)
+  const currentRoleTargetId = roleMapSemanticKey ? tokenSystem.semantic.colours[roleMapSemanticKey] : roleBindings[roleMapSource]
   const roleMapNoOp = !roleMapTarget
-    || roleBindings[roleMapSource] === roleMapTarget.id
+    || currentRoleTargetId === roleMapTarget.id
     || roleMapTarget.name.trim().toLowerCase() === roleMapSource.trim().toLowerCase()
     || targetDefaultRole?.trim().toLowerCase() === roleMapSource.trim().toLowerCase()
 
@@ -545,6 +607,10 @@ export default function Builder() {
     }
 
     const nextBindings = { ...roleBindings, [roleMapSource]: roleMapTarget.id }
+    const semanticKey = semanticKeyForRole(roleMapSource)
+    const nextTokenSystem = semanticKey
+      ? { ...tokenSystem, semantic: { ...tokenSystem.semantic, colours: { ...tokenSystem.semantic.colours, [semanticKey]: roleMapTarget.id } } }
+      : tokenSystem
     const rolesUsingTarget = [
       targetDefaultRole,
       ...Object.entries(nextBindings).filter(([, id]) => id === roleMapTarget.id).map(([role]) => role),
@@ -552,29 +618,26 @@ export default function Builder() {
     const createsTextBackgroundCollision = rolesUsingTarget.some((role) => roleKind(role) === "text")
       && rolesUsingTarget.some((role) => roleKind(role) === "background")
 
-    if (createsTextBackgroundCollision) {
-      const message = `${roleMapTarget.name} cannot be both text and a background because the contrast would be 1:1.`
-      setRoleMapMessage({ text: message, tone: "error" })
-      toast.push(message, "error")
-      return
-    }
-
-    const issues = themeContrastIssues(deriveTheme(palette, roleLabels, nextBindings))
-    if (roleKind(roleMapSource) !== "other" && issues.length) {
+    const issues = themeContrastIssues(deriveTheme(palette, roleLabels, { ...nextBindings, ...semanticRoleBindings(nextTokenSystem) }))
+    mutateWorkspace({ roleBindings: nextBindings, tokenSystem: nextTokenSystem })
+    if (createsTextBackgroundCollision || (roleKind(roleMapSource) !== "other" && issues.length)) {
       const issue = issues[0]
-      const message = `${issue.foreground} would be ${issue.ratio}:1 on ${issue.background}. Choose a safer colour.`
+      const detail = createsTextBackgroundCollision
+        ? "The same colour is being used for text and a background."
+        : `${issue.foreground} is ${issue.ratio}:1 on ${issue.background}.`
+      const message = `${roleMapSource} updated. Needs review: ${detail} Try a lighter or darker colour if readability matters here.`
       setRoleMapMessage({ text: message, tone: "error" })
-      toast.push(message, "error")
-      return
+      toast.push("Mapping updated with an accessibility warning")
+    } else {
+      const message = `${roleMapSource} now uses ${roleMapTarget.name} in every preview.`
+      setRoleMapMessage({ text: message, tone: "success" })
+      toast.push(message, "success")
     }
-
-    mutateWorkspace({ roleBindings: nextBindings })
-    const message = `${roleMapSource} now uses ${roleMapTarget.name} in every preview.`
-    setRoleMapMessage({ text: message, tone: "success" })
-    toast.push(message, "success")
   }
 
   const tokenColor = (role: string): string => {
+    const semanticKey = semanticKeyForRole(role)
+    if (semanticKey) return semanticColour(tokenSystem, palette, semanticKey, theme.accent)
     const boundId = roleBindings[role]
     const bound = boundId ? palette.find((swatch) => swatch.id === boundId)?.hex : undefined
     if (bound) return bound
@@ -589,8 +652,29 @@ export default function Builder() {
   }
 
   const selectedElementValues = selectedElement
-    ? elementTokens(selectedElement.kind, { ...selectedElement.defaults, ...elementOverrides[selectedElement.id] })
+    ? elementTokens(selectedElement.kind, {
+        ...(selectedElement.kind === "button" ? buttonMainElementTokens(tokenSystem) : selectedElement.kind === "card" ? cardDefaultElementTokens(tokenSystem) : {}),
+        ...selectedElement.defaults,
+        ...elementOverrides[selectedElement.id],
+      })
     : null
+  const inspectorAccessibilityChecks = selectedElement?.kind === "button" && selectedElementValues
+    ? accessibilityChecks.map((check) => {
+        if (check.id === "touch-target") {
+          const size = String(selectedElementValues.size)
+          const height = size === "size.sm" ? 36 : size === "size.lg" ? 52 : 44
+          return { ...check, status: height >= 44 ? "good" as const : height >= 40 ? "review" as const : "poor" as const, value: `${height}px high` }
+        }
+        if (check.id === "button") {
+          const background = tokenColor(String(selectedElementValues.colourRole ?? "Brand Primary"))
+          const textToken = tokenSystem.component.buttonMain.text
+          const textColour = textToken === "textInverse" ? readableOn(background) : semanticColour(tokenSystem, palette, textToken, theme.onBrand)
+          const ratio = contrastRatio(textColour, background)
+          return { ...check, status: ratio >= 4.5 ? "good" as const : ratio >= 3 ? "review" as const : "poor" as const, value: `${Math.round(ratio * 100) / 100}:1` }
+        }
+        return check
+      })
+    : accessibilityChecks
   const updateSelectedElement = (key: string, value: string | boolean) => {
     if (!selectedElement) return
     mutateWorkspace({
@@ -627,6 +711,7 @@ export default function Builder() {
     trio,
     selectedElement,
     elementOverrides,
+    tokenSystem,
     selectElement: setSelectedElement,
   }
 
@@ -648,6 +733,19 @@ export default function Builder() {
         />
       </section>
 
+      <WorkflowBar
+        colourWayChosen={colourWayChosen}
+        componentCount={componentIds.length}
+        onPalette={() => toast.push("Your current palette is ready")}
+        onPreview={centerTemplate}
+        onChoose={() => { setColourWayChosen(true); toast.push("Colour way chosen", "success") }}
+        onTokens={() => setTokenPanelOpen(true)}
+        onTemplate={() => openLibrary("template")}
+        onComponents={() => openLibrary("component")}
+        onEdit={() => { setEditMode(true); toast.push("Select an element in the preview") }}
+        onExport={() => setExportOpen(true)}
+      />
+
       {/* Preview stacks above controls until there is room for a real sidebar. */}
       <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
         <div className="flex min-w-0 flex-1 flex-col">
@@ -663,7 +761,7 @@ export default function Builder() {
           <button type="button" onClick={() => { setEditMode((current) => !current); if (editMode) setSelectedElement(null) }} className={`flex h-10 items-center gap-2 rounded-[8px] border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${editMode ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#374151] hover:bg-[#f3f4f6]"}`} aria-pressed={editMode}>
             <EditIcon /><span className="hidden md:inline">Edit elements</span>
           </button>
-          <button type="button" onClick={() => setPreviewPickerOpen(true)} className="flex h-10 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Change template" title="Change template">
+          <button type="button" onClick={() => openLibrary("template")} className="flex h-10 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Change template" title="Change template">
             <LayersIcon /><span className="hidden sm:inline">Change template</span>
           </button>
         </div>
@@ -693,6 +791,7 @@ export default function Builder() {
             Edit Elements is on - select an element to inspect its tokens
           </div>
         )}
+        <AccessibilityCanvasBadge checks={accessibilityChecks} />
         {isFullscreen && <button type="button" onClick={toggleFullscreen} className="absolute left-4 top-4 z-30 flex h-9 items-center gap-2 rounded-[8px] border border-white/20 bg-charcoal/90 px-3 text-xs font-semibold text-white shadow-lg" aria-label="Exit full screen"><CloseIcon /> Exit full screen</button>}
       </main>
 
@@ -720,10 +819,11 @@ export default function Builder() {
           roleSetDisabled={roleMapNoOp}
           roleMessage={roleMapMessage}
           onInsertBrand={() => setBrandOpen(true)}
+          onTokens={() => setTokenPanelOpen(true)}
           onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
-          exportSummary={[`${palette.length} palette colours`, `${Object.keys(roleBindings).length} global mappings`, currentTemplateName]}
-          accessibilityIssues={themeContrastIssues(theme).map((issue) => `${issue.foreground} is ${issue.ratio}:1 on ${issue.background}`)}
+          exportSummary={[`${palette.length} palette colours`, "5 token layers", `${componentIds.length} added components`, currentTemplateName]}
+          accessibilityChecks={inspectorAccessibilityChecks}
         />
       </div>{/* /main area flex row */}
 
@@ -733,7 +833,24 @@ export default function Builder() {
           selectedId={tpl}
           onSelect={trySelectAsset}
           onClose={() => setPreviewPickerOpen(false)}
+          initialCategory={libraryStartCategory}
+          title={libraryMode === "component" ? "Add a component" : "Change template"}
+          categories={libraryMode === "component" ? ["Components"] : undefined}
         />
+      )}
+
+      {tokenPanelOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-[70] grid place-items-center bg-charcoal/45 text-sm font-semibold text-white">Loading token tools...</div>}>
+          <TokenSystemPanel
+            open
+            system={tokenSystem}
+            palette={palette}
+            theme={theme}
+            onChange={(next) => mutateWorkspace({ tokenSystem: next })}
+            onClose={() => setTokenPanelOpen(false)}
+            onExport={() => { setTokenPanelOpen(false); setExportOpen(true) }}
+          />
+        </Suspense>
       )}
 
       {/* Brand modal */}
@@ -750,8 +867,37 @@ export default function Builder() {
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         palette={palette}
-        isPro={ent.isPro}
-        onUpgrade={() => { setExportOpen(false); setPaywall({ open: true, reason: "High-resolution image exports are part of Pro." }) }}
+        tokenSystem={tokenSystem}
+        accessibilityChecks={accessibilityChecks}
+        project={{
+          name: "Palette Preview design system",
+          templateId: tpl,
+          componentIds,
+          brand,
+          roleBindings,
+          elementOverrides,
+        }}
+        onImportProject={(imported) => {
+          const nextPalette = imported.palette
+          const nextSystem = normalizeTokenSystem(imported.tokenSystem, nextPalette)
+          mutateWorkspace({
+            palette: nextPalette,
+            tokenSystem: nextSystem,
+            componentIds: imported.project?.componentIds ?? [],
+            roleBindings: imported.project?.roleBindings ?? {},
+            elementOverrides: imported.project?.elementOverrides ?? {},
+          })
+          if (imported.project?.brand) setBrand(imported.project.brand as Brand)
+          const importedAsset = imported.project?.templateId ? templateAssetById.get(imported.project.templateId) : undefined
+          if (importedAsset) {
+            const group = GROUPS.find((item) => item.label === importedAsset.category)
+            const sub = group?.subs.find((item) => item.templates.some((template) => template.key === importedAsset.id))
+            if (group && sub) {
+              setSel({ group: group.key, sub: sub.key })
+              setTplBySub((current) => ({ ...current, [`${group.key}/${sub.key}`]: importedAsset.id }))
+            }
+          }
+        }}
         onToast={(m, k) => toast.push(m, k)}
       />
 
@@ -776,6 +922,66 @@ export default function Builder() {
         onUnlock={goPro}
         onLater={dismissPaywall}
       />
+    </div>
+  )
+}
+
+function WorkflowBar({
+  colourWayChosen,
+  componentCount,
+  onPalette,
+  onPreview,
+  onChoose,
+  onTokens,
+  onTemplate,
+  onComponents,
+  onEdit,
+  onExport,
+}: {
+  colourWayChosen: boolean
+  componentCount: number
+  onPalette: () => void
+  onPreview: () => void
+  onChoose: () => void
+  onTokens: () => void
+  onTemplate: () => void
+  onComponents: () => void
+  onEdit: () => void
+  onExport: () => void
+}) {
+  const stages = [
+    ["Palette", onPalette],
+    ["Preview", onPreview],
+    [colourWayChosen ? "Chosen" : "Choose", onChoose],
+    ["Tokens", onTokens],
+    ["Template", onTemplate],
+    [componentCount ? `Components ${componentCount}` : "Components", onComponents],
+    ["Edit", onEdit],
+    ["Export", onExport],
+  ] as const
+  return (
+    <nav className="shrink-0 overflow-x-auto border-b border-softgrey bg-[#fafafa] px-3 py-2 sm:px-5" aria-label="Generate design stages">
+      <ol className="flex min-w-max items-center gap-1">
+        {stages.map(([label, action], index) => (
+          <li key={index} className="flex items-center gap-1">
+            {index > 0 && <span className="h-px w-3 bg-softgrey" aria-hidden />}
+            <button type="button" onClick={action} className={`flex h-8 items-center gap-1.5 rounded-[7px] border px-2.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${label === "Chosen" ? "border-[#a7e0c2] bg-[#ecfdf3] text-[#067647]" : "border-softgrey bg-white text-charcoal/65 hover:text-charcoal"}`}>
+              <span className="grid h-4 w-4 place-items-center rounded-full bg-charcoal text-[9px] text-white">{index + 1}</span>{label}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+function AccessibilityCanvasBadge({ checks }: { checks: AccessibilityCheck[] }) {
+  const status = worstAccessibilityStatus(checks)
+  const count = checks.filter((check) => check.status !== "good").length
+  return (
+    <div className={`pointer-events-none absolute bottom-4 left-4 z-20 flex items-center gap-2 rounded-[7px] border px-2.5 py-1.5 text-[10.5px] font-semibold shadow-sm backdrop-blur ${status === "good" ? "border-[#a7e0c2] bg-[#ecfdf3]/95 text-[#067647]" : status === "review" ? "border-[#fed7aa] bg-[#fff7ed]/95 text-[#9a3412]" : "border-[#fecaca] bg-[#fef2f2]/95 text-[#b42318]"}`} role="status">
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      Accessibility: {ACCESSIBILITY_STATUS_LABEL[status]}{count ? ` · ${count} to review` : ""}
     </div>
   )
 }

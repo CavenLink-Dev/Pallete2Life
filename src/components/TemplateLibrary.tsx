@@ -13,6 +13,9 @@ type Props = {
   selectedId: string
   onSelect: (template: TemplateAsset) => void
   onClose: () => void
+  initialCategory?: TemplateCategory
+  title?: string
+  categories?: TemplateCategory[]
 }
 
 const FAVORITES_KEY = "hueframe:template-favorites"
@@ -31,10 +34,10 @@ function saveIds(key: string, ids: string[]) {
   try { localStorage.setItem(key, JSON.stringify(ids)) } catch { /* storage unavailable */ }
 }
 
-export default function TemplateLibrary({ selectedId, onSelect, onClose }: Props) {
+export default function TemplateLibrary({ selectedId, onSelect, onClose, initialCategory, title = "Template and component library", categories = templateCategories }: Props) {
   const selected = templateAssets.find((asset) => asset.id === selectedId) ?? templateAssets[0]
-  const [section, setSection] = useState<LibrarySection>(selected.collection)
-  const [category, setCategory] = useState<TemplateCategory>(selected.category)
+  const [section, setSection] = useState<LibrarySection>(initialCategory === "Components" ? "Built-In" : selected.collection)
+  const [category, setCategory] = useState<TemplateCategory>(initialCategory ?? selected.category)
   const [type, setType] = useState("All types")
   const [variant, setVariant] = useState("All variants")
   const [query, setQuery] = useState("")
@@ -109,7 +112,7 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose }: Props
       <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.5)]" onMouseDown={(event) => event.stopPropagation()}>
         <header className="flex items-start justify-between gap-4 border-b border-softgrey px-4 py-3.5 sm:px-5">
           <div>
-            <h2 className="text-[16px] font-bold text-charcoal" style={{ fontFamily: "var(--font-display)" }}>Template and component library</h2>
+            <h2 className="text-[16px] font-bold text-charcoal" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
             <p className="mt-0.5 text-[12px] text-charcoal/50">
               {templateStats.builtInTemplates} built-in <span aria-hidden>·</span> {templateStats.websiteTemplates} Website <span aria-hidden>·</span> {templateStats.applicationTemplates} Application <span aria-hidden>·</span> {templateStats.componentTemplates} Components
             </p>
@@ -133,7 +136,7 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose }: Props
           </FilterField>
           <FilterField label="Category">
             <select value={category} onChange={(event) => chooseCategory(event.target.value as TemplateCategory)} className="template-filter-select" aria-label="Template category">
-              {templateCategories.map((item) => <option key={item}>{item}</option>)}
+              {categories.map((item) => <option key={item}>{item}</option>)}
             </select>
           </FilterField>
           <FilterField label="Type">

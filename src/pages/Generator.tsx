@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   BRAND,
   colorName,
+  deriveTheme,
   hexToHsl,
   hexToRgb,
   hslString,
@@ -18,7 +19,10 @@ import {
 import { createDefaultPalette, loadPalette, savePalette } from "../lib/paletteStore"
 import { useNav } from "../lib/router"
 import { useToast } from "../components/Toast"
-import SimpleExportPanel from "../components/SimpleExportPanel"
+import ExportPanel from "../components/ExportPanel"
+import { createTokenSystem } from "../lib/tokenSystem"
+import { evaluateAccessibility } from "../lib/accessibility"
+import { ContrastBadge } from "../components/PalettePanel"
 
 const MAX_HISTORY = 40
 const MAX_COLOURS = 8
@@ -141,6 +145,7 @@ export default function Generator() {
   }
 
   const activeSwatch = palette.find((swatch) => swatch.id === activeId) ?? null
+  const accessibilityChecks = useMemo(() => evaluateAccessibility(deriveTheme(palette), createTokenSystem(palette)), [palette])
 
   return (
     <div className="flex h-full min-h-[520px] flex-col overflow-hidden bg-white text-charcoal">
@@ -258,10 +263,18 @@ export default function Generator() {
         />
       )}
 
-      <SimpleExportPanel
+      <ExportPanel
         open={exportOpen}
         palette={palette}
         onClose={() => setExportOpen(false)}
+        accessibilityChecks={accessibilityChecks}
+        project={{ name: "Quick Palette" }}
+        onImportProject={(project) => {
+          setPalette(project.palette)
+          setUndoStack([])
+          setRedoStack([])
+          setActiveId(null)
+        }}
         onToast={toast.push}
       />
     </div>
@@ -345,6 +358,10 @@ function ColourEditor({ swatch, canRemove, onChange, onToggleLock, onRemove, onC
           {swatch.locked ? <LockedIcon /> : <UnlockedIcon />} {swatch.locked ? "Locked" : "Lock"}
         </button>
         {canRemove && <button type="button" onClick={onRemove} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold text-[#B32929] hover:bg-[#B32929]/5"><TrashIcon /> Remove</button>}
+      </div>
+      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-softgrey pt-3">
+        <ContrastBadge fg="#FFFFFF" bg={swatch.hex} label="White text" />
+        <ContrastBadge fg="#0E1821" bg={swatch.hex} label="Dark text" />
       </div>
     </div>
   )

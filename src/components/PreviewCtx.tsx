@@ -10,6 +10,7 @@ import {
   type InspectorKind,
   type InspectorSelection,
 } from "../lib/designTokens"
+import { buttonMainElementTokens, cardDefaultElementTokens, semanticLabel, type DesignTokenSystem } from "../lib/tokenSystem"
 
 export type Brand = { name: string; logo: string | null; symbol: string | null }
 
@@ -24,6 +25,7 @@ export type PreviewCtxValue = {
   trio: Trio
   selectedElement: InspectorSelection | null
   elementOverrides: ElementOverrides
+  tokenSystem: DesignTokenSystem
   selectElement: (element: InspectorSelection) => void
 }
 
@@ -60,7 +62,19 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
   const inferredKind: InspectorKind = kind
     ?? (prop === "background" ? "card" : label.toLowerCase().includes("nav") || label.toLowerCase().includes("tab") ? "navigation" : "text")
   const override = ctx?.elementOverrides[fullId]
-  const tokenStyle = ctx ? elementOverrideStyle(inferredKind, override, ctx.tokenColor) : {}
+  const inherited = ctx && inferredKind === "card" ? cardDefaultElementTokens(ctx.tokenSystem) : undefined
+  const resolvedTokens = inherited ? { ...inherited, ...override } : override
+  const inheritedCardStyle: CSSProperties = ctx && inferredKind === "card" ? {
+    background: ctx.tokenColor(String(resolvedTokens?.background ?? "Surface")),
+    borderRadius: ctx.tokenSystem.primitive.radius[String(resolvedTokens?.radius)] ?? 12,
+    padding: ctx.tokenSystem.primitive.spacing[String(ctx.tokenSystem.component.cardDefault.padding)] ?? 16,
+    gap: ctx.tokenSystem.primitive.gaps[String(ctx.tokenSystem.component.cardDefault.gap)] ?? 12,
+    borderWidth: ctx.tokenSystem.primitive.borders[String(resolvedTokens?.border)] ?? 1,
+    borderStyle: "solid",
+    borderColor: ctx.tokenColor("Border"),
+    boxShadow: ctx.tokenSystem.primitive.shadows[String(resolvedTokens?.shadow)] ?? "none",
+  } : {}
+  const tokenStyle = ctx ? { ...inheritedCardStyle, ...elementOverrideStyle(inferredKind, override, ctx.tokenColor) } : {}
   const selected = ctx?.selectedElement?.id === fullId
   const content = inferredKind === "text" && typeof children === "string" && String(override?.textContent || "")
     ? String(override?.textContent)
@@ -75,6 +89,7 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
   return (
     <Tag
       className={className}
+      data-token={inferredKind === "card" ? "component.card.default" : undefined}
       style={{ [prop]: resolved, ...style, ...tokenStyle, ...editStyle } as CSSProperties}
       onClick={(e: React.MouseEvent) => {
         if (edit && ctx) {
@@ -107,24 +122,28 @@ export function PreviewButton({ id, label = "Button", text, size }: { id: string
   const fullId = scope ? `${scope}:${id}` : id
   const assigned = ctx.assignments[fullId]
   const override = ctx.elementOverrides[fullId]
-  const values = elementTokens("button", override)
-  const tokenStyle = elementOverrideStyle("button", override, ctx.tokenColor)
-  const primary = override?.colourRole
+  const inherited = buttonMainElementTokens(ctx.tokenSystem)
+  const resolvedTokens = { ...inherited, ...override }
+  const values = elementTokens("button", resolvedTokens)
+  const tokenStyle = elementOverrideStyle("button", resolvedTokens, ctx.tokenColor)
+  const primary = resolvedTokens.colourRole
     ? ctx.tokenColor(String(values.colourRole))
     : (assigned && ctx.roleColor(assigned)) || ctx.trio.primary
-  const colors = primary === ctx.trio.primary ? ctx.trio : { ...ctx.trio, primary, text: readableOn(primary) }
+  const buttonTextToken = ctx.tokenSystem.component.buttonMain.text
+  const buttonText = buttonTextToken === "textInverse" ? readableOn(primary) : ctx.tokenColor(semanticLabel(buttonTextToken))
+  const colors = { ...ctx.trio, primary, text: buttonText }
   const tokenSize = String(values.size ?? "size.md")
   const resolvedSize: ButtonProps["size"] = tokenSize === "size.sm" ? "sm" : tokenSize === "size.lg" ? "lg" : "md"
   const props: ButtonProps = {
     ...ctx.buttonProps,
     text: String(override?.text ?? text ?? ctx.buttonProps.text),
-    size: override?.size ? resolvedSize : size ?? ctx.buttonProps.size,
-    radius: override?.radius ? Number(elementTokenStyle("button", values, ctx.tokenColor).borderRadius) : ctx.buttonProps.radius,
-    outline: override?.border ? (String(values.border) === "border.strong" ? 2 : String(values.border) === "border.subtle" ? 1 : 0) : ctx.buttonProps.outline,
+    size: resolvedSize,
+    radius: Number(elementTokenStyle("button", values, ctx.tokenColor).borderRadius),
+    outline: String(values.border) === "border.strong" ? 2 : String(values.border) === "border.subtle" ? 1 : 0,
   }
   const selected = ctx.selectedElement?.id === fullId
   const buttonType = String(values.buttonType ?? "solid")
-  const style: ButtonStyle = override?.buttonType
+  const style: ButtonStyle = resolvedTokens.buttonType
     ? buttonType === "outline" || buttonType === "ghost"
       ? "outline"
       : buttonType === "glass"
@@ -136,10 +155,22 @@ export function PreviewButton({ id, label = "Button", text, size }: { id: string
       style={style}
       colors={colors}
       props={props}
+      className="preview-token-button"
+      tokenTag="component.button.main"
       styleOverride={{
         ...tokenStyle,
-        ...(override?.padding || override?.size ? buttonPadding(String(values.padding), tokenSize) : {}),
-        gap: tokenStyle.gap,
+        ...buttonPadding(String(values.padding), tokenSize),
+        paddingInline: ctx.tokenSystem.primitive.spacing[ctx.tokenSystem.component.buttonMain.paddingInline] ?? 16,
+        borderRadius: ctx.tokenSystem.primitive.radius[String(values.radius)] ?? tokenStyle.borderRadius,
+        gap: ctx.tokenSystem.primitive.gaps[ctx.tokenSystem.component.buttonMain.gap] ?? tokenStyle.gap,
+        minHeight: ctx.tokenSystem.primitive.sizing[ctx.tokenSystem.component.buttonMain.height] ?? 44,
+        transitionDuration: `${ctx.tokenSystem.state.motionDuration.normal}ms`,
+        transitionTimingFunction: ctx.tokenSystem.state.motionEasing.standard,
+        ["--token-focus-colour" as string]: ctx.tokenColor(String(ctx.tokenSystem.state.focusRing.colour)),
+        ["--token-focus-width" as string]: `${ctx.tokenSystem.state.focusRing.width}px`,
+        ["--token-focus-offset" as string]: `${ctx.tokenSystem.state.focusRing.offset}px`,
+        ["--token-disabled-opacity" as string]: ctx.tokenSystem.state.disabledOpacity,
+        ["--token-hover-opacity" as string]: ctx.tokenSystem.state.hoverOpacity,
         outline: selected ? "2px solid #20B9FA" : undefined,
         outlineOffset: selected ? 3 : undefined,
       }}
