@@ -20,7 +20,7 @@ import BrandUpload from "../components/BrandUpload"
 import { useNav, useRoute } from "../lib/router"
 import { useToast } from "../components/Toast"
 import ConfirmDialog from "../components/ConfirmDialog"
-import IntroTour, { markIntroSeen, shouldShowIntro } from "../components/IntroTour"
+import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard"
 import PaywallOverlay from "../components/PaywallOverlay"
 import {
   FREE_PREVIEW_LIMIT,
@@ -118,7 +118,7 @@ export default function Builder() {
   // Overlays
   const [previewPickerOpen, setPreviewPickerOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
-  const [helpOpen, setHelpOpen] = useState(shouldShowIntro)
+  const [helpOpen, setHelpOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
 
@@ -169,7 +169,8 @@ export default function Builder() {
   useStored("buttonStyle", buttonStyle)
   useStored("buttonProps", buttonProps)
 
-  const closeHelp = useCallback(() => { markIntroSeen(); setHelpOpen(false) }, [])
+  const closeHelp = useCallback(() => { setHelpOpen(false) }, [])
+  void closeHelp
 
   // Fullscreen Escape
   useEffect(() => {
@@ -415,52 +416,94 @@ export default function Builder() {
 
   return (
     <div className="flex h-full flex-col bg-offwhite text-charcoal">
-      {/* Top header removed — brand wordmark and utility actions moved to the Properties sidebar */}
-
-      {/* ================= Row 2: palette bar + Change Template trigger ================= */}
-      {/* The right column is 369px wide (matches the Properties sidebar
-       * below) so the Change Format card sits centered in the same lane
-       * as the sidebar instead of hugging the viewport edge. */}
-      <section className="flex shrink-0 flex-col items-stretch gap-3 border-b border-softgrey/70 bg-white px-3 py-2 sm:flex-row sm:items-center sm:pl-5 sm:pr-0">
-        <div className="min-w-0 flex-1">
-          <PalettePanel
-            palette={palette}
-            onChange={change}
-            onAdd={add}
-            onRemove={remove}
-            onRandomize={randomize}
-            onToggleLock={toggleLock}
-            onRename={rename}
-            onReorder={reorder}
-            brand={BRAND.brand}
-            roleLabels={roleLabels}
+      {/* ================= Row 1: slim workspace toolbar (~48px) ================= */}
+      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white px-3 sm:px-5">
+        <div className="flex min-w-0 items-center gap-2">
+          <a
+            href="/"
+            onClick={navHome("/")}
+            className="flex shrink-0 items-center gap-1.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            aria-label="Palette Preview home"
+          >
+            <img src="/app-icon-64.png" alt="" width={22} height={22} className="h-[22px] w-[22px] rounded-md" />
+            <span className="hidden text-[13px] font-bold tracking-tight sm:inline" style={{ fontFamily: "var(--font-display)" }}>
+              Palette <span style={{ color: BRAND.brand }}>Preview</span>
+            </span>
+          </a>
+          <span className="hidden text-[#d1d5db] sm:inline" aria-hidden>·</span>
+          <span className="truncate text-[12px] font-semibold text-[#4b5563]" title={`${currentGroup.label} / ${currentSub.label}${currentTemplateLabel ? " / " + currentTemplateLabel : ""}`}>
+            {currentGroup.label}<span className="text-[#9ca3af]"> / </span>{currentSub.label}{currentTemplateLabel && <><span className="text-[#9ca3af]"> / </span>{currentTemplateLabel}</>}
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <button
+            type="button"
+            onClick={() => { randomize(); markOnboardingStep("pick") }}
+            className="flex h-[32px] items-center gap-1.5 rounded-[8px] bg-[#0E1821] px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            title="Randomise palette (Space)"
+            aria-label="Randomise palette"
+          >
+            <DiceIcon /><span className="hidden sm:inline">Randomise</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            title="Reset palette to defaults"
+            aria-label="Reset palette"
+          >
+            <ResetIcon /><span className="hidden sm:inline">Reset</span>
+          </button>
+          <ChangeTemplatePanel
+            compact
+            open={templatePopoverOpen}
+            onToggle={() => setTemplatePopoverOpen((v) => !v)}
+            onClose={() => setTemplatePopoverOpen(false)}
+            template={currentGroup.label}
+            templates={GROUPS.map((g) => g.label)}
+            onTemplate={(t: string) => {
+              const nextGroup = GROUPS.find((g) => g.label === t)
+              if (nextGroup && trySelectPreview({ group: nextGroup.key, sub: nextGroup.subs[0].key })) markOnboardingStep("template")
+            }}
+            variant={currentTemplateLabel || (templates[0]?.label ?? "")}
+            variants={templates.map((t) => t.label)}
+            onVariant={(v: string) => {
+              const match = templates.find((t) => t.label === v)
+              if (match) { trySelectTemplate(match.key, match.label); markOnboardingStep("template") }
+            }}
+            layout={currentSub.label}
+            layouts={currentGroup.subs.map((s) => s.label)}
+            onLayout={(l: string) => {
+              const match = currentGroup.subs.find((s) => s.label === l)
+              if (match && trySelectPreview({ group: sel.group, sub: match.key })) markOnboardingStep("template")
+            }}
           />
+          <button
+            type="button"
+            onClick={() => { setExportOpen(true); markOnboardingStep("export") }}
+            className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            title="Export palette and tokens"
+            aria-label="Export"
+          >
+            <ExportIcon /><span className="hidden sm:inline">Export</span>
+          </button>
         </div>
-        <div className="flex w-[369px] shrink-0 justify-center px-3">
-        <ChangeTemplatePanel
-          open={templatePopoverOpen}
-          onToggle={() => setTemplatePopoverOpen((v) => !v)}
-          onClose={() => setTemplatePopoverOpen(false)}
-          template={currentGroup.label}
-          templates={GROUPS.map((g) => g.label)}
-          onTemplate={(t: string) => {
-            const nextGroup = GROUPS.find((g) => g.label === t)
-            if (nextGroup) trySelectPreview({ group: nextGroup.key, sub: nextGroup.subs[0].key })
-          }}
-          variant={currentTemplateLabel || (templates[0]?.label ?? "")}
-          variants={templates.map((t) => t.label)}
-          onVariant={(v: string) => {
-            const match = templates.find((t) => t.label === v)
-            if (match) trySelectTemplate(match.key, match.label)
-          }}
-          layout={currentSub.label}
-          layouts={currentGroup.subs.map((s) => s.label)}
-          onLayout={(l: string) => {
-            const match = currentGroup.subs.find((s) => s.label === l)
-            if (match) trySelectPreview({ group: sel.group, sub: match.key })
-          }}
+      </header>
+
+      {/* ================= Row 2: palette bar (full width, no Change Format card) ================= */}
+      <section className="shrink-0 border-b border-softgrey/70 bg-white px-3 py-2 sm:px-5">
+        <PalettePanel
+          palette={palette}
+          onChange={(id, hex) => { change(id, hex); markOnboardingStep("pick") }}
+          onAdd={add}
+          onRemove={remove}
+          onRandomize={randomize}
+          onToggleLock={toggleLock}
+          onRename={rename}
+          onReorder={reorder}
+          brand={BRAND.brand}
+          roleLabels={roleLabels}
         />
-        </div>
       </section>
 
       {/* Design tools row removed — Edit Elements, Brand and Export now live in the Properties sidebar */}
@@ -518,7 +561,7 @@ export default function Builder() {
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
           editActive={editMode}
-          onToggleEdit={() => setEditMode((v) => !v)}
+          onToggleEdit={() => setEditMode((v) => { if (!v) markOnboardingStep("edit"); return !v })}
           onCreateElement={() => toast.push("Create Element — coming soon")}
           onDelete={() => toast.push("Select an element to delete")}
           onCopy={() => toast.push("Select an element to copy")}
@@ -711,8 +754,9 @@ export default function Builder() {
         onToast={(m, k) => toast.push(m, k)}
       />
 
-      {/* Intro tour + Help */}
-      <IntroTour open={helpOpen} onClose={closeHelp} />
+      {/* Onboarding — dismissible bottom-right card, replaces the old
+       * blocking IntroTour modal. Ticks off as the user does each action. */}
+      <OnboardingCard />
 
       {/* Reset confirmation */}
       <ConfirmDialog
@@ -854,7 +898,8 @@ const Chevron = () => (<span aria-hidden className="text-charcoal/25">›</span>
 const PreviewIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><path d="M8 20h8" /></svg>)
 const EditIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m14.5 4.5 5 5-11 11H3.5v-5.5z" /><path d="m12 7 5 5" /></svg>)
 const BrandIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4" /><circle cx="9" cy="9" r="2" /><path d="m21 15-4.5-4.5L7 20" /></svg>)
-const ExportIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
+const ExportIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v13" /><path d="m7 8 5-5 5 5" /><path d="M5 21h14" /></svg>)
+const DiceIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="16" cy="8" r="1.2" fill="currentColor" /><circle cx="12" cy="12" r="1.2" fill="currentColor" /><circle cx="8" cy="16" r="1.2" fill="currentColor" /><circle cx="16" cy="16" r="1.2" fill="currentColor" /></svg>)
 const ChevronDownIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m6 9 6 6 6-6" /></svg>)
 const FullscreenIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
 const UndoIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-4" /></svg>)

@@ -1,10 +1,8 @@
-import type { MouseEventHandler } from "react"
 import { BRAND } from "../lib/color"
 import { useNav } from "../lib/router"
 import PublicHeader from "../components/PublicHeader"
 import PublicFooter from "../components/PublicFooter"
 
-/* #LandingPage / - introduces the two Palette Preview workflows. */
 export default function Home() {
   const nav = useNav()
   return (
@@ -19,30 +17,22 @@ export default function Home() {
               className="text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              From palette to design system.
+              Pick colours once. Preview them everywhere.
             </h1>
             <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
-              Generate design easily with a palette, live preview, token tools, and a customization bar.
+              Build a simple palette with main, secondary, tertiary and support colours, then see how those roles shift across websites, mobile apps, buttons, navigation and more.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
-                href="/preview"
-                onClick={nav("/preview")}
+                href="/app"
+                onClick={nav("/app")}
                 className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
                 style={{ background: BRAND.brand }}
               >
-                Generate Design System
+                Open Palette Preview
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
-              </a>
-              <a
-                href="/builder"
-                onClick={nav("/builder")}
-                className="inline-flex items-center gap-2 rounded-xl border-2 bg-white px-5 py-3 text-[15px] font-semibold transition-colors hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-                style={{ borderColor: BRAND.brand, color: BRAND.brandDark }}
-              >
-                Quick Palette
               </a>
             </div>
           </div>
@@ -53,45 +43,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Two workflow paths */}
+        {/* Steps */}
         <section className="border-y border-softgrey bg-white px-6 py-16 sm:py-20">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-              Choose how you want to start
-            </h2>
-            <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-              Build a complete design direction or move straight into the palette tools you already know.
-            </p>
-            <div className="mt-10 grid gap-4 md:grid-cols-2">
-              <Path
-                eyebrow="Guided workflow"
-                title="Generate Design System"
-                body="Turn your palette into a design direction with live previews, templates, and the foundation for reusable tokens and customization controls."
-                href="/preview"
-                onClick={nav("/preview")}
-                action="Generate A Design"
-                colours={[BRAND.brand, BRAND.charcoal, "#FFB86B"]}
-              />
-              <Path
-                eyebrow="Fast colour tools"
-                title="Quick Palette"
-                body="Create, edit, randomise, lock, and export colours without opening the full design workflow."
-                href="/builder"
-                onClick={nav("/builder")}
-                action="Open Quick Palette"
-                colours={["#F26D6D", "#F8D56B", "#57C785"]}
-              />
-            </div>
+          <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
+            <Step n={1} title="Choose colour roles" body="Start with main, secondary, tertiary, surface and text colours, then rename them to match your project." />
+            <Step n={2} title="Test real interfaces" body="Apply the same palette to pages, buttons, nav bars, app screens, forms, alerts and charts." />
+            <Step n={3} title="Keep it readable" body="Use simple previews and accessible contrast checks before you export the colours." />
           </div>
         </section>
 
         {/* What you can preview */}
         <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            One palette, a practical design foundation
+            One palette, many useful branches
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-            See how the same colour roles behave across the surfaces that make up a real interface.
+            The same colours do different jobs depending on the surface. Try each branch before deciding.
           </p>
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Tile label="Websites" desc="Landing pages, SaaS, e-commerce, sign-in, paywall." />
@@ -108,24 +75,16 @@ export default function Home() {
         {/* CTA */}
         <section className="border-t border-softgrey bg-white px-6 py-20 text-center sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            Start with the path that fits your project.
+            Start with a palette that earns its place.
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="/preview"
-              onClick={nav("/preview")}
+              href="/app"
+              onClick={nav("/app")}
               className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5"
               style={{ background: BRAND.brand }}
             >
-              Generate Design System
-            </a>
-            <a
-              href="/builder"
-              onClick={nav("/builder")}
-              className="inline-flex items-center gap-2 rounded-xl border-2 bg-white px-5 py-3 text-[15px] font-semibold transition-colors hover:bg-offwhite"
-              style={{ borderColor: BRAND.brand, color: BRAND.brandDark }}
-            >
-              Quick Palette
+              Open Palette Preview
             </a>
           </div>
         </section>
@@ -136,42 +95,18 @@ export default function Home() {
   )
 }
 
-function Path({
-  eyebrow,
-  title,
-  body,
-  href,
-  onClick,
-  action,
-  colours,
-}: {
-  eyebrow: string
-  title: string
-  body: string
-  href: string
-  onClick: MouseEventHandler<HTMLAnchorElement>
-  action: string
-  colours: string[]
-}) {
+function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
-    <div className="flex min-h-64 flex-col rounded-lg border border-softgrey bg-offwhite p-6">
-      <div className="flex gap-2" aria-hidden>
-        {colours.map((colour) => <span key={colour} className="h-8 w-8 rounded-md" style={{ background: colour }} />)}
-      </div>
-      <p className="mt-7 text-[11px] font-bold uppercase tracking-[0.12em] text-charcoal/50">{eyebrow}</p>
-      <h3 className="mt-1 text-[20px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h3>
-      <p className="mt-2 max-w-lg text-[14px] leading-relaxed text-charcoal/65">{body}</p>
-      <a
-        href={href}
-        onClick={onClick}
-        className="mt-auto inline-flex items-center gap-2 self-start pt-6 text-[14px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-        style={{ color: BRAND.brandDark }}
+    <div className="flex flex-col gap-2">
+      <span
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[13px] font-bold text-white"
+        style={{ background: BRAND.brand, fontFamily: "var(--font-display)" }}
+        aria-hidden
       >
-        {action}
-        <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14M13 5l7 7-7 7" />
-        </svg>
-      </a>
+        {n}
+      </span>
+      <h3 className="text-[17px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h3>
+      <p className="text-[14px] leading-relaxed text-charcoal/65">{body}</p>
     </div>
   )
 }

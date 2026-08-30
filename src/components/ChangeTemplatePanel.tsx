@@ -21,6 +21,8 @@ type Props = {
   layout: string
   layouts: string[]
   onLayout: (v: string) => void
+
+  compact?: boolean
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif` } as const
@@ -46,26 +48,48 @@ export default function ChangeTemplatePanel(p: Props) {
 
   return (
     <div className="relative shrink-0" style={UI_FONT}>
-      {/* Format is a compact workspace control, separate from colour cards. */}
-      <button
-        type="button"
-        onClick={p.onToggle}
-        aria-expanded={p.open}
-        aria-haspopup="dialog"
-        className="flex h-10 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-left text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
-        title="Change template, layout and variant"
-      >
-        <LayersIcon />
-        <span className="hidden text-[12px] font-semibold sm:inline">Change format</span>
-        <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
-      </button>
+      {p.compact ? (
+        <button
+          type="button"
+          onClick={p.onToggle}
+          aria-expanded={p.open}
+          aria-haspopup="dialog"
+          className="flex h-[32px] items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          title="Change template, layout and variant"
+        >
+          <LayersIcon />
+          <span className="hidden sm:inline">Change template</span>
+          <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={p.onToggle}
+          aria-expanded={p.open}
+          aria-haspopup="dialog"
+          className="flex h-[113px] w-[240px] flex-col justify-between rounded-[12px] border border-[#e5e7eb] bg-white p-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          title="Change template, layout and variant"
+        >
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.24px] text-[#6b7280]">
+              <LayersIcon /> Change Format
+            </span>
+            <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]">Current</span>
+            <span className="truncate text-[15px] font-bold text-[#111827]" style={DISPLAY_FONT}>{p.template}</span>
+            <span className="truncate text-[11px] font-semibold text-[#6b7280]">{p.layout} · {p.variant}</span>
+          </div>
+        </button>
+      )}
 
       {p.open && (
         <div
           ref={popoverRef}
           role="dialog"
           aria-label="Change Template"
-          className="fixed inset-x-3 bottom-3 z-40 flex max-h-[calc(100vh-24px)] flex-col gap-3 overflow-y-auto rounded-[12px] border border-[#e5e7eb] bg-white p-3 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.28)] sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[320px]"
+          className="absolute right-0 top-full z-40 mt-2 flex w-[320px] flex-col gap-3 rounded-[12px] border border-[#e5e7eb] bg-white p-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]"
         >
           <div className="flex items-center justify-between">
             <p className="text-[13px] font-extrabold tracking-tight text-[#111827]" style={DISPLAY_FONT}>CHANGE TEMPLATE</p>
