@@ -3,8 +3,7 @@ import { BRAND } from "../lib/color"
 import { useNav, useRoute, type Route } from "../lib/router"
 
 const NAV: { to: Route; label: string }[] = [
-  { to: "/preview", label: "Generate A Design" },
-  { to: "/builder", label: "Quick Palette" },
+  { to: "/app", label: "Open Palette Preview" },
   { to: "/live-changes", label: "Live Changes" },
   { to: "/help", label: "Help" },
 ]

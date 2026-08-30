@@ -58,6 +58,7 @@ export default function Builder() {
   const toast = useToast()
   const previewRef = useRef<PreviewRendererHandle | null>(null)
   const canvasRef = useRef<HTMLElement | null>(null)
+  const moreMenuRef = useRef<HTMLDivElement | null>(null)
   const skipHistory = useRef(false)
   const randomiseCount = useRef(0)
   const recentCurated = useRef<number[]>([])
@@ -71,6 +72,7 @@ export default function Builder() {
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
   const [inspectorOpen, setInspectorOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
   const [brandOpen, setBrandOpen] = useState(false)
@@ -103,6 +105,15 @@ export default function Builder() {
     query.addEventListener("change", update)
     return () => query.removeEventListener("change", update)
   }, [])
+
+  useEffect(() => {
+    if (!moreOpen) return
+    const close = (event: PointerEvent) => {
+      if (!moreMenuRef.current?.contains(event.target as Node)) setMoreOpen(false)
+    }
+    document.addEventListener("pointerdown", close)
+    return () => document.removeEventListener("pointerdown", close)
+  }, [moreOpen])
 
   const mutatePalette = useCallback((updater: (current: Swatch[]) => Swatch[]) => {
     setPalette((current) => {
@@ -144,6 +155,7 @@ export default function Builder() {
         setPaletteSheetOpen(false)
         setInspectorOpen(false)
         setTemplateOpen(false)
+        setMoreOpen(false)
         return
       }
       const target = event.target as HTMLElement | null
@@ -301,8 +313,6 @@ export default function Builder() {
         className="hidden w-[280px] shrink-0 border-r border-softgrey lg:flex"
         palette={palette}
         onAdd={addColour}
-        onRandomise={randomise}
-        onReset={() => setConfirmReset(true)}
         onChange={changeColour}
         onRename={renameColour}
         onRemove={removeColour}
@@ -316,40 +326,33 @@ export default function Builder() {
               <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
             </a>
             <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setInspectorOpen(false) }}><PaletteIcon /></ToolbarButton>
+            <span className="hidden max-w-[100px] truncate px-1 text-[12px] font-semibold text-charcoal/70 sm:block" title={templateName}>{templateName}</span>
             <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
             <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 xl:inline">{remaining} previews left</span>}
-            <ToolbarButton label="Brand assets" onClick={() => setBrandOpen(true)}><BrandIcon /></ToolbarButton>
-            <ToolbarButton label="Center template" onClick={() => previewRef.current?.fitToScreen()}><CenterIcon /></ToolbarButton>
-            <ToolbarButton label="Full screen" onClick={toggleFullscreen}><FullscreenIcon /></ToolbarButton>
-            <ToolbarButton label="Export" onClick={() => { setExportOpen(true); markOnboardingStep("export") }}><ExportIcon /></ToolbarButton>
-            <ToolbarButton label={inspectorOpen ? "Hide inspector" : "Show inspector"} pressed={inspectorOpen} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false) }}><InspectorIcon /></ToolbarButton>
-          </div>
-        </header>
-
-        <main ref={canvasRef} className="relative min-h-0 flex-1 overflow-hidden bg-softgrey p-2 sm:p-3" aria-label="Preview canvas">
-          <div className="absolute right-3 top-3 z-30 max-w-[calc(100%-24px)]">
+            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 min-[1600px]:inline">{remaining} previews left</span>}
+            <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
+            <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
               compact
-              triggerLabel={templateName}
+              triggerLabel="Change template"
               open={templateOpen}
-              onToggle={() => setTemplateOpen((open) => !open)}
+              onToggle={() => { setTemplateOpen((open) => !open); setMoreOpen(false) }}
               onClose={() => setTemplateOpen(false)}
               template={currentGroup.label}
               templates={GROUPS.map((group) => group.label)}
               onTemplate={(label) => {
                 const group = GROUPS.find((item) => item.label === label)
                 const firstType = group?.subs[0]
-                if (group && firstType) trySelect({ group: group.key, sub: firstType.key })
+                if (group && firstType && trySelect({ group: group.key, sub: firstType.key })) markOnboardingStep("template")
               }}
               layout={currentType.label}
               layouts={currentGroup.subs.map((type) => type.label)}
               onLayout={(label) => {
                 const type = currentGroup.subs.find((item) => item.label === label)
-                if (type) trySelect({ group: currentGroup.key, sub: type.key })
+                if (type && trySelect({ group: currentGroup.key, sub: type.key })) markOnboardingStep("template")
               }}
               variant={currentType.templates.find((template) => template.key === templateId)?.label ?? "Default"}
               variants={currentType.templates.map((template) => template.label)}
@@ -358,8 +361,26 @@ export default function Builder() {
                 if (template) chooseTemplate(template.key, template.label)
               }}
             />
+            <ToolbarAction label="Export" onClick={() => { setExportOpen(true); markOnboardingStep("export") }}><ExportIcon /></ToolbarAction>
+            <div ref={moreMenuRef} className="relative min-[1600px]:hidden">
+              <ToolbarButton label="More tools" pressed={moreOpen} onClick={() => { setMoreOpen((open) => !open); setTemplateOpen(false) }}><MoreIcon /></ToolbarButton>
+              {moreOpen && (
+                <div className="absolute right-0 top-full z-50 mt-1 w-[190px] rounded-[8px] border border-softgrey bg-white p-1.5 shadow-xl" role="menu" aria-label="More workspace tools">
+                  <MenuAction label="Brand assets" onClick={() => { setBrandOpen(true); setMoreOpen(false) }}><BrandIcon /></MenuAction>
+                  <MenuAction label="Center template" onClick={() => { previewRef.current?.fitToScreen(); setMoreOpen(false) }}><CenterIcon /></MenuAction>
+                  <MenuAction label="Full screen" onClick={() => { void toggleFullscreen(); setMoreOpen(false) }}><FullscreenIcon /></MenuAction>
+                  <MenuAction className="lg:hidden" label={inspectorOpen ? "Hide inspector" : "Show inspector"} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false); setMoreOpen(false) }}><InspectorIcon /></MenuAction>
+                </div>
+              )}
+            </div>
+            <ToolbarButton className="hidden min-[1600px]:grid" label="Brand assets" onClick={() => setBrandOpen(true)}><BrandIcon /></ToolbarButton>
+            <ToolbarButton className="hidden min-[1600px]:grid" label="Center template" onClick={() => previewRef.current?.fitToScreen()}><CenterIcon /></ToolbarButton>
+            <ToolbarButton className="hidden min-[1600px]:grid" label="Full screen" onClick={toggleFullscreen}><FullscreenIcon /></ToolbarButton>
+            <ToolbarButton className="hidden lg:grid" label={inspectorOpen ? "Hide inspector" : "Show inspector"} pressed={inspectorOpen} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false) }}><InspectorIcon /></ToolbarButton>
           </div>
+        </header>
 
+        <main ref={canvasRef} className="relative min-h-0 flex-1 overflow-hidden bg-softgrey p-2 sm:p-3" aria-label="Preview canvas">
           <div className="h-full w-full overflow-hidden rounded-[8px] border border-charcoal/10 bg-white">
             <PreviewProvider value={previewContext}>
               <ScopeProvider value={`${selection.group}/${selection.sub}/${templateId}`}>
@@ -378,8 +399,6 @@ export default function Builder() {
             className="h-[min(72dvh,680px)] w-full rounded-t-[8px] border-t border-softgrey"
             palette={palette}
             onAdd={addColour}
-            onRandomise={randomise}
-            onReset={() => setConfirmReset(true)}
             onChange={changeColour}
             onRename={renameColour}
             onRemove={removeColour}
@@ -435,6 +454,18 @@ function ToolbarButton({ label, onClick, children, disabled = false, pressed, cl
   )
 }
 
+function ToolbarAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[7px] px-0 text-[12px] font-semibold text-charcoal/65 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand min-[1400px]:w-auto min-[1400px]:px-3">
+      {children}<span className="hidden min-[1400px]:inline">{label}</span>
+    </button>
+  )
+}
+
+function MenuAction({ label, onClick, children, className = "" }: { label: string; onClick: () => void; children: ReactNode; className?: string }) {
+  return <button type="button" role="menuitem" onClick={onClick} className={`flex h-11 w-full items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-semibold text-charcoal/70 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}><span className="grid w-5 place-items-center">{children}</span>{label}</button>
+}
+
 function SheetBackdrop({ children, onClose, className = "" }: { children: ReactNode; onClose: () => void; className?: string }) {
   return <div className={`fixed inset-0 z-50 flex items-end bg-charcoal/30 ${className}`} onMouseDown={onClose} role="dialog" aria-modal="true"><div className="w-full" onMouseDown={(event) => event.stopPropagation()}>{children}</div></div>
 }
@@ -442,8 +473,11 @@ function SheetBackdrop({ children, onClose, className = "" }: { children: ReactN
 const PaletteIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16M4 12h16M4 19h10" /><circle cx="7" cy="5" r="2" fill="currentColor" stroke="none" /><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none" /><circle cx="9" cy="19" r="2" fill="currentColor" stroke="none" /></svg>
 const UndoIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 6 6v1" /></svg>
 const RedoIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0-6 6v1" /></svg>
+const DiceIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" /></svg>
+const ResetIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
 const BrandIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v18M3 12h18" /><circle cx="12" cy="12" r="9" /></svg>
 const CenterIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /><circle cx="12" cy="12" r="2" /></svg>
 const FullscreenIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
 const ExportIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 13v7h14v-7" /></svg>
 const InspectorIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>
+const MoreIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>

@@ -11,8 +11,6 @@ import {
 type Props = {
   palette: Swatch[]
   onAdd: () => void
-  onRandomise: () => void
-  onReset: () => void
   onChange: (id: string, hex: string) => void
   onRename: (id: string, name: string) => void
   onRemove: (id: string) => void
@@ -35,8 +33,6 @@ function values(hex: string): Draft {
 export default function PaletteRail({
   palette,
   onAdd,
-  onRandomise,
-  onReset,
   onChange,
   onRename,
   onRemove,
@@ -92,8 +88,6 @@ export default function PaletteRail({
       <header className="flex h-12 shrink-0 items-center gap-1 border-b border-softgrey px-2">
         <h2 className="min-w-0 flex-1 truncate px-1 text-[13px] font-bold">Palette</h2>
         <RailAction label="Add colour" onClick={onAdd}><PlusIcon /></RailAction>
-        <RailAction label="Randomise palette" onClick={onRandomise}><DiceIcon /></RailAction>
-        <RailAction label="Reset palette" onClick={onReset}><ResetIcon /></RailAction>
       </header>
 
       <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 ${openId ? "pb-[300px]" : ""}`}>
@@ -190,7 +184,5 @@ function RailAction({ label, onClick, children }: { label: string; onClick: () =
 }
 
 const PlusIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-const ResetIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
-const DiceIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" /></svg>
 const LockedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
 const UnlockedIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 7.5-2" /></svg>

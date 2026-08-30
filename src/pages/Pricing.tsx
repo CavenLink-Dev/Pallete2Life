@@ -36,11 +36,11 @@ export default function Pricing() {
               <Feat>15 preview uses across websites, apps and components</Feat>
             </ul>
             <a
-              href="/builder"
-              onClick={nav("/builder")}
+              href="/app"
+              onClick={nav("/app")}
               className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             >
-              Quick Palette
+              Open Palette Preview
             </a>
           </div>
 
@@ -73,12 +73,12 @@ export default function Pricing() {
               <Feat>Full Screen Preview</Feat>
             </ul>
             <a
-              href="/preview"
-              onClick={nav("/preview")}
+              href="/app"
+              onClick={nav("/app")}
               className="mt-auto inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
               style={{ background: BRAND.brand }}
             >
-              Create A Design System
+              Open Palette Preview
             </a>
             <p className="text-center text-[11px] text-charcoal/45">
               Accounts and payments coming soon.

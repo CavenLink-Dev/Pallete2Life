@@ -159,7 +159,7 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
                 <div className="border-y border-softgrey py-4">
                   {["Primitive colour and design scales", "Semantic colour and type roles", "Button Main and Card Default rules", "Focus, opacity and motion states"].map((item) => <p key={item} className="flex items-center gap-2 py-1.5 text-[13px] text-charcoal/70"><CheckIcon />{item}</p>)}
                 </div>
-                <p className="mt-5 rounded-[7px] border border-softgrey bg-offwhite px-4 py-3 text-[12px] leading-5 text-charcoal/60">Use the Export step in the workflow when you are ready. Keeping export in one place prevents conflicting project files.</p>
+                <p className="mt-5 rounded-[7px] border border-softgrey bg-offwhite px-4 py-3 text-[12px] leading-5 text-charcoal/60">Use Export when you are ready. Keeping export in one place prevents conflicting project files.</p>
                 <div className="mt-5 rounded-[7px] border border-dashed border-softgrey bg-offwhite p-4">
                   <p className="text-[12px] font-bold text-charcoal/70">Figma integration</p>
                   <p className="mt-1 text-[11.5px] text-charcoal/45">Future feature. It is intentionally separate from the export formats that work today.</p>

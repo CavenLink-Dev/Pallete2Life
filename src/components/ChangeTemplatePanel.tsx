@@ -55,11 +55,11 @@ export default function ChangeTemplatePanel(p: Props) {
           onClick={p.onToggle}
           aria-expanded={p.open}
           aria-haspopup="dialog"
-          className="flex h-[32px] max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-3 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex h-11 max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-2.5 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] min-[1400px]:px-3"
           title="Change template, layout and variant"
         >
           <LayersIcon />
-          <span className="min-w-0 max-w-[190px] truncate">{p.triggerLabel ?? "Change template"}</span>
+          <span className="hidden min-w-0 max-w-[190px] truncate min-[1400px]:inline">{p.triggerLabel ?? "Change template"}</span>
           <ChevronDown className={`text-[#6b7280] transition-transform ${p.open ? "rotate-180" : ""}`} />
         </button>
       ) : (

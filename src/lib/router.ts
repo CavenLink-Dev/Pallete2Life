@@ -15,6 +15,13 @@ export type Route =
 const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/live-changes", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
+export function replaceRoute(r: Route) {
+  if (typeof window === "undefined") return
+  const suffix = window.location.search + window.location.hash
+  window.history.replaceState({}, "", r + suffix)
+  window.dispatchEvent(new Event(NAV_EVENT))
+}
+
 function currentPath(): Route {
   if (typeof window === "undefined") return "/"
   const p = window.location.pathname as Route

@@ -1,4 +1,5 @@
-import { useRoute } from "./lib/router"
+import { useEffect } from "react"
+import { replaceRoute, useRoute } from "./lib/router"
 import { ToastProvider } from "./components/Toast"
 import Home from "./pages/Home"
 import Builder from "./pages/Builder"
@@ -8,18 +9,23 @@ import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
 import LiveChanges from "./pages/LiveChanges"
-import Generator from "./pages/Generator"
 
 export default function App() {
   const [route] = useRoute()
 
+  useEffect(() => {
+    if (route === "/preview" || route === "/builder") replaceRoute("/app")
+  }, [route])
+
   let page: React.ReactNode
   switch (route) {
     case "/app":
-    case "/preview":
       page = <Builder />
       break
-    case "/builder": page = <Generator />; break
+    case "/preview":
+    case "/builder":
+      page = null
+      break
     case "/live-changes": page = <LiveChanges />; break
     case "/pricing":  page = <Pricing />;  break
     case "/help":     page = <Help />;     break

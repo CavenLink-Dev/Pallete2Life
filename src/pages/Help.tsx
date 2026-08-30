@@ -17,21 +17,21 @@ export default function Help() {
         </div>
 
         <Section title="How Palette Preview works">
-          <p>Palette Preview gives you two clear starting points. Quick Palette keeps the familiar colour columns and export tools, while Generate A Design applies your saved palette to a real interface.</p>
+          <p>Palette Preview keeps your colours, templates and export tools together in one workspace.</p>
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
-            <li><b>Create your colours.</b> Click any large colour column to edit HEX, RGB or HSL. Lock colours you want Randomise to keep.</li>
-            <li><b>Export for free.</b> Copy your HEX, RGB or HSL values, or download a basic palette file.</li>
-            <li><b>Generate a design when needed.</b> Use <b>Generate A Design</b> from the main navigation to open the separate design workflow.</li>
+            <li><b>Create your colours.</b> Open Palette, choose a swatch and edit its HEX, RGB or HSL values. Lock colours you want Randomise to keep.</li>
+            <li><b>Try a template.</b> Use <b>Change template</b> in the toolbar to see the palette on a real interface.</li>
+            <li><b>Export your work.</b> Copy or download palette values and design tokens from <b>Export</b>.</li>
           </ol>
         </Section>
 
-        <Section title="Quick Palette">
+        <Section title="Palette tools">
           <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
             <li><b>Click a colour</b> to open its HEX, RGB and HSL editor.</li>
             <li><b>Lock a colour</b> so Randomise keeps it while the others change.</li>
             <li><b>Randomise</b> generates new colours for anything not locked.</li>
             <li><b>Add colour</b> adds another column. Remove a colour from inside its editor.</li>
-            <li><b>Export</b> copies or downloads your real colour values without using a preview.</li>
+            <li><b>Export</b> copies or downloads your real colour values and available design tokens.</li>
           </ul>
         </Section>
 
@@ -61,7 +61,7 @@ export default function Help() {
 
         <Section title="Still stuck?">
           <p>
-            The homepage has short step-by-step instructions. If something's not working the way this page says it should,{" "}
+            The homepage has short instructions. If something's not working the way this page says it should,{" "}
             <a href="/contact" onClick={nav("/contact")} className="font-semibold underline" style={{ color: BRAND.brand }}>let us know</a>.
           </p>
         </Section>
