@@ -104,6 +104,7 @@ type BuilderSnapshot = {
   elementOverrides: ElementOverrides
   tokenSystem: DesignTokenSystem
   componentIds: string[]
+  colourWayChosen: boolean
 }
 
 
@@ -218,49 +219,52 @@ export default function Builder() {
   const mutatePalette = useCallback((updater: (prev: Swatch[]) => Swatch[]) => {
     const next = updater(palette)
     if (JSON.stringify(palette) === JSON.stringify(next)) return
-    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds, colourWayChosen })
     setPalette(next)
-  }, [assignments, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
+  }, [assignments, colourWayChosen, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
 
   const mutateWorkspace = useCallback((next: Partial<BuilderSnapshot>) => {
-    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds })
+    pushHistory({ palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds, colourWayChosen })
     if (next.palette) setPalette(next.palette)
     if (next.assignments) setAssignments(next.assignments)
     if (next.roleBindings) setRoleBindings(next.roleBindings)
     if (next.elementOverrides) setElementOverrides(next.elementOverrides)
     if (next.tokenSystem) setTokenSystem(next.tokenSystem)
     if (next.componentIds) setComponentIds(next.componentIds)
-  }, [assignments, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
+    if (next.colourWayChosen !== undefined) setColourWayChosen(next.colourWayChosen)
+  }, [assignments, colourWayChosen, componentIds, elementOverrides, palette, pushHistory, roleBindings, tokenSystem])
 
   const undo = useCallback(() => {
     if (!undoStack.length) { toast.push("Nothing to undo"); return }
     const previous = undoStack[undoStack.length - 1]
     setUndoStack(undoStack.slice(0, -1))
-    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds }])
+    setRedoStack((redo) => [...redo, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds, colourWayChosen }])
     setPalette(previous.palette)
     setAssignments(previous.assignments)
     setRoleBindings(previous.roleBindings)
     setElementOverrides(previous.elementOverrides)
     setTokenSystem(previous.tokenSystem)
     setComponentIds(previous.componentIds)
+    setColourWayChosen(previous.colourWayChosen)
     setRoleMapMessage(null)
     toast.push("Undone")
-  }, [assignments, componentIds, elementOverrides, palette, roleBindings, toast, tokenSystem, undoStack])
+  }, [assignments, colourWayChosen, componentIds, elementOverrides, palette, roleBindings, toast, tokenSystem, undoStack])
 
   const redo = useCallback(() => {
     if (!redoStack.length) { toast.push("Nothing to redo"); return }
     const next = redoStack[redoStack.length - 1]
     setRedoStack(redoStack.slice(0, -1))
-    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds }])
+    setUndoStack((undoItems) => [...undoItems, { palette, assignments, roleBindings, elementOverrides, tokenSystem, componentIds, colourWayChosen }])
     setPalette(next.palette)
     setAssignments(next.assignments)
     setRoleBindings(next.roleBindings)
     setElementOverrides(next.elementOverrides)
     setTokenSystem(next.tokenSystem)
     setComponentIds(next.componentIds)
+    setColourWayChosen(next.colourWayChosen)
     setRoleMapMessage(null)
     toast.push("Redone")
-  }, [assignments, componentIds, elementOverrides, palette, redoStack, roleBindings, toast, tokenSystem])
+  }, [assignments, colourWayChosen, componentIds, elementOverrides, palette, redoStack, roleBindings, toast, tokenSystem])
 
   // Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z / Cmd/Ctrl+Y
   useEffect(() => {
@@ -528,7 +532,7 @@ export default function Builder() {
 
   const doReset = () => {
     const nextPalette = createDefaultPalette()
-    mutateWorkspace({ palette: nextPalette, assignments: {}, roleBindings: {}, elementOverrides: {}, tokenSystem: createTokenSystem(nextPalette), componentIds: [] })
+    mutateWorkspace({ palette: nextPalette, assignments: {}, roleBindings: {}, elementOverrides: {}, tokenSystem: createTokenSystem(nextPalette), componentIds: [], colourWayChosen: false })
     setSelectedElement(null)
     setConfirmReset(false)
     toast.push("Palette reset — Undo brings it back", "success")
@@ -724,7 +728,6 @@ export default function Builder() {
           onChange={change}
           onAdd={add}
           onRemove={remove}
-          onRandomize={randomize}
           onToggleLock={toggleLock}
           onRename={rename}
           onReorder={reorder}
@@ -736,13 +739,9 @@ export default function Builder() {
       <WorkflowBar
         colourWayChosen={colourWayChosen}
         componentCount={componentIds.length}
-        onPalette={() => toast.push("Your current palette is ready")}
-        onPreview={centerTemplate}
-        onChoose={() => { setColourWayChosen(true); toast.push("Colour way chosen", "success") }}
+        onChoose={() => { mutateWorkspace({ colourWayChosen: true }); toast.push("Colour way chosen", "success") }}
         onTokens={() => setTokenPanelOpen(true)}
-        onTemplate={() => openLibrary("template")}
         onComponents={() => openLibrary("component")}
-        onEdit={() => { setEditMode(true); toast.push("Select an element in the preview") }}
         onExport={() => setExportOpen(true)}
       />
 
@@ -758,10 +757,10 @@ export default function Builder() {
         <div className="flex shrink-0 items-center gap-1.5">
           <WorkspaceIconButton label="Auto-center template" onClick={centerTemplate}><CenterIcon /></WorkspaceIconButton>
           <WorkspaceIconButton label={isFullscreen ? "Exit full screen" : "Full screen"} onClick={toggleFullscreen} pressed={isFullscreen}><FullscreenIcon /></WorkspaceIconButton>
-          <button type="button" onClick={() => { setEditMode((current) => !current); if (editMode) setSelectedElement(null) }} className={`flex h-10 items-center gap-2 rounded-[8px] border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${editMode ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#374151] hover:bg-[#f3f4f6]"}`} aria-pressed={editMode}>
+          <button type="button" onClick={() => { setEditMode((current) => !current); if (editMode) setSelectedElement(null) }} className={`flex h-11 items-center gap-2 rounded-[8px] border px-3 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${editMode ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#374151] hover:bg-[#f3f4f6]"}`} aria-pressed={editMode}>
             <EditIcon /><span className="hidden md:inline">Edit elements</span>
           </button>
-          <button type="button" onClick={() => openLibrary("template")} className="flex h-10 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Change template" title="Change template">
+          <button type="button" onClick={() => openLibrary("template")} className="flex h-11 items-center gap-2 rounded-[8px] border border-[#d7d9dd] bg-[#f3f4f6] px-3 text-[12px] font-semibold text-[#374151] transition-colors hover:bg-[#e9eaec] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Change template" title="Change template">
             <LayersIcon /><span className="hidden sm:inline">Change template</span>
           </button>
         </div>
@@ -806,7 +805,7 @@ export default function Builder() {
           onRandomize={randomize}
           onUndo={undo}
           onRedo={redo}
-          onSave={() => toast.push("Palette autosaves as you work", "success")}
+          onReset={() => setConfirmReset(true)}
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
           roleSource={roleMapSource}
@@ -819,8 +818,6 @@ export default function Builder() {
           roleSetDisabled={roleMapNoOp}
           roleMessage={roleMapMessage}
           onInsertBrand={() => setBrandOpen(true)}
-          onTokens={() => setTokenPanelOpen(true)}
-          onExport={() => setExportOpen(true)}
           onHelp={() => setHelpOpen(true)}
           exportSummary={[`${palette.length} palette colours`, "5 token layers", `${componentIds.length} added components`, currentTemplateName]}
           accessibilityChecks={inspectorAccessibilityChecks}
@@ -848,7 +845,6 @@ export default function Builder() {
             theme={theme}
             onChange={(next) => mutateWorkspace({ tokenSystem: next })}
             onClose={() => setTokenPanelOpen(false)}
-            onExport={() => { setTokenPanelOpen(false); setExportOpen(true) }}
           />
         </Suspense>
       )}
@@ -857,7 +853,7 @@ export default function Builder() {
       {brandOpen && (
         <BrandUpload
           brand={brand}
-          onChange={(b) => { setBrand(b); toast.push("Brand updated", "success") }}
+          onChange={setBrand}
           onClose={() => setBrandOpen(false)}
         />
       )}
@@ -873,6 +869,7 @@ export default function Builder() {
           name: "Palette Preview design system",
           templateId: tpl,
           componentIds,
+          colourWayChosen,
           brand,
           roleBindings,
           elementOverrides,
@@ -884,6 +881,7 @@ export default function Builder() {
             palette: nextPalette,
             tokenSystem: nextSystem,
             componentIds: imported.project?.componentIds ?? [],
+            colourWayChosen: imported.project?.colourWayChosen ?? true,
             roleBindings: imported.project?.roleBindings ?? {},
             elementOverrides: imported.project?.elementOverrides ?? {},
           })
@@ -908,7 +906,7 @@ export default function Builder() {
       <ConfirmDialog
         open={confirmReset}
         title="Reset your palette?"
-        body="Your current colours and element assignments will be replaced by the defaults. You can Undo (Ctrl/Cmd+Z) if you change your mind."
+        body="Your palette, mappings, tokens, component choices and element edits will return to their defaults. You can Undo (Ctrl/Cmd+Z) if you change your mind."
         confirmLabel="Reset palette"
         destructive
         onConfirm={doReset}
@@ -929,45 +927,44 @@ export default function Builder() {
 function WorkflowBar({
   colourWayChosen,
   componentCount,
-  onPalette,
-  onPreview,
   onChoose,
   onTokens,
-  onTemplate,
   onComponents,
-  onEdit,
   onExport,
 }: {
   colourWayChosen: boolean
   componentCount: number
-  onPalette: () => void
-  onPreview: () => void
   onChoose: () => void
   onTokens: () => void
-  onTemplate: () => void
   onComponents: () => void
-  onEdit: () => void
   onExport: () => void
 }) {
-  const stages = [
-    ["Palette", onPalette],
-    ["Preview", onPreview],
-    [colourWayChosen ? "Chosen" : "Choose", onChoose],
-    ["Tokens", onTokens],
-    ["Template", onTemplate],
-    [componentCount ? `Components ${componentCount}` : "Components", onComponents],
-    ["Edit", onEdit],
-    ["Export", onExport],
+  type WorkflowStage = { label: string; state: "ready" | "action" | "header"; action?: () => void }
+  const stages: WorkflowStage[] = [
+    { label: "Palette", state: "ready", action: undefined },
+    { label: "Preview", state: "ready", action: undefined },
+    { label: colourWayChosen ? "Chosen" : "Choose", state: colourWayChosen ? "ready" : "action", action: colourWayChosen ? undefined : onChoose },
+    { label: "Tokens", state: "action", action: onTokens },
+    { label: "Template", state: "header", action: undefined },
+    { label: componentCount ? `Components ${componentCount}` : "Components", state: componentCount ? "ready" : "action", action: onComponents },
+    { label: "Edit", state: "header", action: undefined },
+    { label: "Export", state: "action", action: onExport },
   ] as const
   return (
-    <nav className="shrink-0 overflow-x-auto border-b border-softgrey bg-[#fafafa] px-3 py-2 sm:px-5" aria-label="Generate design stages">
-      <ol className="flex min-w-max items-center gap-1">
-        {stages.map(([label, action], index) => (
+    <nav className="shrink-0 overflow-x-auto border-b border-softgrey bg-[#fafafa] px-3 py-2 sm:px-5" aria-label="Generate design workflow">
+      <ol className="flex min-w-max items-center gap-1.5">
+        {stages.map((stage, index) => (
           <li key={index} className="flex items-center gap-1">
-            {index > 0 && <span className="h-px w-3 bg-softgrey" aria-hidden />}
-            <button type="button" onClick={action} className={`flex h-8 items-center gap-1.5 rounded-[7px] border px-2.5 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${label === "Chosen" ? "border-[#a7e0c2] bg-[#ecfdf3] text-[#067647]" : "border-softgrey bg-white text-charcoal/65 hover:text-charcoal"}`}>
-              <span className="grid h-4 w-4 place-items-center rounded-full bg-charcoal text-[9px] text-white">{index + 1}</span>{label}
-            </button>
+            {index > 0 && <span className="h-px w-2 bg-softgrey" aria-hidden />}
+            {stage.action ? (
+              <button type="button" onClick={stage.action} className="flex h-11 items-center gap-1.5 rounded-[7px] border border-softgrey bg-white px-2.5 text-[11px] font-semibold text-charcoal/70 hover:border-charcoal/25 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-charcoal text-[9px] text-white">{index + 1}</span>{stage.label}
+              </button>
+            ) : (
+              <span className={`flex h-11 items-center gap-1.5 px-2 text-[11px] font-semibold ${stage.state === "ready" ? "text-[#067647]" : "text-charcoal/45"}`} aria-label={`${index + 1}. ${stage.label}${stage.state === "ready" ? ", ready" : ", available in preview toolbar"}`}>
+                <span className={`grid h-5 w-5 place-items-center rounded-full text-[9px] ${stage.state === "ready" ? "bg-[#d1fadf] text-[#067647]" : "bg-softgrey text-charcoal/55"}`}>{stage.state === "ready" ? <CheckSmallIcon /> : index + 1}</span>{stage.label}
+              </span>
+            )}
           </li>
         ))}
       </ol>
@@ -981,7 +978,7 @@ function AccessibilityCanvasBadge({ checks }: { checks: AccessibilityCheck[] }) 
   return (
     <div className={`pointer-events-none absolute bottom-4 left-4 z-20 flex items-center gap-2 rounded-[7px] border px-2.5 py-1.5 text-[10.5px] font-semibold shadow-sm backdrop-blur ${status === "good" ? "border-[#a7e0c2] bg-[#ecfdf3]/95 text-[#067647]" : status === "review" ? "border-[#fed7aa] bg-[#fff7ed]/95 text-[#9a3412]" : "border-[#fecaca] bg-[#fef2f2]/95 text-[#b42318]"}`} role="status">
       <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-      Accessibility: {ACCESSIBILITY_STATUS_LABEL[status]}{count ? ` · ${count} to review` : ""}
+      Accessibility: {status === "good" ? ACCESSIBILITY_STATUS_LABEL.good : ACCESSIBILITY_STATUS_LABEL.review}{count ? ` · ${count}` : ""}
     </div>
   )
 }
@@ -1001,7 +998,7 @@ function WorkspaceIconButton({
       title={label}
       aria-label={label}
       aria-pressed={pressed}
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${pressed ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#4b5563] hover:bg-[#f3f4f6]"}`}
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${pressed ? "border-brand bg-[#eef8fc] text-brand-dark" : "border-[#d7d9dd] bg-white text-[#4b5563] hover:bg-[#f3f4f6]"}`}
     >
       {children}
     </button>
@@ -1014,3 +1011,4 @@ const CenterIcon = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="
 const LayersIcon = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m12 2 10 6-10 6L2 8Z" /><path d="m2 12 10 6 10-6M2 16l10 6 10-6" /></svg>)
 const CloseIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>)
 const FullscreenIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /></svg>)
+const CheckSmallIcon = () => (<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12 4 4L19 6" /></svg>)

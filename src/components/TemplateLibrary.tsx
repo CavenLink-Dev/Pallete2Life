@@ -6,6 +6,7 @@ import {
   type TemplateAsset,
   type TemplateCategory,
 } from "../lib/templateAssets"
+import { useDialogFocus } from "../lib/useDialogFocus"
 
 type LibrarySection = "Built-In" | "Imported" | "Recent" | "Favorites"
 
@@ -35,6 +36,7 @@ function saveIds(key: string, ids: string[]) {
 }
 
 export default function TemplateLibrary({ selectedId, onSelect, onClose, initialCategory, title = "Template and component library", categories = templateCategories }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(true)
   const selected = templateAssets.find((asset) => asset.id === selectedId) ?? templateAssets[0]
   const [section, setSection] = useState<LibrarySection>(initialCategory === "Components" ? "Built-In" : selected.collection)
   const [category, setCategory] = useState<TemplateCategory>(initialCategory ?? selected.category)
@@ -109,7 +111,7 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-charcoal/45 p-3 backdrop-blur-[2px] sm:p-6" role="dialog" aria-modal="true" aria-label="Template and component library" onMouseDown={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.5)]" onMouseDown={(event) => event.stopPropagation()}>
+      <div ref={dialogRef} className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.5)]" onMouseDown={(event) => event.stopPropagation()}>
         <header className="flex items-start justify-between gap-4 border-b border-softgrey px-4 py-3.5 sm:px-5">
           <div>
             <h2 className="text-[16px] font-bold text-charcoal" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
@@ -117,14 +119,14 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
               {templateStats.builtInTemplates} built-in <span aria-hidden>·</span> {templateStats.websiteTemplates} Website <span aria-hidden>·</span> {templateStats.applicationTemplates} Application <span aria-hidden>·</span> {templateStats.componentTemplates} Components
             </p>
           </div>
-          <button type="button" onClick={onClose} className="grid h-8 w-8 shrink-0 place-items-center rounded-[7px] border border-softgrey text-charcoal/55 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Close library" title="Close">
+          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] border border-softgrey text-charcoal/55 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close library" title="Close">
             <CloseIcon />
           </button>
         </header>
 
         <nav className="flex gap-1 overflow-x-auto border-b border-softgrey px-4 pt-2 sm:px-5" aria-label="Library sections">
           {(["Built-In", "Imported", "Recent", "Favorites"] as LibrarySection[]).map((item) => (
-            <button key={item} type="button" onClick={() => chooseSection(item)} className={`shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold ${section === item ? "border-brand text-charcoal" : "border-transparent text-charcoal/50 hover:text-charcoal"}`} aria-current={section === item ? "page" : undefined}>
+            <button key={item} type="button" onClick={() => chooseSection(item)} className={`min-h-11 shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset ${section === item ? "border-brand text-charcoal" : "border-transparent text-charcoal/50 hover:text-charcoal"}`} aria-current={section === item ? "page" : undefined}>
               {item}
             </button>
           ))}
@@ -155,9 +157,9 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
           <div className="flex items-center gap-3 border-b border-softgrey px-4 py-2.5 sm:px-5">
             <div className="relative max-w-sm flex-1">
               <SearchIcon />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search templates" className="h-9 w-full rounded-[7px] border border-softgrey bg-white pl-9 pr-3 text-[12px] text-charcoal outline-none transition-shadow placeholder:text-charcoal/35 focus:border-brand focus:ring-2 focus:ring-brand/15" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search templates" aria-label="Search templates" className="h-11 w-full rounded-[7px] border border-softgrey bg-white pl-9 pr-3 text-[12px] text-charcoal outline-none transition-shadow placeholder:text-charcoal/55 focus:border-brand focus:ring-2 focus:ring-brand/15" />
             </div>
-            <span className="shrink-0 text-[11px] font-semibold text-charcoal/45">{visibleTemplates.length} shown</span>
+            <span className="shrink-0 text-[11px] font-semibold text-charcoal/65" aria-live="polite">{visibleTemplates.length} shown</span>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto bg-[#f6f7f8] p-4 sm:p-5">
@@ -174,10 +176,10 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
                         </span>
                         <span className="block min-w-0 px-3 py-2.5">
                           <span className="block truncate text-[12px] font-bold text-charcoal">{template.name}</span>
-                          <span className="mt-0.5 block truncate text-[11px] text-charcoal/50">{template.category} / {template.type} / {template.variant}</span>
+                          <span className="mt-0.5 block truncate text-[11px] text-charcoal/65">{template.category} / {template.type} / {template.variant}</span>
                         </span>
                       </button>
-                      <button type="button" onClick={() => toggleFavorite(template.id)} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-[7px] border border-black/10 bg-white/90 text-charcoal/50 shadow-sm backdrop-blur hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label={favorite ? `Remove ${template.name} from favorites` : `Add ${template.name} to favorites`} title={favorite ? "Remove favorite" : "Add favorite"}>
+                      <button type="button" onClick={() => toggleFavorite(template.id)} className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-[7px] border border-black/10 bg-white/90 text-charcoal/50 shadow-sm backdrop-blur hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label={favorite ? `Remove ${template.name} from favorites` : `Add ${template.name} to favorites`} title={favorite ? "Remove favorite" : "Add favorite"}>
                         <StarIcon filled={favorite} />
                       </button>
                     </div>

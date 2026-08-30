@@ -558,14 +558,12 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
-      <div className="absolute right-3 top-3 z-20 flex h-9 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur">
+      <div className="absolute right-3 top-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
         <PreviewZoomButton label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= 0.5}><ZoomOutIcon /></PreviewZoomButton>
         <span className="w-12 text-center text-[11px] font-bold tabular-nums text-charcoal/65" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= 1.5}><ZoomInIcon /></PreviewZoomButton>
-        <span className="mx-0.5 h-5 w-px bg-softgrey" aria-hidden />
-        <PreviewZoomButton label="Fit preview to screen" onClick={fit} pressed={zoom === BUILT_IN_FIT_ZOOM}><FitIcon /></PreviewZoomButton>
       </div>
-      <div ref={viewportRef} className="h-full w-full overflow-auto pt-14">
+      <div ref={viewportRef} className="h-full w-full overflow-auto pt-16">
         <div className="mx-auto origin-top" style={{ width: `${100 / zoom}%`, minHeight: `${100 / zoom}%`, transform: `scale(${zoom})` }}>
           {children}
         </div>
@@ -574,13 +572,12 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
   )
 })
 
-function PreviewZoomButton({ label, onClick, disabled, pressed, children }: { label: string; onClick: () => void; disabled?: boolean; pressed?: boolean; children: ReactNode }) {
-  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed} title={label} className={`grid h-8 w-8 place-items-center rounded-[7px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30 ${pressed ? "bg-[#eef8fc] text-brand-dark" : "text-charcoal/60 hover:bg-[#f3f4f6] hover:text-charcoal"}`}>{children}</button>
+function PreviewZoomButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30">{children}</button>
 }
 
 const ZoomOutIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4M7.5 10.5h6" /></svg>
 const ZoomInIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4M7.5 10.5h6M10.5 7.5v6" /></svg>
-const FitIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" /><circle cx="12" cy="12" r="2.5" /></svg>
 
 export function renderComponentPreview(group: GroupKey, sub: string, tpl: string, theme: Theme): ReactNode {
   return <PreviewRenderer key={`${group}/${sub}/${tpl}`} group={group} sub={sub} templateId={tpl} theme={theme} />

@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { BRAND } from "../lib/color"
+import { useDialogFocus } from "../lib/useDialogFocus"
 
 type Props = {
   open: boolean
@@ -16,11 +17,11 @@ type Props = {
 export default function ConfirmDialog({
   open, title, body, confirmLabel, cancelLabel = "Cancel", destructive, onConfirm, onCancel,
 }: Props) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(open)
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCancel()
-      if (e.key === "Enter") onConfirm()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -37,8 +38,9 @@ export default function ConfirmDialog({
       aria-describedby="confirm-body"
     >
       <div
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
-        className="animate-pop-in w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+        className="animate-pop-in w-full max-w-sm rounded-[8px] bg-white p-5 shadow-2xl"
       >
         <h2 id="confirm-title" className="text-[16px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h2>
         <p id="confirm-body" className="mt-2 text-[13.5px] leading-relaxed text-charcoal/70">{body}</p>
@@ -46,15 +48,14 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-softgrey bg-white px-4 py-2 text-[12.5px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+            className="h-11 rounded-[7px] border border-softgrey bg-white px-4 text-[12.5px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            autoFocus
-            className="rounded-lg px-4 py-2 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
+            className="h-11 rounded-[7px] px-4 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
             style={{ background: destructive ? "#C22F2F" : BRAND.brand }}
           >
             {confirmLabel}

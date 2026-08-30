@@ -16,6 +16,11 @@ export const ACCESSIBILITY_STATUS_LABEL: Record<AccessibilityStatus, string> = {
   poor: "Poor contrast",
 }
 
+export function accessibilityCheckLabel(check: AccessibilityCheck): string {
+  if (check.status === "poor" && (check.id === "focus" || check.id === "touch-target")) return "Needs review"
+  return ACCESSIBILITY_STATUS_LABEL[check.status]
+}
+
 export function evaluateAccessibility(theme: Theme, system: DesignTokenSystem): AccessibilityCheck[] {
   const normal = contrastRatio(opaque(theme.ink, theme.paper), opaque(theme.paper, "#FFFFFF"))
   const large = contrastRatio(opaque(theme.inkSoft, theme.paper), opaque(theme.paper, "#FFFFFF"))

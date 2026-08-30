@@ -6,6 +6,7 @@ import {
   type DesignTokenSystem,
   type SemanticColourKey,
 } from "../lib/tokenSystem"
+import { useDialogFocus } from "../lib/useDialogFocus"
 
 type Layer = "Core" | "Roles" | "Components" | "States" | "Export"
 
@@ -16,7 +17,6 @@ type Props = {
   theme: Theme
   onChange: (system: DesignTokenSystem) => void
   onClose: () => void
-  onExport: () => void
 }
 
 const LAYERS: { key: Layer; label: string; note: string }[] = [
@@ -27,8 +27,9 @@ const LAYERS: { key: Layer; label: string; note: string }[] = [
   { key: "Export", label: "Export", note: "Take the system with you" },
 ]
 
-export default function TokenSystemPanel({ open, system, palette, theme, onChange, onClose, onExport }: Props) {
+export default function TokenSystemPanel({ open, system, palette, theme, onChange, onClose }: Props) {
   const [layer, setLayer] = useState<Layer>("Core")
+  const dialogRef = useDialogFocus<HTMLDivElement>(open)
 
   useEffect(() => {
     if (!open) return
@@ -54,20 +55,20 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-charcoal/45 p-3 backdrop-blur-[2px] sm:p-6" role="dialog" aria-modal="true" aria-labelledby="token-system-title" onMouseDown={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.55)]" onMouseDown={(event) => event.stopPropagation()}>
+      <div ref={dialogRef} className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.55)]" onMouseDown={(event) => event.stopPropagation()}>
         <header className="flex items-start justify-between gap-4 border-b border-softgrey px-5 py-4">
           <div>
             <p className="text-[10px] font-bold uppercase text-charcoal/45">Design system</p>
             <h2 id="token-system-title" className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Token system</h2>
             <p className="mt-1 text-[12px] text-charcoal/55">Start with understandable choices. Palette Preview keeps the technical token names underneath.</p>
           </div>
-          <button type="button" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal" aria-label="Close token system" title="Close"><CloseIcon /></button>
+          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close token system" title="Close"><CloseIcon /></button>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           <nav className="flex shrink-0 overflow-x-auto border-b border-softgrey bg-[#fafafa] p-2 md:w-[210px] md:flex-col md:border-b-0 md:border-r" aria-label="Token layers">
             {LAYERS.map((item, index) => (
-              <button key={item.key} type="button" onClick={() => setLayer(item.key)} className={`min-w-[150px] rounded-[7px] px-3 py-2.5 text-left md:min-w-0 ${layer === item.key ? "bg-white text-charcoal shadow-sm ring-1 ring-softgrey" : "text-charcoal/55 hover:bg-white/70 hover:text-charcoal"}`} aria-current={layer === item.key ? "step" : undefined}>
+              <button key={item.key} type="button" onClick={() => setLayer(item.key)} className={`min-h-11 min-w-[150px] rounded-[7px] px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset md:min-w-0 ${layer === item.key ? "bg-white text-charcoal shadow-sm ring-1 ring-softgrey" : "text-charcoal/55 hover:bg-white/70 hover:text-charcoal"}`} aria-current={layer === item.key ? "step" : undefined}>
                 <span className="flex items-center gap-2 text-[12px] font-bold"><span className="grid h-5 w-5 place-items-center rounded-full bg-charcoal text-[10px] text-white">{index + 1}</span>{item.label}</span>
                 <span className="mt-1 hidden pl-7 text-[10.5px] leading-4 text-charcoal/45 md:block">{item.note}</span>
               </button>
@@ -102,7 +103,7 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
                       <span className="h-7 w-7 shrink-0 rounded-[5px] border border-black/10" style={{ background: semanticColour(system, palette, item.key, theme.accent) }} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block text-[12px] font-semibold text-charcoal">{item.label}</span>
-                        <span className="block truncate text-[10px] text-charcoal/40">{item.internal}</span>
+                        <span className="block truncate text-[10px] text-charcoal/60">{item.internal}</span>
                       </span>
                       <select value={system.semantic.colours[item.key]} onChange={(event) => updateSemanticColour(item.key, event.target.value)} className="max-w-[130px] bg-transparent text-right text-[11px] font-semibold text-charcoal/65 outline-none" aria-label={`${item.label} palette colour`}>
                         {palette.map((swatch) => <option key={swatch.id} value={swatch.id}>{swatch.name}</option>)}
@@ -158,7 +159,7 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
                 <div className="border-y border-softgrey py-4">
                   {["Primitive colour and design scales", "Semantic colour and type roles", "Button Main and Card Default rules", "Focus, opacity and motion states"].map((item) => <p key={item} className="flex items-center gap-2 py-1.5 text-[13px] text-charcoal/70"><CheckIcon />{item}</p>)}
                 </div>
-                <button type="button" onClick={onExport} className="mt-5 inline-flex h-11 items-center gap-2 rounded-[7px] bg-charcoal px-4 text-[13px] font-bold text-white hover:bg-[#263542]"><DownloadIcon />Open export stage</button>
+                <p className="mt-5 rounded-[7px] border border-softgrey bg-offwhite px-4 py-3 text-[12px] leading-5 text-charcoal/60">Use the Export step in the workflow when you are ready. Keeping export in one place prevents conflicting project files.</p>
                 <div className="mt-5 rounded-[7px] border border-dashed border-softgrey bg-offwhite p-4">
                   <p className="text-[12px] font-bold text-charcoal/70">Figma integration</p>
                   <p className="mt-1 text-[11.5px] text-charcoal/45">Future feature. It is intentionally separate from the export formats that work today.</p>
@@ -177,7 +178,7 @@ function LayerSection({ title, description, children }: { title: string; descrip
 }
 
 function ComponentGroup({ title, internal, children }: { title: string; internal: string; children: React.ReactNode }) {
-  return <section className="mb-5 border-b border-softgrey pb-5 last:mb-0 last:border-b-0"><div className="mb-3"><h4 className="text-[14px] font-bold">{title}</h4><p className="text-[10px] text-charcoal/40">{internal}</p></div>{children}</section>
+  return <section className="mb-5 border-b border-softgrey pb-5 last:mb-0 last:border-b-0"><div className="mb-3"><h4 className="text-[14px] font-bold">{title}</h4><p className="text-[10px] text-charcoal/60">{internal}</p></div>{children}</section>
 }
 
 function NumberControl({ label, note, value, min, max, step = 1, suffix, onChange }: { label: string; note?: string; value: number; min: number; max: number; step?: number; suffix: string; onChange: (value: number) => void }) {
@@ -185,7 +186,7 @@ function NumberControl({ label, note, value, min, max, step = 1, suffix, onChang
 }
 
 function SelectControl({ label, note, value, options, onChange }: { label: string; note?: string; value: string; options: (string | string[])[][] | string[][]; onChange: (value: string) => void }) {
-  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-charcoal/65">{label}{note && <span className="ml-1 font-normal text-charcoal/35">{note}</span>}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 rounded-[7px] border border-softgrey bg-white px-3 text-[12px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand">{options.map((option) => { const pair = option as string[]; return <option key={pair[0]} value={pair[0]}>{pair[1] ?? pair[0]}</option> })}</select></label>
+  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-charcoal/65">{label}{note && <span className="ml-1 font-normal text-charcoal/35">{note}</span>}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-[7px] border border-softgrey bg-white px-3 text-[12px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">{options.map((option) => { const pair = option as string[]; return <option key={pair[0]} value={pair[0]}>{pair[1] ?? pair[0]}</option> })}</select></label>
 }
 
 function SemanticSelect({ label, value, onChange }: { label: string; value: SemanticColourKey; onChange: (value: SemanticColourKey) => void }) {
@@ -206,4 +207,3 @@ function friendlyToken(value: string) {
 
 const CloseIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
 const CheckIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0e8a4e" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m5 12 4 4L19 6" /></svg>
-const DownloadIcon = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v13M7 12l5 5 5-5M5 21h14" /></svg>

@@ -130,7 +130,7 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
-      <div className="absolute right-3 top-3 z-20 flex h-9 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur">
+      <div className="absolute right-3 top-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
         <ZoomButton
           label="Zoom out"
           onClick={() => changeZoom(-1)}
@@ -146,16 +146,9 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
           disabled={zoom >= MAX_ZOOM}
           icon={<ZoomInIcon />}
         />
-        <span className="mx-0.5 h-5 w-px bg-softgrey" aria-hidden />
-        <ZoomButton
-          label="Fit preview to screen"
-          onClick={fitToScreen}
-          pressed={fitMode}
-          icon={<FitIcon />}
-        />
       </div>
 
-      <div ref={viewportRef} className="h-full w-full overflow-auto pt-14">
+      <div ref={viewportRef} className="h-full w-full overflow-auto pt-16">
         <div className="flex min-h-full items-start justify-center px-4 pb-5 sm:px-8">
           <div className={frameClass} style={frameStyle}>
             <div
@@ -178,13 +171,11 @@ function ZoomButton({
   onClick,
   icon,
   disabled = false,
-  pressed,
 }: {
   label: string
   onClick: () => void
   icon: ReactNode
   disabled?: boolean
-  pressed?: boolean
 }) {
   return (
     <button
@@ -192,11 +183,8 @@ function ZoomButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      aria-pressed={pressed}
       title={label}
-      className={`grid h-8 w-8 place-items-center rounded-[7px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30 ${
-        pressed ? "bg-[#eef8fc] text-brand-dark" : "text-charcoal/60 hover:bg-[#f3f4f6] hover:text-charcoal"
-      }`}
+      className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30"
     >
       {icon}
     </button>
@@ -218,12 +206,6 @@ const ZoomInIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <circle cx="10.5" cy="10.5" r="6.5" />
     <path d="m15.5 15.5 4 4M7.5 10.5h6M10.5 7.5v6" />
-  </svg>
-)
-
-const FitIcon = () => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
   </svg>
 )
 

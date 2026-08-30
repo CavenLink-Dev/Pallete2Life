@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { BRAND } from "../lib/color"
+import { useDialogFocus } from "../lib/useDialogFocus"
 
 const STORAGE_KEY = "pallet-preview:intro-seen"
 
@@ -12,6 +13,7 @@ export function shouldShowIntro(): boolean {
 
 /** First-visit tour. Three short steps. Fully skippable. */
 export default function IntroTour({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const dialogRef = useDialogFocus<HTMLDivElement>(open)
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
@@ -29,28 +31,20 @@ export default function IntroTour({ open, onClose }: { open: boolean; onClose: (
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
-        className="animate-pop-in relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+        className="animate-pop-in relative w-full max-w-md rounded-[8px] bg-white p-6 shadow-2xl"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md text-xl font-light text-charcoal/45 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
-          aria-label="Dismiss help"
-          title="Dismiss help"
-        >
-          ×
-        </button>
         <p className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.brand }}>Welcome</p>
         <h2 id="intro-title" className="mt-1 text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>
           Preview workspace
         </h2>
         <ol className="mt-5 flex flex-col gap-3.5">
           {[
-            { t: "Browse previews below", b: "Use the arrow buttons under the canvas to move through websites, mobile apps and components." },
-            { t: "Choose a template", b: "The template row appears below the preview browser with options for the current design." },
-            { t: "Edit Elements", b: "Turn on Edit Elements, then click a heading, button or surface to assign a palette colour." },
-            { t: "Return to your palette", b: "Click the Palette Preview logo whenever you want to keep creating or export your colours for free." },
+            { t: "Build your palette", b: "Edit, lock, add or safely randomise colours from the palette and inspector." },
+            { t: "Choose a template", b: "Use Change template above the preview to browse website and application designs." },
+            { t: "Edit elements", b: "Turn on Edit elements, then select a heading, button, card or navigation item to adjust its tokens." },
+            { t: "Build and export", b: "Use the workflow steps for shared tokens, reusable components and final exports." },
           ].map((s, i) => (
             <li key={i} className="flex gap-3">
               <span
@@ -72,7 +66,7 @@ export default function IntroTour({ open, onClose }: { open: boolean; onClose: (
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
+            className="h-11 rounded-[7px] px-4 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
             style={{ background: BRAND.brand }}
           >
             Start

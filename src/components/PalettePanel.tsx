@@ -36,7 +36,6 @@ type Props = {
   onChange: (id: string, hex: string) => void
   onAdd: () => void
   onRemove: (id: string) => void
-  onRandomize: () => void
   onToggleLock: (id: string) => void
   onRename: (id: string, name: string) => void
   onReorder: (activeId: string, overId: string) => void
@@ -52,7 +51,6 @@ export default function PalettePanel({
   onChange,
   onAdd,
   onRemove,
-  onRandomize,
   onToggleLock,
   onRename,
   onReorder,
@@ -89,7 +87,10 @@ export default function PalettePanel({
   useEffect(() => {
     if (!openId) return
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") closeEditor()
+      if (event.key === "Escape") {
+        closeEditor()
+        anchor?.focus()
+      }
     }
     const pointerdown = (event: PointerEvent) => {
       const target = event.target as Node
@@ -156,7 +157,6 @@ export default function PalettePanel({
         </DndContext>
       </div>
 
-      {/* Randomise button removed — the Properties sidebar owns the primary Randomise action */}
       {rightSlot && <div className="flex shrink-0 items-center justify-end gap-2">{rightSlot}</div>}
 
       {openSwatch && anchor && createPortal(
@@ -168,7 +168,6 @@ export default function PalettePanel({
           canRemove={palette.length > 1}
           onChange={(hex) => onChange(openSwatch.id, hex)}
           onRename={(name) => onRename(openSwatch.id, name)}
-          onToggleLock={() => onToggleLock(openSwatch.id)}
           onRemove={() => {
             onRemove(openSwatch.id)
             closeEditor()
@@ -248,7 +247,7 @@ function SortableCard({
         onClick={(event) => { event.stopPropagation(); onToggleLock() }}
         aria-label={swatch.locked ? `Unlock ${role ?? swatch.name}` : `Lock ${role ?? swatch.name}`}
         aria-pressed={Boolean(swatch.locked)}
-        className={`absolute left-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border transition-[background-color,color,border-color,transform] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${swatch.locked ? "border-white bg-white text-charcoal shadow-sm" : "border-white/50 bg-charcoal/20 text-white backdrop-blur-sm hover:bg-charcoal/35"}`}
+        className={`absolute left-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full border transition-[background-color,color,border-color,transform] hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal ${swatch.locked ? "border-white bg-white text-charcoal shadow-sm" : "border-white/50 bg-charcoal/20 text-white backdrop-blur-sm hover:bg-charcoal/35"}`}
         title={swatch.locked ? "Unlock colour" : "Lock colour for Randomise"}
       >
         {swatch.locked ? <LockIcon /> : <UnlockIcon />}
@@ -259,7 +258,7 @@ function SortableCard({
           type="button"
           onClick={(event) => { event.stopPropagation(); onRemove() }}
           aria-label={`Delete ${role ?? swatch.name}`}
-          className="absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/95 text-charcoal opacity-0 shadow-sm transition-[opacity,transform,color] hover:scale-105 hover:text-[#C22F2F] focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
+          className="absolute right-2 top-2 z-10 hidden h-11 w-11 items-center justify-center rounded-full border border-white/70 bg-white/95 text-charcoal opacity-0 shadow-sm transition-[opacity,transform,color] hover:scale-105 hover:text-[#C22F2F] focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal group-hover:opacity-100 group-focus-within:opacity-100 md:flex"
           title="Delete colour"
         >
           <CloseIcon />
@@ -275,7 +274,7 @@ function CardFace({ swatch, role, dragging = false }: { swatch: Swatch; role: st
       <span className="min-h-0 flex-1" style={{ background: swatch.hex, boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)" }} />
       <span className="flex h-[52px] shrink-0 items-center justify-between gap-3 px-4">
         <span className="min-w-0">
-          <span className="block truncate text-[10px] font-bold uppercase text-charcoal/50" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</span>
+          <span className="block truncate text-[10px] font-bold uppercase text-charcoal/65" style={{ fontFamily: "var(--font-display)" }}>{role ?? swatch.name}</span>
           <span className="mt-1 block text-[15px] font-bold text-charcoal" style={{ fontFamily: "var(--font-mono)" }}>{swatch.hex.toUpperCase()}</span>
         </span>
         <DragDotsIcon />
@@ -294,7 +293,6 @@ function ColorEditor({
   canRemove,
   onChange,
   onRename,
-  onToggleLock,
   onRemove,
   onClose,
 }: {
@@ -305,7 +303,6 @@ function ColorEditor({
   canRemove: boolean
   onChange: (hex: string) => void
   onRename: (name: string) => void
-  onToggleLock: () => void
   onRemove: () => void
   onClose: () => void
 }) {
@@ -403,7 +400,7 @@ function ColorEditor({
               onBlur={() => onRename(nameDraft)}
               onKeyDown={(event) => { if (event.key === "Enter") onRename(nameDraft) }}
               list="palette-role-suggestions"
-              className="w-full rounded-lg border border-softgrey px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+              className="h-11 w-full rounded-[7px] border border-softgrey px-3 text-sm font-semibold outline-none focus:border-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
               aria-label="Colour name"
             />
             <datalist id="palette-role-suggestions">{ROLE_SUGGESTIONS.map((suggestion) => <option key={suggestion} value={suggestion} />)}</datalist>
@@ -417,11 +414,7 @@ function ColorEditor({
             <ContrastBadge fg="#0E1821" bg={swatch.hex} label="Dark" />
           </div>
           <div className="mt-4 flex gap-2 border-t border-softgrey pt-3">
-            <button type="button" onClick={onToggleLock} className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${swatch.locked ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/70 hover:border-charcoal/30"}`}>
-              {swatch.locked ? <LockIcon /> : <UnlockIcon />}{swatch.locked ? "Locked" : "Lock"}
-            </button>
-            {canRemove && <button type="button" onClick={onRemove} className="h-10 rounded-lg border border-softgrey px-3 text-xs font-semibold text-charcoal/60 hover:border-[#C22F2F]/30 hover:text-[#C22F2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C22F2F] focus-visible:ring-offset-2">Delete</button>}
-            <button type="button" onClick={onClose} className="ml-auto h-10 rounded-lg bg-charcoal px-4 text-xs font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-charcoal focus-visible:ring-offset-2">Done</button>
+            {canRemove && <button type="button" onClick={onRemove} className="h-11 rounded-[7px] border border-softgrey px-3 text-xs font-semibold text-charcoal/60 hover:border-[#C22F2F]/30 hover:text-[#C22F2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C22F2F] focus-visible:ring-offset-2">Delete colour</button>}
           </div>
         </div>
       )}
@@ -431,14 +424,14 @@ function ColorEditor({
           type="button"
           onClick={() => setDetailsOpen((value) => !value)}
           aria-expanded={detailsOpen}
-          className="flex h-10 items-center gap-2 rounded-lg px-1 text-sm font-semibold hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex h-11 items-center gap-2 rounded-[7px] px-1 text-sm font-semibold hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
-          Picker <ChevronIcon open={detailsOpen} />
+          Colour details <ChevronIcon open={detailsOpen} />
         </button>
         <div className="ml-auto flex items-center gap-1">
-          <button type="button" onClick={useEyedropper} disabled={!eyedropperAvailable} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-offwhite disabled:cursor-not-allowed disabled:opacity-30" aria-label="Pick colour from screen" title="Pick colour from screen"><EyedropperIcon /></button>
-          <button type="button" onClick={copyHex} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-offwhite" aria-label={copied ? "HEX copied" : "Copy HEX"} title={copied ? "Copied" : "Copy HEX"}><CopyIcon /></button>
-          <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-lg hover:bg-offwhite" aria-label="Close colour picker" title="Done"><CloseIcon /></button>
+          <button type="button" onClick={useEyedropper} disabled={!eyedropperAvailable} className="flex h-11 w-11 items-center justify-center rounded-[7px] hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30" aria-label="Pick colour from screen" title="Pick colour from screen"><EyedropperIcon /></button>
+          <button type="button" onClick={copyHex} className="flex h-11 w-11 items-center justify-center rounded-[7px] hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label={copied ? "HEX copied" : "Copy HEX"} title={copied ? "Copied" : "Copy HEX"}><CopyIcon /></button>
+          <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-[7px] hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Close colour picker" title="Done"><CloseIcon /></button>
         </div>
       </div>
     </div>

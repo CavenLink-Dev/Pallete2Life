@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { deriveTheme, hexToRgb, hslString, readableOn, rgbString, type Swatch } from "../lib/color"
 import { createTokenSystem, tokenSystemExport, type DesignTokenSystem } from "../lib/tokenSystem"
 import { ACCESSIBILITY_STATUS_LABEL, worstAccessibilityStatus, type AccessibilityCheck } from "../lib/accessibility"
+import { useDialogFocus } from "../lib/useDialogFocus"
 
 type ExportSection = "palette" | "code" | "visual" | "project"
 type CodeFormat = "css" | "json" | "tokens" | "tailwind"
@@ -10,6 +11,7 @@ export type ProjectExportData = {
   name?: string
   templateId?: string
   componentIds?: string[]
+  colourWayChosen?: boolean
   brand?: unknown
   roleBindings?: Record<string, string>
   elementOverrides?: Record<string, Record<string, string | boolean>>
@@ -43,6 +45,7 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
   const [section, setSection] = useState<ExportSection>("palette")
   const [format, setFormat] = useState<CodeFormat>(tokenSystem ? "tokens" : "css")
   const importRef = useRef<HTMLInputElement | null>(null)
+  const dialogRef = useDialogFocus<HTMLDivElement>(open)
   const system = useMemo(() => tokenSystem ?? createTokenSystem(palette), [palette, tokenSystem])
   const formatted = useMemo(() => renderCode(format, palette, system, !!tokenSystem), [format, palette, system, tokenSystem])
 
@@ -91,14 +94,14 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-charcoal/45 p-3 backdrop-blur-[2px] sm:p-6" onMouseDown={onClose} role="dialog" aria-modal="true" aria-labelledby="export-title">
-      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.55)]" onMouseDown={(event) => event.stopPropagation()}>
+      <div ref={dialogRef} className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-[0_30px_80px_-28px_rgba(14,24,33,0.55)]" onMouseDown={(event) => event.stopPropagation()}>
         <header className="flex items-start justify-between gap-4 border-b border-softgrey px-5 py-4">
           <div><p className="text-[10px] font-bold uppercase text-charcoal/45">Export stage</p><h2 id="export-title" className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{tokenSystem ? "Export design system" : "Export palette"}</h2><p className="mt-1 text-[12px] text-charcoal/55">Choose only the format you need.</p></div>
-          <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal" aria-label="Close export" title="Close"><CloseIcon /></button>
+          <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close export" title="Close"><CloseIcon /></button>
         </header>
 
         <nav className="grid shrink-0 grid-cols-4 border-b border-softgrey" aria-label="Export sections">
-          {SECTIONS.map((item) => <button key={item.key} type="button" onClick={() => setSection(item.key)} className={`min-w-0 border-r border-softgrey px-2 py-3 text-left last:border-r-0 sm:px-4 ${section === item.key ? "bg-[#eef8fc] text-brand-dark" : "text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`} aria-current={section === item.key ? "page" : undefined}><span className="block truncate text-[12px] font-bold">{item.label}</span><span className="hidden truncate text-[10px] opacity-65 sm:block">{item.note}</span></button>)}
+          {SECTIONS.map((item) => <button key={item.key} type="button" onClick={() => setSection(item.key)} className={`min-h-11 min-w-0 border-r border-softgrey px-2 py-3 text-left last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset sm:px-4 ${section === item.key ? "bg-[#eef8fc] text-brand-dark" : "text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`} aria-current={section === item.key ? "page" : undefined}><span className="block truncate text-[12px] font-bold">{item.label}</span><span className="hidden truncate text-[10px] opacity-65 sm:block">{item.note}</span></button>)}
         </nav>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
@@ -124,12 +127,12 @@ function PaletteExport({ palette, onCopy, onText }: { palette: Swatch[]; onCopy:
     ["RGB", palette.map((swatch) => `${swatch.name}: rgb(${rgbString(swatch.hex)})`).join("\n")],
     ["HSL", palette.map((swatch) => `${swatch.name}: hsl(${hslString(swatch.hex)})`).join("\n")],
   ] as const
-  return <Section title="Palette export" description="Copy colour values or download one readable text file."><div className="grid gap-3 sm:grid-cols-3">{formats.map(([label, value]) => <ExportCard key={label} title={label} note={value.split("\n")[0]} action="Copy" onClick={() => onCopy(value, `${label} palette`)} icon={<CopyIcon />} />)}</div><button type="button" onClick={onText} className="mt-3 flex w-full items-center justify-between rounded-[7px] border border-softgrey px-4 py-3 text-left hover:bg-offwhite"><span><span className="block text-[13px] font-bold">Palette text file</span><span className="text-[11px] text-charcoal/45">HEX, RGB and HSL together</span></span><DownloadIcon /></button></Section>
+  return <Section title="Palette export" description="Copy colour values or download one readable text file."><div className="grid gap-3 sm:grid-cols-3">{formats.map(([label, value]) => <ExportCard key={label} title={label} note={value.split("\n")[0]} action="Copy" onClick={() => onCopy(value, `${label} palette`)} icon={<CopyIcon />} />)}</div><button type="button" onClick={onText} className="mt-3 flex min-h-11 w-full items-center justify-between rounded-[7px] border border-softgrey px-4 py-3 text-left hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"><span><span className="block text-[13px] font-bold">Palette text file</span><span className="text-[11px] text-charcoal/45">HEX, RGB and HSL together</span></span><DownloadIcon /></button></Section>
 }
 
 function CodeExport({ format, formatted, hasSystem, onFormat, onCopy, onDownload }: { format: CodeFormat; formatted: string; hasSystem: boolean; onFormat: (format: CodeFormat) => void; onCopy: () => void; onDownload: () => void }) {
   const options: [CodeFormat, string][] = [["css", "CSS variables"], ["json", "JSON"], ["tokens", hasSystem ? "Design tokens" : "Palette tokens"], ["tailwind", "Tailwind config"]]
-  return <Section title="Code export" description={hasSystem ? "These files include your layered semantic and component decisions." : "Quick Palette exports colour values without adding design-system tools."}><div className="flex flex-wrap gap-1.5">{options.map(([key, label]) => <button key={key} type="button" onClick={() => onFormat(key)} className={`rounded-[6px] border px-3 py-2 text-[11px] font-semibold ${format === key ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/60 hover:text-charcoal"}`}>{label}</button>)}</div><div className="relative mt-3"><pre className="max-h-72 overflow-auto rounded-[7px] border border-softgrey bg-offwhite p-4 text-[11px] leading-5" style={{ fontFamily: "var(--font-mono)" }}>{formatted}</pre><button type="button" onClick={onCopy} className="absolute right-2 top-2 rounded-[6px] border border-softgrey bg-white px-2.5 py-1.5 text-[10px] font-semibold shadow-sm">Copy</button></div><button type="button" onClick={onDownload} className="mt-3 inline-flex h-10 items-center gap-2 rounded-[7px] border border-softgrey px-3 text-[12px] font-semibold hover:bg-offwhite"><DownloadIcon />Download file</button></Section>
+  return <Section title="Code export" description={hasSystem ? "These files include your layered semantic and component decisions." : "Quick Palette exports colour values without adding design-system tools."}><div className="flex flex-wrap gap-1.5">{options.map(([key, label]) => <button key={key} type="button" onClick={() => onFormat(key)} className={`min-h-11 rounded-[6px] border px-3 py-2 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${format === key ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/60 hover:text-charcoal"}`}>{label}</button>)}</div><div className="relative mt-3"><pre className="max-h-72 overflow-auto rounded-[7px] border border-softgrey bg-offwhite p-4 pr-20 text-[11px] leading-5" style={{ fontFamily: "var(--font-mono)" }}>{formatted}</pre><button type="button" onClick={onCopy} className="absolute right-2 top-2 min-h-11 rounded-[6px] border border-softgrey bg-white px-3 text-[10px] font-semibold shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">Copy</button></div><button type="button" onClick={onDownload} className="mt-3 inline-flex h-11 items-center gap-2 rounded-[7px] border border-softgrey px-3 text-[12px] font-semibold hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"><DownloadIcon />Download file</button></Section>
 }
 
 function VisualExport({ palette, onSvg, onRaster }: { palette: Swatch[]; onSvg: () => void; onRaster: (type: "png" | "jpeg") => void }) {
@@ -138,7 +141,7 @@ function VisualExport({ palette, onSvg, onRaster }: { palette: Swatch[]; onSvg: 
 
 function ProjectExport({ hasSystem, accessibilityChecks, onSave, canImport, onImport }: { hasSystem: boolean; accessibilityChecks: AccessibilityCheck[]; onSave: () => void; canImport: boolean; onImport: () => void }) {
   const status = accessibilityChecks.length ? worstAccessibilityStatus(accessibilityChecks) : null
-  return <Section title="Project export" description="Keep a reopenable copy of your work, including palette, tokens, template and component choices."><div className="rounded-[7px] border border-softgrey bg-offwhite p-4"><p className="text-[13px] font-bold">Project contents</p><ul className="mt-2 grid gap-1 text-[11.5px] text-charcoal/60"><li>Palette colours and locks</li><li>{hasSystem ? "Layered design tokens and component rules" : "Palette-only project settings"}</li><li>Template, brand and inspector decisions when available</li>{status && <li>Accessibility summary: {ACCESSIBILITY_STATUS_LABEL[status]}</li>}</ul></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={onSave} className="inline-flex h-11 items-center gap-2 rounded-[7px] bg-charcoal px-4 text-[12px] font-bold text-white"><DownloadIcon />Save project file</button>{canImport && <button type="button" onClick={onImport} className="inline-flex h-11 items-center gap-2 rounded-[7px] border border-softgrey px-4 text-[12px] font-bold text-charcoal hover:bg-offwhite"><UploadIcon />Reopen project</button>}</div></Section>
+  return <Section title="Project export" description="Keep a reopenable copy of your work, including palette, tokens, template and component choices."><div className="rounded-[7px] border border-softgrey bg-offwhite p-4"><p className="text-[13px] font-bold">Project contents</p><ul className="mt-2 grid gap-1 text-[11.5px] text-charcoal/60"><li>Palette colours and locks</li><li>{hasSystem ? "Layered design tokens and component rules" : "Palette-only project settings"}</li><li>Template, brand and inspector decisions when available</li>{status && <li>Accessibility summary: {status === "good" ? ACCESSIBILITY_STATUS_LABEL.good : ACCESSIBILITY_STATUS_LABEL.review}</li>}</ul></div><div className="mt-4 flex flex-wrap gap-2"><button type="button" onClick={onSave} className="inline-flex h-11 items-center gap-2 rounded-[7px] bg-charcoal px-4 text-[12px] font-bold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"><DownloadIcon />Save project file</button>{canImport && <button type="button" onClick={onImport} className="inline-flex h-11 items-center gap-2 rounded-[7px] border border-softgrey px-4 text-[12px] font-bold text-charcoal hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"><UploadIcon />Reopen project</button>}</div></Section>
 }
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
