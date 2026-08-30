@@ -53,6 +53,7 @@ export default function ChangeTemplatePanel(p: Props) {
         <button
           type="button"
           onClick={p.onToggle}
+          aria-label={p.triggerLabel ?? "Change template"}
           aria-expanded={p.open}
           aria-haspopup="dialog"
           className="flex h-11 max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-2.5 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] min-[1400px]:px-3"
