@@ -45,7 +45,8 @@
 
 .home-hero { border-bottom: 1px solid var(--home-line); background: var(--home-grey); }
 .home-hero-grid { display: grid; grid-template-columns: 1fr 1.08fr; align-items: center; gap: 48px; padding-top: 64px; padding-bottom: 64px; }
-.home-hero h1 { color: var(--home-brand); font-size: clamp(34px, 5.6vw, 58px); text-shadow: 0 2px 0 var(--home-brand-d1), 0 4px 0 var(--home-brand-d2), 0 7px 14px rgba(18, 113, 158, 0.28); }
+.home-hero h1 { color: var(--home-bg); font-size: clamp(34px, 5.6vw, 58px); text-shadow: none; }
+.home-hero-palette { color: var(--home-brand); }
 .home-lead { max-width: 38ch; margin: 22px 0 28px; color: var(--home-muted); font-size: 16px; }
 .home-hero-cta { display: flex; flex-wrap: wrap; gap: 12px; }
 

@@ -47,7 +47,9 @@ export default function Home() {
         <section className="home-hero">
           <div className="home-wrap home-hero-grid">
             <div>
-              <h1>From palette to design system.</h1>
+              <h1>
+                From <span className="home-hero-palette">palette</span> to design system.
+              </h1>
               <p className="home-lead">Generate variables, preview, test, edit and create tokens. Then output to any design project.</p>
               <div className="home-hero-cta">
                 <a href="/app" onClick={openApp} className="home-btn home-btn-primary">Generate Design <span aria-hidden>→</span></a>
