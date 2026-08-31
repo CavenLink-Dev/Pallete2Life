@@ -65,7 +65,7 @@ export default function Home() {
                 <div className="home-promo-buttons"><span className="home-promo-button solid">Try it</span><span className="home-promo-button ghost">Learn more</span></div>
               </div>
               <div className="home-promo-swatches">
-                <i style={{ background: "#2CD1C0" }} /><i style={{ background: "#2AB0E4" }} /><i style={{ background: "#0E6E86" }} /><span className="plus">+</span>
+                <i className="primary" /><i className="secondary" /><i className="text" /><span className="plus">+</span>
               </div>
             </div>
           </div>
@@ -162,7 +162,15 @@ export default function Home() {
       <footer className="home-footer">
         <div className="home-wrap home-footer-inner">
           <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" />HueSet</a>
-          <nav aria-label="Footer"><a href="#try">Try it</a><a href="#start">Get started</a></nav>
+          <nav aria-label="Footer">
+            <a href="#try">Try it</a>
+            <a href="#start">Get started</a>
+            <a href="/pricing" onClick={nav("/pricing")}>Pricing</a>
+            <a href="/help" onClick={nav("/help")}>Help</a>
+            <a href="/privacy" onClick={nav("/privacy")}>Privacy</a>
+            <a href="/terms" onClick={nav("/terms")}>Terms and Conditions</a>
+            <a href="/contact" onClick={nav("/contact")}>Contact</a>
+          </nav>
           <small>© 2026 HueSet</small>
         </div>
       </footer>
