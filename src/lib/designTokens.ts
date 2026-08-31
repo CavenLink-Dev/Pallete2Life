@@ -16,6 +16,11 @@ export const TOKEN_OPTIONS = {
   fontSize: ["font.sm", "font.md", "font.lg", "font.xl"],
   fontWeight: ["weight.regular", "weight.medium", "weight.semibold", "weight.bold"],
   lineHeight: ["leading.tight", "leading.normal", "leading.relaxed"],
+  fontFamily: ["font.system", "font.inter", "font.georgia", "font.mono"],
+  letterSpacing: ["tracking.tight", "tracking.normal", "tracking.wide"],
+  textAlign: ["align.left", "align.center", "align.right"],
+  buttonPreset: ["solid", "outline", "soft", "pill", "minimal"],
+  borderWidth: ["border-w.0", "border-w.1", "border-w.2"],
 } as const
 
 export const ELEMENT_DEFAULTS: Record<InspectorKind, ElementTokenValues> = {
@@ -60,6 +65,10 @@ const RADIUS: Record<string, number> = { "radius.none": 0, "radius.sm": 4, "radi
 const FONT_SIZE: Record<string, number> = { "font.sm": 12, "font.md": 15, "font.lg": 20, "font.xl": 30 }
 const FONT_WEIGHT: Record<string, number> = { "weight.regular": 400, "weight.medium": 500, "weight.semibold": 600, "weight.bold": 700 }
 const LINE_HEIGHT: Record<string, number> = { "leading.tight": 1.15, "leading.normal": 1.5, "leading.relaxed": 1.75 }
+const FONT_FAMILY: Record<string, string> = { "font.system": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", "font.inter": "'Inter', sans-serif", "font.georgia": "Georgia, 'Times New Roman', serif", "font.mono": "ui-monospace, SFMono-Regular, Menlo, monospace" }
+const LETTER_SPACING: Record<string, string> = { "tracking.tight": "-0.02em", "tracking.normal": "0em", "tracking.wide": "0.04em" }
+const TEXT_ALIGN: Record<string, string> = { "align.left": "left", "align.center": "center", "align.right": "right" }
+const BORDER_WIDTH: Record<string, number> = { "border-w.0": 0, "border-w.1": 1, "border-w.2": 2 }
 const SHADOW: Record<string, string> = {
   "shadow.none": "none",
   "shadow.sm": "0 4px 12px rgba(14,24,33,0.08)",
@@ -82,16 +91,20 @@ export function elementTokenStyle(
   if (kind === "button") {
     const buttonType = String(values.buttonType ?? "solid")
     const colour = tokenColor(String(values.colourRole ?? "Brand Primary"))
+    const explicitBorderW = values.borderWidthToken ? (BORDER_WIDTH[String(values.borderWidthToken)] ?? borderWidth) : borderWidth
     const style: CSSProperties = {
       borderRadius: RADIUS[String(values.radius)] ?? 8,
       gap: SPACE[String(values.gap)] ?? 8,
-      borderWidth,
+      borderWidth: explicitBorderW,
       borderStyle: "solid",
-      borderColor: colour,
+      borderColor: values.borderColour ? tokenColor(String(values.borderColour)) : colour,
+      fontWeight: values.fontWeight ? (FONT_WEIGHT[String(values.fontWeight)] ?? undefined) : undefined,
     }
     if (buttonType === "outline") return { ...style, background: "transparent", color: colour }
-    if (buttonType === "ghost") return { ...style, background: "transparent", color: colour, borderWidth: 0 }
+    if (buttonType === "ghost" || buttonType === "minimal") return { ...style, background: "transparent", color: colour, borderWidth: 0 }
     if (buttonType === "glass") return { ...style, background: `${colour}66`, color: tokenColor("Heading Text"), backdropFilter: "blur(12px)" }
+    if (buttonType === "soft") return { ...style, background: `${colour}18`, color: colour, borderWidth: 0 }
+    if (buttonType === "pill") return { ...style, background: colour, color: tokenColor("Button Text"), borderRadius: 999 }
     return { ...style, background: colour, color: tokenColor("Button Text") }
   }
 
@@ -110,12 +123,17 @@ export function elementTokenStyle(
 
   if (kind === "text") {
     const typography = String(values.typography ?? "type.body")
+    const explicitFamily = values.fontFamily ? FONT_FAMILY[String(values.fontFamily)] : undefined
     return {
       color: tokenColor(String(values.textColour ?? "Heading Text")),
-      fontFamily: typography === "type.display" || typography === "type.heading" ? "var(--font-display)" : "var(--font-sans)",
+      fontFamily: explicitFamily ?? (typography === "type.display" || typography === "type.heading" ? "var(--font-display)" : "var(--font-sans)"),
       fontSize: FONT_SIZE[String(values.fontSize)] ?? 15,
       fontWeight: FONT_WEIGHT[String(values.fontWeight)] ?? 400,
+      fontStyle: values.italic ? "italic" as const : "normal" as const,
+      textDecoration: values.underline ? "underline" as const : "none" as const,
       lineHeight: LINE_HEIGHT[String(values.lineHeight)] ?? 1.5,
+      letterSpacing: values.letterSpacing ? LETTER_SPACING[String(values.letterSpacing)] ?? "0em" : undefined,
+      textAlign: values.textAlign ? TEXT_ALIGN[String(values.textAlign)] as CSSProperties["textAlign"] : undefined,
     }
   }
 
@@ -152,10 +170,14 @@ export function elementOverrideStyle(
     if ("gap" in override) include("gap")
   } else if (kind === "text") {
     if ("textColour" in override) include("color")
-    if ("typography" in override) include("fontFamily")
+    if ("typography" in override || "fontFamily" in override) include("fontFamily")
     if ("fontSize" in override) include("fontSize")
     if ("fontWeight" in override) include("fontWeight")
     if ("lineHeight" in override) include("lineHeight")
+    if ("italic" in override) include("fontStyle")
+    if ("underline" in override) include("textDecoration")
+    if ("letterSpacing" in override) include("letterSpacing")
+    if ("textAlign" in override) include("textAlign")
   } else if (kind === "navigation") {
     if ("active" in override) include("color", "background", "borderRadius")
     if ("colourRole" in override) include("color")

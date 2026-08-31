@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { deriveTheme, hslToHex, randomHex, uid, type Swatch } from "../lib/color"
+import { deriveTheme, hslToHex, randomHex, uid, type RoleBindings, type Swatch } from "../lib/color"
 import { DEFAULT_BUTTON_PROPS, paletteToTrio, type ButtonStyle } from "../components/ButtonPreview"
 import { GROUPS, PreviewRenderer, type GroupKey, type PreviewRendererHandle } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
@@ -9,7 +9,7 @@ import ConfirmDialog from "../components/ConfirmDialog"
 import AccountSetupOverlay from "../components/AccountSetupOverlay"
 import ExportPanel, { type ImportedProject } from "../components/ExportPanel"
 import ExportPaywallOverlay from "../components/ExportPaywallOverlay"
-import InspectorShell from "../components/InspectorShell"
+import CustomisePanel from "../components/CustomisePanel"
 import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard"
 import PaletteRail from "../components/PaletteRail"
 import PaywallOverlay from "../components/PaywallOverlay"
@@ -20,6 +20,7 @@ import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { useNav, useRoute } from "../lib/router"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
+import { ELEMENT_DEFAULTS, elementTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
 import { templateAssetById } from "../lib/templateAssets"
 
@@ -29,7 +30,6 @@ const STORE_KEY = "hueframe:v1"
 const MAX_HISTORY = 40
 const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
 const DEFAULT_SELECTION: Selection = { group: "website", sub: "landing-page" }
-const EMPTY_OVERRIDES = {}
 const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
 const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
 
@@ -78,12 +78,15 @@ export default function Builder() {
   const [brand, setBrand] = useState<Brand>(loadBrand)
   const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
   const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle))
+  const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
+  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}))
+  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => loadStored("roleBindings", {}))
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
-  const [inspectorOpen, setInspectorOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
+  const [customiseOpen, setCustomiseOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
   const [brandOpen, setBrandOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportPaywallOpen, setExportPaywallOpen] = useState(false)
@@ -98,6 +101,8 @@ export default function Builder() {
   useStored("templateByType", templateByType)
   useStored("brand", brand)
   useStored("designId", designId)
+  useStored("elementOverrides", elementOverrides)
+  useStored("roleBindings", roleBindings)
 
   useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
   useEffect(() => { writeHashPalette(palette) }, [palette])
@@ -119,7 +124,7 @@ export default function Builder() {
 
   useEffect(() => {
     const query = window.matchMedia("(min-width: 1200px)")
-    const update = () => setInspectorOpen(query.matches)
+    const update = () => setCustomiseOpen(query.matches)
     query.addEventListener("change", update)
     return () => query.removeEventListener("change", update)
   }, [])
@@ -171,7 +176,7 @@ export default function Builder() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPaletteSheetOpen(false)
-        setInspectorOpen(false)
+        setCustomiseOpen(false)
         setTemplateOpen(false)
         setMoreOpen(false)
         return
@@ -198,13 +203,49 @@ export default function Builder() {
   const templateAsset = templateAssetById.get(templateId)
   const templateName = templateAsset?.name ?? `${currentType.templates.find((item) => item.key === templateId)?.label ?? "Default"} ${currentType.label}`
   const roleLabels = selection.group === "application" ? APPLICATION_ROLE_LABELS : WEBSITE_ROLE_LABELS
-  const theme = useMemo(() => deriveTheme(palette, roleLabels), [palette, roleLabels])
+  const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleLabels, roleBindings])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
   const tokenSystem = useMemo(() => createTokenSystem(palette), [palette])
   const accessibilityChecks = useMemo(() => evaluateAccessibility(theme, tokenSystem), [theme, tokenSystem])
 
+  const selectElement = useCallback((el: InspectorSelection) => {
+    setSelectedElement(el)
+    if (!customiseOpen) setCustomiseOpen(true)
+  }, [customiseOpen])
+
+  const clearSelection = useCallback(() => setSelectedElement(null), [])
+
+  const handleElementChange = useCallback((key: string, value: string | boolean) => {
+    setSelectedElement((current) => {
+      if (!current) return current
+      setElementOverrides((overrides) => {
+        const prev = overrides[current.id] ?? {}
+        return { ...overrides, [current.id]: { ...prev, [key]: value } }
+      })
+      return current
+    })
+  }, [])
+
+  const reorderPalette = useCallback((activeId: string, overId: string) => {
+    mutatePalette((current) => {
+      const from = current.findIndex((s) => s.id === activeId)
+      const to = current.findIndex((s) => s.id === overId)
+      if (from === -1 || to === -1 || from === to) return current
+      const next = [...current]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+  }, [mutatePalette])
+
+  const currentElementValues = useMemo(() => {
+    if (!selectedElement) return null
+    const override = elementOverrides[selectedElement.id]
+    return { ...ELEMENT_DEFAULTS[selectedElement.kind], ...override }
+  }, [selectedElement, elementOverrides])
+
   const previewContext = useMemo<PreviewCtxValue>(() => ({
-    editMode: false,
+    editMode: true,
     assignments,
     roleColor: (swatchId) => palette.find((swatch) => swatch.id === swatchId)?.hex,
     tokenColor: (role) => {
@@ -215,11 +256,11 @@ export default function Builder() {
     buttonStyle,
     buttonProps: DEFAULT_BUTTON_PROPS,
     trio,
-    selectedElement: null,
-    elementOverrides: EMPTY_OVERRIDES,
+    selectedElement,
+    elementOverrides,
     tokenSystem,
-    selectElement: () => undefined,
-  }), [assignments, brand, buttonStyle, palette, theme.accent, tokenSystem, trio])
+    selectElement,
+  }), [assignments, brand, buttonStyle, elementOverrides, palette, selectedElement, selectElement, theme.accent, tokenSystem, trio])
 
   const trySelect = useCallback((next: Selection, nextTemplate?: string) => {
     const group = GROUPS.find((item) => item.key === next.group)
@@ -345,13 +386,16 @@ export default function Builder() {
   return (
     <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-offwhite text-charcoal">
       <PaletteRail
-        className="hidden w-[280px] shrink-0 border-r border-softgrey lg:flex"
+        className="hidden w-[240px] shrink-0 border-r border-softgrey lg:flex"
         palette={palette}
         onAdd={addColour}
         onChange={changeColour}
         onRename={renameColour}
         onRemove={removeColour}
         onToggleLock={toggleLock}
+        onReorder={reorderPalette}
+        roleBindings={roleBindings}
+        onRoleChange={(role, swatchId) => setRoleBindings((b) => ({ ...b, [role]: swatchId }))}
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -360,7 +404,7 @@ export default function Builder() {
             <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="HueSet home" title="HueSet home">
               <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
             </a>
-            <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setInspectorOpen(false) }}><PaletteIcon /></ToolbarButton>
+            <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setCustomiseOpen(false) }}><PaletteIcon /></ToolbarButton>
             <span className="hidden max-w-[100px] truncate px-1 text-[12px] font-semibold text-charcoal/70 sm:block" title={templateName}>{templateName}</span>
             <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
             <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
@@ -404,14 +448,14 @@ export default function Builder() {
                   <MenuAction label="Brand assets" onClick={() => { setBrandOpen(true); setMoreOpen(false) }}><BrandIcon /></MenuAction>
                   <MenuAction label="Center template" onClick={() => { previewRef.current?.fitToScreen(); setMoreOpen(false) }}><CenterIcon /></MenuAction>
                   <MenuAction label="Full screen" onClick={() => { void toggleFullscreen(); setMoreOpen(false) }}><FullscreenIcon /></MenuAction>
-                  <MenuAction className="lg:hidden" label={inspectorOpen ? "Hide inspector" : "Show inspector"} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false); setMoreOpen(false) }}><InspectorIcon /></MenuAction>
+                  <MenuAction className="lg:hidden" label={customiseOpen ? "Hide customise" : "Show customise"} onClick={() => { setCustomiseOpen((open) => !open); setPaletteSheetOpen(false); setMoreOpen(false) }}><CustomiseIcon /></MenuAction>
                 </div>
               )}
             </div>
             <ToolbarButton className="hidden min-[1600px]:grid" label="Brand assets" onClick={() => setBrandOpen(true)}><BrandIcon /></ToolbarButton>
             <ToolbarButton className="hidden min-[1600px]:grid" label="Center template" onClick={() => previewRef.current?.fitToScreen()}><CenterIcon /></ToolbarButton>
             <ToolbarButton className="hidden min-[1600px]:grid" label="Full screen" onClick={toggleFullscreen}><FullscreenIcon /></ToolbarButton>
-            <ToolbarButton className="hidden lg:grid" label={inspectorOpen ? "Hide inspector" : "Show inspector"} pressed={inspectorOpen} onClick={() => { setInspectorOpen((open) => !open); setPaletteSheetOpen(false) }}><InspectorIcon /></ToolbarButton>
+            <ToolbarButton className="hidden lg:grid" label={customiseOpen ? "Hide customise" : "Show customise"} pressed={customiseOpen} onClick={() => { setCustomiseOpen((open) => !open); setPaletteSheetOpen(false) }}><CustomiseIcon /></ToolbarButton>
           </div>
         </header>
 
@@ -426,7 +470,29 @@ export default function Builder() {
         </main>
       </div>
 
-      {inspectorOpen && <InspectorShell onClose={() => setInspectorOpen(false)} className="hidden w-[320px] shrink-0 border-l border-softgrey min-[1200px]:flex" />}
+      {customiseOpen && (
+        <CustomisePanel
+          onClose={() => setCustomiseOpen(false)}
+          className="hidden w-[280px] shrink-0 border-l border-softgrey min-[1200px]:flex"
+          selectedElement={selectedElement}
+          elementValues={currentElementValues}
+          onElementChange={handleElementChange}
+          onClearSelection={clearSelection}
+          roleOptions={roleLabels}
+          templateSection={
+            <div className="grid grid-cols-2 gap-1.5">
+              {currentGroup.subs.map((type) => {
+                const active = type.key === currentType.key
+                return (
+                  <button key={type.key} type="button" onClick={() => trySelect({ group: currentGroup.key, sub: type.key })} aria-pressed={active} className={`h-8 rounded-[6px] border text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? "border-brand bg-brand/10 text-brand" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}>
+                    {type.label}
+                  </button>
+                )
+              })}
+            </div>
+          }
+        />
+      )}
 
       {paletteSheetOpen && (
         <SheetBackdrop className="lg:hidden" onClose={() => setPaletteSheetOpen(false)}>
@@ -438,16 +504,35 @@ export default function Builder() {
             onRename={renameColour}
             onRemove={removeColour}
             onToggleLock={toggleLock}
+            onReorder={reorderPalette}
+            roleBindings={roleBindings}
+            onRoleChange={(role, swatchId) => setRoleBindings((b) => ({ ...b, [role]: swatchId }))}
           />
         </SheetBackdrop>
       )}
 
-      {inspectorOpen && (
+      {customiseOpen && (
         <>
-          <div className="fixed inset-0 z-40 hidden bg-charcoal/25 lg:block min-[1200px]:hidden" onClick={() => setInspectorOpen(false)} aria-hidden />
-          <InspectorShell onClose={() => setInspectorOpen(false)} className="fixed bottom-0 right-0 top-12 z-50 hidden w-[320px] border-l border-softgrey shadow-xl lg:flex min-[1200px]:hidden" />
-          <SheetBackdrop className="lg:hidden" onClose={() => setInspectorOpen(false)}>
-            <InspectorShell onClose={() => setInspectorOpen(false)} className="h-[min(52dvh,420px)] w-full rounded-t-[8px] border-t border-softgrey" />
+          <div className="fixed inset-0 z-40 hidden bg-charcoal/25 lg:block min-[1200px]:hidden" onClick={() => setCustomiseOpen(false)} aria-hidden />
+          <CustomisePanel
+            onClose={() => setCustomiseOpen(false)}
+            className="fixed bottom-0 right-0 top-12 z-50 hidden w-[280px] border-l border-softgrey shadow-xl lg:flex min-[1200px]:hidden"
+            selectedElement={selectedElement}
+            elementValues={currentElementValues}
+            onElementChange={handleElementChange}
+            onClearSelection={clearSelection}
+            roleOptions={roleLabels}
+          />
+          <SheetBackdrop className="lg:hidden" onClose={() => setCustomiseOpen(false)}>
+            <CustomisePanel
+              onClose={() => setCustomiseOpen(false)}
+              className="h-[min(52dvh,420px)] w-full rounded-t-[8px] border-t border-softgrey"
+              selectedElement={selectedElement}
+              elementValues={currentElementValues}
+              onElementChange={handleElementChange}
+              onClearSelection={clearSelection}
+              roleOptions={roleLabels}
+            />
           </SheetBackdrop>
         </>
       )}
@@ -553,5 +638,5 @@ const CenterIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="n
 const FullscreenIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
 const ExportIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 13v7h14v-7" /></svg>
 const SecondOpinionIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="9" /></svg>
-const InspectorIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>
+const CustomiseIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>
 const MoreIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
