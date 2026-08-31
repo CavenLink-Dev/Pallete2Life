@@ -35,11 +35,10 @@ export default function Home() {
         <div className="home-wrap home-nav-inner">
           <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" /><span><b>Hue</b>Set</span></a>
           <nav className="home-nav-links" aria-label="Primary">
-            <a href="#try">Try it</a>
-            <a href="#how">How it works</a>
-            <a href="#start">Get started</a>
+            <a href="/help" onClick={nav("/help")}>Help</a>
+            <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary home-nav-btn">Quick Design</a>
+            <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary home-nav-btn">Generate Design</a>
           </nav>
-          <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design</a>
         </div>
       </header>
 
@@ -71,7 +70,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="try" className="home-section">
+        <section className="home-section">
           <div className="home-wrap">
             <div className="home-center">
               <h2>Try it live</h2>
@@ -130,7 +129,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="home-section home-grey" id="how">
+        <section className="home-section home-grey">
           <div className="home-wrap">
             <div className="home-center">
               <h2>How it works</h2>
@@ -144,7 +143,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="home-section" id="start">
+        <section className="home-section">
           <div className="home-wrap">
             <div className="home-center">
               <h2>Start with the path that fits you.</h2>
@@ -172,8 +171,6 @@ export default function Home() {
         <div className="home-wrap home-footer-inner">
           <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" /><span><b>Hue</b>Set</span></a>
           <nav aria-label="Footer">
-            <a href="#try">Try it</a>
-            <a href="#start">Get started</a>
             <a href="/pricing" onClick={nav("/pricing")}>Pricing</a>
             <a href="/help" onClick={nav("/help")}>Help</a>
             <a href="/privacy" onClick={nav("/privacy")}>Privacy</a>
