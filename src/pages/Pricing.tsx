@@ -33,7 +33,8 @@ export default function Pricing() {
               <Feat>Randomise, lock, add and remove colours</Feat>
               <Feat>Copy HEX, RGB and HSL</Feat>
               <Feat>Download your palette</Feat>
-              <Feat>15 preview uses across websites, apps and components</Feat>
+              <Feat>5 live previews per day</Feat>
+              <Feat>Limited template selection</Feat>
             </ul>
             <a
               href="/app"
@@ -58,8 +59,8 @@ export default function Pricing() {
             <div>
               <h2 className="text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Pro</h2>
               <p className="mt-2 flex items-baseline gap-1">
-                <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$9.99</span>
-                <span className="text-[14px] font-semibold text-charcoal/60">USD / month</span>
+                <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$14.99</span>
+                <span className="text-[14px] font-semibold text-charcoal/60">USD / month · recurring</span>
               </p>
               <p className="mt-1 text-[13px] text-charcoal/55">Unlimited previews and advanced tools.</p>
             </div>

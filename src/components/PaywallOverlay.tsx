@@ -39,11 +39,12 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
           Unlock HueSet Pro
         </h2>
         <p className="mt-2 flex items-baseline gap-1">
-          <span className="text-[28px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$9.99</span>
+          <span className="text-[28px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$14.99</span>
           <span className="text-[14px] font-semibold text-charcoal/60">USD / month</span>
         </p>
+        <p className="mt-0.5 text-[11px] text-charcoal/45">Billed monthly · recurring</p>
         <p className="mt-3 text-[14px] leading-relaxed text-charcoal/70">
-          Keep creating palettes for free, or unlock unlimited previews and the full HueSet toolkit. Your current work stays exactly where it is.
+          Keep creating palettes for free, or unlock unlimited previews (free includes 5 a day) and the full HueSet toolkit. Your current work stays exactly where it is.
         </p>
         {reason && (
           <p className="mt-3 rounded-lg bg-offwhite px-3 py-2 text-[12.5px] text-charcoal/60">{reason}</p>
@@ -81,7 +82,7 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
             className="rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             style={{ background: BRAND.brand }}
           >
-            Go Pro + · $9.99/mo
+            Go Pro + · $14.99/mo
           </button>
         </div>
         <p className="mt-3 text-[11px] text-charcoal/45">Your palette is saved in your browser and won't be lost.</p>

@@ -1,38 +1,48 @@
 /**
  * Free/Pro entitlement, tracked locally in the browser.
- * Palette data lives elsewhere (see Builder). This file only tracks:
- *   – whether the viewer is Pro,
- *   – how many free preview/template combinations they've used,
- *   – which combinations they've already applied (so switching back doesn't re-charge).
+ * Free tier: 5 live previews per DAY (resets at local midnight). Re-opening a
+ * preview you've already viewed today is free; each new one costs a preview.
+ * Pro: unlimited.
  *
  * Nothing here talks to a server. When accounts/subscriptions ship the
  * `isPro` boolean will be sourced from the account instead of local state.
  */
 
-const KEY = "pallet-preview:ent:v1"
+const KEY = "pallet-preview:ent:v2"
 
-export const FREE_PREVIEW_LIMIT = 15
+/** Free previews allowed per day before the paywall appears. */
+export const FREE_DAILY_PREVIEWS = 5
 
 export type Entitlement = {
   isPro: boolean
-  /** how many DIFFERENT preview/template combinations the user has applied */
-  freeSwitchesUsed: number
-  /** the set of "group/sub/template" preview keys already applied */
-  seen: string[]
+  /** local calendar day (YYYY-MM-DD) the counter below applies to */
+  day: string
+  /** preview keys already opened today — each distinct one costs a preview */
+  seenToday: string[]
 }
 
-const DEFAULT: Entitlement = { isPro: false, freeSwitchesUsed: 0, seen: [] }
+function today(): string {
+  return new Date().toLocaleDateString("en-CA") // YYYY-MM-DD, local time
+}
+
+const DEFAULT: Entitlement = { isPro: false, day: today(), seenToday: [] }
+
+/** Roll the counter over to a fresh day if the stored day has passed. */
+function normalise(e: Entitlement): Entitlement {
+  const d = today()
+  return e.day === d ? e : { ...e, day: d, seenToday: [] }
+}
 
 export function loadEntitlement(): Entitlement {
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return DEFAULT
     const p = JSON.parse(raw) as Partial<Entitlement>
-    return {
+    return normalise({
       isPro: !!p.isPro,
-      freeSwitchesUsed: Number(p.freeSwitchesUsed) || 0,
-      seen: Array.isArray(p.seen) ? p.seen.filter((x) => typeof x === "string") : [],
-    }
+      day: typeof p.day === "string" ? p.day : today(),
+      seenToday: Array.isArray(p.seenToday) ? p.seenToday.filter((x) => typeof x === "string") : [],
+    })
   } catch {
     return DEFAULT
   }
@@ -50,25 +60,23 @@ export function previewKey(group: string, sub: string, template?: string): strin
   return template ? `${group}/${sub}/${template}` : `${group}/${sub}`
 }
 
-/** How many free previews the viewer has left. Pro users always see Infinity. */
+/** How many free previews the viewer has left today. Pro users see Infinity. */
 export function freeRemaining(e: Entitlement): number {
   if (e.isPro) return Infinity
-  return Math.max(0, FREE_PREVIEW_LIMIT - e.freeSwitchesUsed)
+  return Math.max(0, FREE_DAILY_PREVIEWS - normalise(e).seenToday.length)
 }
 
-/** True when switching to this preview should trigger the paywall. */
+/** True when opening this preview should trigger the paywall. */
 export function needsPaywall(e: Entitlement, key: string): boolean {
   if (e.isPro) return false
-  if (e.seen.includes(key)) return false
-  return e.freeSwitchesUsed >= FREE_PREVIEW_LIMIT
+  const n = normalise(e)
+  if (n.seenToday.includes(key)) return false
+  return n.seenToday.length >= FREE_DAILY_PREVIEWS
 }
 
-/** Record a successful switch to `key`. Consumes one free preview only if new. */
+/** Record a preview open. Consumes one of today's previews only if new. */
 export function recordSwitch(e: Entitlement, key: string): Entitlement {
-  if (e.seen.includes(key)) return e
-  return {
-    ...e,
-    seen: [...e.seen, key],
-    freeSwitchesUsed: e.isPro ? e.freeSwitchesUsed : e.freeSwitchesUsed + 1,
-  }
+  const n = normalise(e)
+  if (n.isPro || n.seenToday.includes(key)) return n
+  return { ...n, seenToday: [...n.seenToday, key] }
 }

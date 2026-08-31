@@ -12,7 +12,7 @@ import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard
 import PaletteRail from "../components/PaletteRail"
 import PaywallOverlay from "../components/PaywallOverlay"
 import { useToast } from "../components/Toast"
-import { FREE_PREVIEW_LIMIT, freeRemaining, loadEntitlement, needsPaywall, previewKey, recordSwitch, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { FREE_DAILY_PREVIEWS, freeRemaining, loadEntitlement, needsPaywall, previewKey, recordSwitch, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { useNav, useRoute } from "../lib/router"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
@@ -214,7 +214,7 @@ export default function Builder() {
     const id = nextTemplate ?? templateByType[`${group.key}/${type.key}`] ?? type.templates[0]?.key ?? "default"
     const key = previewKey(group.key, type.key, id)
     if (needsPaywall(entitlement, key)) {
-      setPaywall({ open: true, reason: `You've used all ${FREE_PREVIEW_LIMIT} free previews. Upgrade to keep exploring templates; your palette remains saved.` })
+      setPaywall({ open: true, reason: `That's all ${FREE_DAILY_PREVIEWS} free previews for today — they reset tomorrow. Go Pro for unlimited previews; your palette stays saved.` })
       return false
     }
     setSelection({ group: group.key, sub: type.key })
@@ -337,7 +337,7 @@ export default function Builder() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 min-[1600px]:inline">{remaining} previews left</span>}
+            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 min-[1600px]:inline">{remaining} previews left today</span>}
             <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
             <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
