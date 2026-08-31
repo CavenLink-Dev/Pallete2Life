@@ -32,6 +32,7 @@ type Props = {
   accessibilityChecks?: AccessibilityCheck[]
   onImportProject?: (project: ImportedProject) => void
   onToast: (msg: string, kind?: "info" | "success" | "error") => void
+  locked?: boolean
 }
 
 const SECTIONS: { key: ExportSection; label: string; note: string }[] = [
@@ -41,7 +42,7 @@ const SECTIONS: { key: ExportSection; label: string; note: string }[] = [
   { key: "project", label: "Project", note: "Save and reopen" },
 ]
 
-export default function ExportPanel({ open, onClose, palette, tokenSystem, project, accessibilityChecks = [], onImportProject, onToast }: Props) {
+export default function ExportPanel({ open, onClose, palette, tokenSystem, project, accessibilityChecks = [], onImportProject, onToast, locked = false }: Props) {
   const [section, setSection] = useState<ExportSection>("palette")
   const [format, setFormat] = useState<CodeFormat>(tokenSystem ? "tokens" : "css")
   const importRef = useRef<HTMLInputElement | null>(null)
@@ -106,9 +107,9 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
           {section === "palette" && <PaletteExport palette={palette} onCopy={copy} onText={() => downloadText("palette-preview-colours.txt", "text/plain", paletteText(palette))} />}
-          {section === "code" && <CodeExport format={format} formatted={formatted} hasSystem={!!tokenSystem} onFormat={setFormat} onCopy={() => copy(formatted, codeLabel(format))} onDownload={() => downloadText(codeFilename(format), format === "json" || format === "tokens" ? "application/json" : "text/plain", formatted)} />}
+          {section === "code" && (locked ? <LockedSection label="Code export" /> : <CodeExport format={format} formatted={formatted} hasSystem={!!tokenSystem} onFormat={setFormat} onCopy={() => copy(formatted, codeLabel(format))} onDownload={() => downloadText(codeFilename(format), format === "json" || format === "tokens" ? "application/json" : "text/plain", formatted)} />)}
           {section === "visual" && <VisualExport palette={palette} onSvg={() => downloadText("palette-preview.svg", "image/svg+xml", makePaletteSvg(palette))} onRaster={(type) => downloadRaster(palette, type, onToast)} />}
-          {section === "project" && <ProjectExport hasSystem={!!tokenSystem} accessibilityChecks={accessibilityChecks} onSave={() => downloadText("palette-preview-project.json", "application/json", projectFile)} canImport={!!onImportProject} onImport={() => importRef.current?.click()} />}
+          {section === "project" && (locked ? <LockedSection label="Project export" /> : <ProjectExport hasSystem={!!tokenSystem} accessibilityChecks={accessibilityChecks} onSave={() => downloadText("palette-preview-project.json", "application/json", projectFile)} canImport={!!onImportProject} onImport={() => importRef.current?.click()} />)}
         </div>
 
         <footer className="flex items-center justify-between gap-4 border-t border-softgrey bg-[#fafafa] px-5 py-3">
@@ -146,6 +147,10 @@ function ProjectExport({ hasSystem, accessibilityChecks, onSave, canImport, onIm
 
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   return <section><h3 className="text-[17px] font-bold" style={{ fontFamily: "var(--font-display)" }}>{title}</h3><p className="mt-1 text-[12px] leading-5 text-charcoal/50">{description}</p><div className="mt-5">{children}</div></section>
+}
+
+function LockedSection({ label }: { label: string }) {
+  return <div className="flex flex-col items-center justify-center gap-3 py-14 text-center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7A818B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg><p className="text-[14px] font-bold text-charcoal/70">{label} requires Pro</p><p className="max-w-xs text-[12px] leading-relaxed text-charcoal/50">Upgrade to HueSet Pro to export CSS variables, JSON, design tokens, typography, and save projects.</p></div>
 }
 
 function ExportCard({ title, note, action, onClick, icon }: { title: string; note: string; action: string; onClick: () => void; icon: React.ReactNode }) {

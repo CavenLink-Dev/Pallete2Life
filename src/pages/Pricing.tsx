@@ -14,11 +14,11 @@ export default function Pricing() {
             Simple pricing
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-[15px] text-charcoal/65">
-            Create and export palettes for free. Preview 15 designs, then unlock the full workspace.
+            Your first design is free to generate, edit, and preview. Export it for a one-time fee, then go Pro for unlimited access.
           </p>
         </div>
 
-        <div className="mx-auto grid w-full max-w-3xl gap-4 md:grid-cols-2">
+        <div className="mx-auto grid w-full max-w-4xl gap-4 md:grid-cols-3">
           {/* Free */}
           <div className="flex flex-col gap-4 rounded-2xl border border-softgrey bg-white p-6">
             <div>
@@ -29,12 +29,11 @@ export default function Pricing() {
               <p className="mt-1 text-[13px] text-charcoal/55">A useful palette tool, not a trial.</p>
             </div>
             <ul className="flex flex-col gap-2 text-[14px] text-charcoal/75">
-              <Feat>Unlimited palette generation and editing</Feat>
-              <Feat>Randomise, lock, add and remove colours</Feat>
-              <Feat>Copy HEX, RGB and HSL</Feat>
-              <Feat>Download your palette</Feat>
-              <Feat>5 live previews per day</Feat>
-              <Feat>Limited template selection</Feat>
+              <Feat>Generate your first full design</Feat>
+              <Feat>Unlimited palette editing and randomisation</Feat>
+              <Feat>Copy HEX, RGB and HSL values</Feat>
+              <Feat>Unlimited template previews (first design)</Feat>
+              <Feat>Quick Design access</Feat>
             </ul>
             <a
               href="/app"
@@ -42,6 +41,32 @@ export default function Pricing() {
               className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             >
               Open HueSet
+            </a>
+          </div>
+
+          {/* First Export */}
+          <div className="flex flex-col gap-4 rounded-2xl border border-softgrey bg-white p-6">
+            <div>
+              <h2 className="text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>First Export</h2>
+              <p className="mt-2 flex items-baseline gap-1">
+                <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$0.99</span>
+                <span className="text-[14px] font-semibold text-charcoal/60">USD &middot; one-time</span>
+              </p>
+              <p className="mt-1 text-[13px] text-charcoal/55">Export your first design, no subscription.</p>
+            </div>
+            <ul className="flex flex-col gap-2 text-[14px] text-charcoal/75">
+              <Feat>Download palette (HEX, RGB, HSL)</Feat>
+              <Feat>Visual swatch sheets (PNG, JPEG, SVG)</Feat>
+              <Feat>Save a reopenable project file</Feat>
+              <Feat>Unlocks export for your first design only</Feat>
+              <Feat>Does not subscribe you to Pro</Feat>
+            </ul>
+            <a
+              href="/app"
+              onClick={nav("/app")}
+              className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+            >
+              Start designing
             </a>
           </div>
 
@@ -60,18 +85,20 @@ export default function Pricing() {
               <h2 className="text-[22px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Pro</h2>
               <p className="mt-2 flex items-baseline gap-1">
                 <span className="text-[36px] font-bold" style={{ fontFamily: "var(--font-display)" }}>$14.99</span>
-                <span className="text-[14px] font-semibold text-charcoal/60">USD / month · recurring</span>
+                <span className="text-[14px] font-semibold text-charcoal/60">USD / month &middot; recurring</span>
               </p>
-              <p className="mt-1 text-[13px] text-charcoal/55">Unlimited previews and advanced tools.</p>
+              <p className="mt-1 text-[13px] text-charcoal/55">Unlimited access and advanced tools.</p>
             </div>
             <ul className="flex flex-col gap-2 text-[14px] text-charcoal/85">
-              <Feat><b>Unlimited previews</b></Feat>
-              <Feat>Every website, mobile app and component preview</Feat>
-              <Feat>All button styles (Flat, 3D, Elevated, Outline, Glass, Gradient)</Feat>
-              <Feat>Full Edit Mode with custom colour roles</Feat>
+              <Feat><b>Unlimited Generate Design and Quick Design</b></Feat>
+              <Feat>Unlimited exports (CSS, JSON, design tokens, project files)</Feat>
+              <Feat>Typography export</Feat>
+              <Feat>Saved projects and all editing tools</Feat>
+              <Feat>Premium and future templates</Feat>
+              <Feat>Second Opinion (accessibility and contrast analysis)</Feat>
               <Feat>Company logo and app icon upload</Feat>
-              <Feat>Advanced accessibility and export tools</Feat>
               <Feat>Full Screen Preview</Feat>
+              <Feat>All future Pro features</Feat>
             </ul>
             <a
               href="/app"
@@ -99,7 +126,7 @@ export default function Pricing() {
 function Feat({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-2">
-      <span aria-hidden style={{ color: BRAND.brand }}>✓</span>
+      <span aria-hidden style={{ color: BRAND.brand }}>&#10003;</span>
       <span>{children}</span>
     </li>
   )

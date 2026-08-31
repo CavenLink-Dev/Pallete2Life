@@ -1,48 +1,61 @@
 /**
  * Free/Pro entitlement, tracked locally in the browser.
- * Free tier: 5 live previews per DAY (resets at local midnight). Re-opening a
- * preview you've already viewed today is free; each new one costs a preview.
- * Pro: unlimited.
  *
- * Nothing here talks to a server. When accounts/subscriptions ship the
- * `isPro` boolean will be sourced from the account instead of local state.
+ * Flow:
+ *  1. Fresh user → first design is free to generate, edit, and preview.
+ *  2. Pressing Export shows a $0.99 one-time paywall.
+ *  3. After payment → account/profile creation UI → firstFlowComplete.
+ *  4. Further Generate Design / Quick Design requires Pro ($14.99/mo).
+ *
+ * Nothing here talks to a server. When Stripe/auth ship, the mock helpers
+ * below will be replaced by real API calls.
  */
 
-const KEY = "pallet-preview:ent:v2"
+const KEY = "pallet-preview:ent:v3"
+const OLD_KEY = "pallet-preview:ent:v2"
 
-/** Free previews allowed per day before the paywall appears. */
-export const FREE_DAILY_PREVIEWS = 5
+export type Account = { name: string; email: string }
 
 export type Entitlement = {
   isPro: boolean
-  /** local calendar day (YYYY-MM-DD) the counter below applies to */
-  day: string
-  /** preview keys already opened today — each distinct one costs a preview */
-  seenToday: string[]
+  firstExportPaid: boolean
+  firstExportDesignId: string | null
+  firstFlowComplete: boolean
+  account: Account | null
 }
 
-function today(): string {
-  return new Date().toLocaleDateString("en-CA") // YYYY-MM-DD, local time
+const DEFAULT: Entitlement = {
+  isPro: false,
+  firstExportPaid: false,
+  firstExportDesignId: null,
+  firstFlowComplete: false,
+  account: null,
 }
 
-const DEFAULT: Entitlement = { isPro: false, day: today(), seenToday: [] }
-
-/** Roll the counter over to a fresh day if the stored day has passed. */
-function normalise(e: Entitlement): Entitlement {
-  const d = today()
-  return e.day === d ? e : { ...e, day: d, seenToday: [] }
+function migrateV2(): Entitlement {
+  try {
+    const raw = localStorage.getItem(OLD_KEY)
+    if (!raw) return DEFAULT
+    const v2 = JSON.parse(raw) as { isPro?: boolean }
+    localStorage.removeItem(OLD_KEY)
+    return { ...DEFAULT, isPro: !!v2.isPro }
+  } catch {
+    return DEFAULT
+  }
 }
 
 export function loadEntitlement(): Entitlement {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return DEFAULT
+    if (!raw) return migrateV2()
     const p = JSON.parse(raw) as Partial<Entitlement>
-    return normalise({
+    return {
       isPro: !!p.isPro,
-      day: typeof p.day === "string" ? p.day : today(),
-      seenToday: Array.isArray(p.seenToday) ? p.seenToday.filter((x) => typeof x === "string") : [],
-    })
+      firstExportPaid: !!p.firstExportPaid,
+      firstExportDesignId: typeof p.firstExportDesignId === "string" ? p.firstExportDesignId : null,
+      firstFlowComplete: !!p.firstFlowComplete,
+      account: p.account && typeof p.account.name === "string" && typeof p.account.email === "string" ? p.account : null,
+    }
   } catch {
     return DEFAULT
   }
@@ -52,31 +65,43 @@ export function saveEntitlement(e: Entitlement) {
   try {
     localStorage.setItem(KEY, JSON.stringify(e))
   } catch {
-    /* storage unavailable — ignore */
+    /* storage unavailable */
   }
 }
 
-export function previewKey(group: string, sub: string, template?: string): string {
-  return template ? `${group}/${sub}/${template}` : `${group}/${sub}`
+/** True when the user can open the Builder or Quick Design workspace. */
+export function canUseWorkspace(e: Entitlement): boolean {
+  return e.isPro || !e.firstFlowComplete
 }
 
-/** How many free previews the viewer has left today. Pro users see Infinity. */
-export function freeRemaining(e: Entitlement): number {
-  if (e.isPro) return Infinity
-  return Math.max(0, FREE_DAILY_PREVIEWS - normalise(e).seenToday.length)
+/** True when the user can export a given design. */
+export function canExport(e: Entitlement, designId: string): boolean {
+  return e.isPro || (e.firstExportPaid && e.firstExportDesignId === designId)
 }
 
-/** True when opening this preview should trigger the paywall. */
-export function needsPaywall(e: Entitlement, key: string): boolean {
-  if (e.isPro) return false
-  const n = normalise(e)
-  if (n.seenToday.includes(key)) return false
-  return n.seenToday.length >= FREE_DAILY_PREVIEWS
+/** True when the first Export click should show the $0.99 paywall. */
+export function needsExportPaywall(e: Entitlement): boolean {
+  return !e.isPro && !e.firstExportPaid && !e.firstFlowComplete
 }
 
-/** Record a preview open. Consumes one of today's previews only if new. */
-export function recordSwitch(e: Entitlement, key: string): Entitlement {
-  const n = normalise(e)
-  if (n.isPro || n.seenToday.includes(key)) return n
-  return { ...n, seenToday: [...n.seenToday, key] }
+/** True when account setup should be shown (after $0.99, before export). */
+export function needsAccountSetup(e: Entitlement): boolean {
+  return e.firstExportPaid && !e.account
+}
+
+/** True when the user has exhausted the free tier and must subscribe. */
+export function needsPro(e: Entitlement): boolean {
+  return e.firstFlowComplete && !e.isPro
+}
+
+export function mockPayFirstExport(e: Entitlement, designId: string): Entitlement {
+  return { ...e, firstExportPaid: true, firstExportDesignId: designId }
+}
+
+export function mockCreateAccount(e: Entitlement, profile: Account): Entitlement {
+  return { ...e, account: profile, firstFlowComplete: true }
+}
+
+export function mockSubscribePro(e: Entitlement): Entitlement {
+  return { ...e, isPro: true }
 }

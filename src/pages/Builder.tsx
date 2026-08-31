@@ -6,13 +6,17 @@ import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from
 import BrandUpload from "../components/BrandUpload"
 import ChangeTemplatePanel from "../components/ChangeTemplatePanel"
 import ConfirmDialog from "../components/ConfirmDialog"
+import AccountSetupOverlay from "../components/AccountSetupOverlay"
 import ExportPanel, { type ImportedProject } from "../components/ExportPanel"
+import ExportPaywallOverlay from "../components/ExportPaywallOverlay"
 import InspectorShell from "../components/InspectorShell"
 import OnboardingCard, { markOnboardingStep } from "../components/OnboardingCard"
 import PaletteRail from "../components/PaletteRail"
 import PaywallOverlay from "../components/PaywallOverlay"
+import SecondOpinionPanel from "../components/SecondOpinionPanel"
 import { useToast } from "../components/Toast"
-import { FREE_DAILY_PREVIEWS, freeRemaining, loadEntitlement, needsPaywall, previewKey, recordSwitch, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { useNav, useRoute } from "../lib/router"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
@@ -82,16 +86,25 @@ export default function Builder() {
   const [inspectorOpen, setInspectorOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
   const [brandOpen, setBrandOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  const [exportPaywallOpen, setExportPaywallOpen] = useState(false)
+  const [accountSetupOpen, setAccountSetupOpen] = useState(false)
+  const [secondOpinionOpen, setSecondOpinionOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
+  const [designId] = useState<string>(() => loadStored("designId", "") || uid())
 
   useStored("palette", palette)
   useStored("templateByType", templateByType)
   useStored("brand", brand)
+  useStored("designId", designId)
 
   useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
   useEffect(() => { writeHashPalette(palette) }, [palette])
+
+  useEffect(() => {
+    if (needsPro(entitlement)) setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
+  }, [])
 
   useEffect(() => {
     const onHashChange = () => {
@@ -188,6 +201,7 @@ export default function Builder() {
   const theme = useMemo(() => deriveTheme(palette, roleLabels), [palette, roleLabels])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
   const tokenSystem = useMemo(() => createTokenSystem(palette), [palette])
+  const accessibilityChecks = useMemo(() => evaluateAccessibility(theme, tokenSystem), [theme, tokenSystem])
 
   const previewContext = useMemo<PreviewCtxValue>(() => ({
     editMode: false,
@@ -211,16 +225,13 @@ export default function Builder() {
     const group = GROUPS.find((item) => item.key === next.group)
     const type = group?.subs.find((item) => item.key === next.sub) ?? group?.subs[0]
     if (!group || !type) return false
-    const id = nextTemplate ?? templateByType[`${group.key}/${type.key}`] ?? type.templates[0]?.key ?? "default"
-    const key = previewKey(group.key, type.key, id)
-    if (needsPaywall(entitlement, key)) {
-      setPaywall({ open: true, reason: `That's all ${FREE_DAILY_PREVIEWS} free previews for today — they reset tomorrow. Go Pro for unlimited previews; your palette stays saved.` })
+    if (!canUseWorkspace(entitlement)) {
+      setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
       return false
     }
     setSelection({ group: group.key, sub: type.key })
-    setEntitlement((current) => recordSwitch(current, key))
     return true
-  }, [entitlement, templateByType])
+  }, [entitlement])
 
   const chooseTemplate = (id: string, label: string) => {
     if (!trySelect(selection, id)) return
@@ -310,7 +321,26 @@ export default function Builder() {
     }
   }
 
-  const remaining = freeRemaining(entitlement)
+  const handleExport = () => {
+    markOnboardingStep("export")
+    if (needsPro(entitlement)) {
+      setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
+      return
+    }
+    if (needsExportPaywall(entitlement)) {
+      setExportPaywallOpen(true)
+      return
+    }
+    if (needsAccountSetup(entitlement)) {
+      setAccountSetupOpen(true)
+      return
+    }
+    if (canExport(entitlement, designId)) {
+      setExportOpen(true)
+      return
+    }
+    setPaywall({ open: true, reason: "Export is available for your first design or with a Pro subscription." })
+  }
 
   return (
     <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-offwhite text-charcoal">
@@ -337,7 +367,6 @@ export default function Builder() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            {!entitlement.isPro && <span className="hidden px-1 text-[10px] font-semibold text-charcoal/45 min-[1600px]:inline">{remaining} previews left today</span>}
             <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
             <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
@@ -366,7 +395,8 @@ export default function Builder() {
                 if (template) chooseTemplate(template.key, template.label)
               }}
             />
-            <ToolbarAction label="Export" onClick={() => { setExportOpen(true); markOnboardingStep("export") }}><ExportIcon /></ToolbarAction>
+            <ToolbarAction label="Export" onClick={handleExport}><ExportIcon /></ToolbarAction>
+            <ToolbarAction label="Second Opinion" onClick={() => setSecondOpinionOpen(true)}><SecondOpinionIcon /></ToolbarAction>
             <div ref={moreMenuRef} className="relative min-[1600px]:hidden">
               <ToolbarButton label="More tools" pressed={moreOpen} onClick={() => { setMoreOpen((open) => !open); setTemplateOpen(false) }}><MoreIcon /></ToolbarButton>
               {moreOpen && (
@@ -430,8 +460,41 @@ export default function Builder() {
         palette={palette}
         tokenSystem={tokenSystem}
         project={{ templateId, brand }}
+        accessibilityChecks={accessibilityChecks}
         onImportProject={reopenProject}
         onToast={(message, kind) => toast.push(message, kind)}
+      />
+
+      <ExportPaywallOverlay
+        open={exportPaywallOpen}
+        onPay={() => {
+          setEntitlement((e) => mockPayFirstExport(e, designId))
+          setExportPaywallOpen(false)
+          setAccountSetupOpen(true)
+        }}
+        onLater={() => setExportPaywallOpen(false)}
+      />
+
+      <AccountSetupOverlay
+        open={accountSetupOpen}
+        onComplete={(profile) => {
+          setEntitlement((e) => mockCreateAccount(e, profile))
+          setAccountSetupOpen(false)
+          setExportOpen(true)
+        }}
+        onLater={() => {
+          setEntitlement((e) => mockCreateAccount(e, { name: "", email: "" }))
+          setAccountSetupOpen(false)
+          setExportOpen(true)
+        }}
+      />
+
+      <SecondOpinionPanel
+        open={secondOpinionOpen}
+        onClose={() => setSecondOpinionOpen(false)}
+        checks={accessibilityChecks}
+        isPro={entitlement.isPro}
+        onUpgrade={() => { setSecondOpinionOpen(false); setPaywall({ open: true, reason: "Second Opinion is a Pro feature. Subscribe for full accessibility analysis." }) }}
       />
 
       <OnboardingCard />
@@ -446,7 +509,12 @@ export default function Builder() {
         onCancel={() => setConfirmReset(false)}
       />
 
-      <PaywallOverlay open={paywall.open} reason={paywall.reason} onUnlock={() => navigate("/pricing")} onLater={() => setPaywall({ open: false })} />
+      <PaywallOverlay
+        open={paywall.open}
+        reason={paywall.reason}
+        onUnlock={() => { setEntitlement((e) => mockSubscribePro(e)); setPaywall({ open: false }); toast.push("Pro unlocked", "success") }}
+        onLater={() => setPaywall({ open: false })}
+      />
     </div>
   )
 }
@@ -484,5 +552,6 @@ const BrandIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="no
 const CenterIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /><circle cx="12" cy="12" r="2" /></svg>
 const FullscreenIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" /></svg>
 const ExportIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 13v7h14v-7" /></svg>
+const SecondOpinionIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="9" /></svg>
 const InspectorIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M15 4v16" /></svg>
 const MoreIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>

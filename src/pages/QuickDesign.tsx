@@ -11,9 +11,11 @@ import {
 import { loadPalette, savePalette, writeHashPalette } from "../lib/paletteStore"
 import PublicFooter from "../components/PublicFooter"
 import PublicHeader from "../components/PublicHeader"
+import PaywallOverlay from "../components/PaywallOverlay"
 import BrandUpload from "../components/BrandUpload"
 import type { Brand } from "../components/PreviewCtx"
 import { useToast } from "../components/Toast"
+import { loadEntitlement, mockSubscribePro, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import {
   LiveChangePreview,
   type LivePreviewKind,
@@ -95,6 +97,10 @@ export default function QuickDesign() {
   const [brand, setBrand] = useState<Brand>(loadBrand)
   const [brandOpen, setBrandOpen] = useState(false)
   const [preview, setPreview] = useState<LivePreviewKind>("website")
+  const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
+  const [paywallOpen, setPaywallOpen] = useState(() => needsPro(loadEntitlement()))
+
+  useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
 
   useEffect(() => {
     savePalette(palette)
@@ -248,7 +254,7 @@ export default function QuickDesign() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: "var(--font-display)" }}>Live preview</h2>
-                <p className="mt-1 text-sm text-charcoal/50">3 free preview options</p>
+                <p className="mt-1 text-sm text-charcoal/50">Switch between website, app, and component previews</p>
               </div>
               <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-softgrey bg-white" role="tablist" aria-label="Live preview options">
                 {PREVIEW_OPTIONS.map((option) => {
@@ -280,6 +286,13 @@ export default function QuickDesign() {
       <PublicFooter />
 
       {brandOpen && <BrandUpload brand={brand} onChange={setBrand} onClose={() => setBrandOpen(false)} />}
+
+      <PaywallOverlay
+        open={paywallOpen}
+        reason="Quick Design requires a Pro subscription after your first design flow."
+        onUnlock={() => { setEntitlement((e) => mockSubscribePro(e)); setPaywallOpen(false); toast.push("Pro unlocked", "success") }}
+        onLater={() => setPaywallOpen(false)}
+      />
     </div>
   )
 }
