@@ -105,7 +105,7 @@
 .home-segmented input:focus-visible + span { outline: 2px solid var(--home-brand-ink); outline-offset: 2px; }
 .home-roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--home-gap-small); }
 .home-role { padding: 11px; border: 1px solid var(--home-line); border-radius: var(--home-radius); transition: opacity 0.18s; }
-.home-role-label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.home-role-label { display: flex; min-height: 34px; flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 2px; margin-bottom: var(--home-gap-small); }
 .home-role-label > span:first-child { font-size: 13px; font-weight: 600; }
 .home-role .not-used { color: var(--home-muted); font-size: 10.5px; font-weight: 600; opacity: 0; transition: opacity 0.18s; }
 .home-role.dim { opacity: 0.5; }
@@ -155,7 +155,7 @@
   .home-nav-inner { gap: 10px; }
   .home-nav .home-btn { padding: 10px 12px; font-size: 13px; }
   .home-roles { grid-template-columns: 1fr; }
-  .home-role-label { margin-bottom: 4px; }
+  .home-role-label { min-height: 0; margin-bottom: var(--home-gap-small); }
   .home-promo-panel { padding: var(--home-gap-large) var(--home-gap-medium); }
   .home-promo-buttons { flex-wrap: wrap; }
   .home-promo-button { justify-content: center; }
