@@ -322,7 +322,6 @@ export default function Builder() {
       if (curated) {
         recentCurated.current = [curated.index, ...recentCurated.current].slice(0, 20)
         mutatePalette((current) => current.map((swatch, index) => swatch.locked ? swatch : { ...swatch, hex: curated.palette[index] ?? randomHex() }))
-        toast.push("Curated palette", "success")
         return
       }
     }
