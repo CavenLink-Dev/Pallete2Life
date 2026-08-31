@@ -20,9 +20,10 @@ import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { useNav, useRoute } from "../lib/router"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
-import { ELEMENT_DEFAULTS, elementTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
+import { ELEMENT_DEFAULTS, elementTokens, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
 import { templateAssetById } from "../lib/templateAssets"
+import { readGenerateResult } from "../lib/generateFlowStore"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -81,6 +82,7 @@ export default function Builder() {
   const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
   const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}))
   const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => loadStored("roleBindings", {}))
+  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => loadStored("unassignedRoleSwatchIds", []))
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -104,12 +106,20 @@ export default function Builder() {
   useStored("designId", designId)
   useStored("elementOverrides", elementOverrides)
   useStored("roleBindings", roleBindings)
+  useStored("unassignedRoleSwatchIds", unassignedRoleSwatchIds)
 
   useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
   useEffect(() => { writeHashPalette(palette) }, [palette])
 
   useEffect(() => {
     if (needsPro(entitlement)) setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
+  }, [])
+
+  useEffect(() => {
+    const result = readGenerateResult()
+    if (!result) return
+    setSelection({ group: result.group as GroupKey, sub: result.sub })
+    setTemplateByType((c) => ({ ...c, [`${result.group}/${result.sub}`]: result.templateId }))
   }, [])
 
   useEffect(() => {
@@ -210,7 +220,12 @@ export default function Builder() {
     return () => cancelAnimationFrame(frame)
   }, [templateId, selectionKey, paletteOpen, customiseOpen])
   const roleLabels = selection.group === "application" ? APPLICATION_ROLE_LABELS : WEBSITE_ROLE_LABELS
-  const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleLabels, roleBindings])
+  const unassignedRoleSwatchIdSet = useMemo(() => new Set(unassignedRoleSwatchIds), [unassignedRoleSwatchIds])
+  const activeRoleLabels = useMemo(() => roleLabels.map((label, index) => {
+    const swatchId = palette[index]?.id
+    return swatchId && unassignedRoleSwatchIdSet.has(swatchId) ? null : label
+  }), [palette, roleLabels, unassignedRoleSwatchIdSet])
+  const theme = useMemo(() => deriveTheme(palette, activeRoleLabels, roleBindings), [palette, activeRoleLabels, roleBindings])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
   const tokenSystem = useMemo(() => createTokenSystem(palette), [palette])
   const accessibilityChecks = useMemo(() => evaluateAccessibility(theme, tokenSystem), [theme, tokenSystem])
@@ -246,6 +261,10 @@ export default function Builder() {
   }, [mutatePalette])
 
   const handleRoleChange = useCallback((role: string, swatchId: string) => {
+    setUnassignedRoleSwatchIds((ids) => {
+      if (role) return ids.filter((id) => id !== swatchId)
+      return ids.includes(swatchId) ? ids : [...ids, swatchId]
+    })
     setRoleBindings((bindings) => {
       const next = { ...bindings }
       for (const [key, id] of Object.entries(next)) {
@@ -351,12 +370,30 @@ export default function Builder() {
       }
     }
     mutatePalette(smartRandomise)
+    applyCoherentOverrides()
+  }
+
+  const applyCoherentOverrides = () => {
+    const typo = randomTypographyTokens()
+    const btn = randomButtonTokens()
+    setElementOverrides((prev) => {
+      const next = { ...prev }
+      for (const [id, ov] of Object.entries(next)) {
+        if (id.startsWith("text-") || id.includes("/text")) {
+          next[id] = { ...ov, ...typo }
+        } else if (id.startsWith("button-") || id.includes("/button")) {
+          next[id] = { ...ov, ...btn }
+        }
+      }
+      return next
+    })
   }
 
   const reset = () => {
     setUndoStack((history) => [...history, palette])
     setRedoStack([])
     skipHistory.current = true
+    setUnassignedRoleSwatchIds([])
     setPalette(createDefaultPalette())
     setConfirmReset(false)
     toast.push("Palette reset", "success")
@@ -422,6 +459,7 @@ export default function Builder() {
           roleBindings={roleBindings}
           roleOptions={paletteRoleOptions}
           defaultRoleByIndex={paletteRoleOptions}
+          unassignedRoleSwatchIds={unassignedRoleSwatchIds}
           onRoleChange={handleRoleChange}
           onClose={() => setPaletteOpen(false)}
         />
@@ -538,6 +576,7 @@ export default function Builder() {
             roleBindings={roleBindings}
             roleOptions={paletteRoleOptions}
             defaultRoleByIndex={paletteRoleOptions}
+            unassignedRoleSwatchIds={unassignedRoleSwatchIds}
             onRoleChange={handleRoleChange}
           />
         </SheetBackdrop>

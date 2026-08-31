@@ -9,6 +9,7 @@ import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
 import QuickDesign from "./pages/QuickDesign"
+import GenerateDesign from "./pages/GenerateDesign"
 
 export default function App() {
   const [route] = useRoute()
@@ -20,6 +21,9 @@ export default function App() {
 
   let page: React.ReactNode
   switch (route) {
+    case "/generate":
+      page = <GenerateDesign />
+      break
     case "/app":
       page = <Builder />
       break

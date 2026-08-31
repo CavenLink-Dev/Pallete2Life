@@ -199,3 +199,24 @@ export function buttonPadding(token: string, size: string): { paddingBlock: numb
   const scale = size === "size.sm" ? 0.8 : size === "size.lg" ? 1.3 : 1
   return { paddingBlock: Math.round(base * 0.72 * scale), paddingInline: Math.round(base * 1.45 * scale) }
 }
+
+function pickRandom<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+export function randomTypographyTokens(): ElementTokenValues {
+  return {
+    fontFamily: pickRandom(TOKEN_OPTIONS.fontFamily),
+    fontWeight: pickRandom(TOKEN_OPTIONS.fontWeight),
+    lineHeight: pickRandom(TOKEN_OPTIONS.lineHeight),
+    letterSpacing: pickRandom(TOKEN_OPTIONS.letterSpacing),
+  }
+}
+
+export function randomButtonTokens(): ElementTokenValues {
+  return {
+    buttonType: pickRandom(TOKEN_OPTIONS.buttonPreset),
+    radius: pickRandom(TOKEN_OPTIONS.radius),
+    size: pickRandom(TOKEN_OPTIONS.size),
+  }
+}

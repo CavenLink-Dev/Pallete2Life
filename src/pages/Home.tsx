@@ -26,7 +26,7 @@ export default function Home() {
       ? { "--face": colours.primary, "--edge": colours.secondary, "--txt": colours.text }
       : { "--txt": colours.primary, "--border": colours.secondary }
 
-  const openApp = nav("/app")
+  const openGenerate = nav("/generate")
   const openQuickDesign = nav("/quick-design")
 
   return (
@@ -39,7 +39,7 @@ export default function Home() {
             <a href="#how">How it works</a>
             <a href="#start">Get started</a>
           </nav>
-          <a href="/app" onClick={openApp} className="home-btn home-btn-primary">Generate Design</a>
+          <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design</a>
         </div>
       </header>
 
@@ -52,7 +52,7 @@ export default function Home() {
               </h1>
               <p className="home-lead">Generate variables, preview, test, edit and create tokens. Then output to any design project.</p>
               <div className="home-hero-cta">
-                <a href="/app" onClick={openApp} className="home-btn home-btn-primary">Generate Design <span aria-hidden>→</span></a>
+                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design <span aria-hidden>→</span></a>
                 <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary">Quick Design</a>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default function Home() {
               <div className="home-path main">
                 <h3>Generate Design</h3>
                 <p>Build a full design with saved colours you can reuse. More control, still simple.</p>
-                <a href="/app" onClick={openApp} className="home-btn home-btn-primary">Generate Design</a>
+                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design</a>
                 <details><summary>What are tokens and variables?</summary><p>Just saved colours. Change one and it updates everywhere you used it, so your design stays in sync.</p></details>
               </div>
               <div className="home-path">

@@ -88,9 +88,7 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
     if (!viewport || !svg || !template) return
     const baseWidth = template.category === "Application" ? 390 : 1440
     const aspectHeight = svg.height * (baseWidth / svg.width)
-    const contentWidth = baseWidth + PREVIEW_FIT_INSET
-    const contentHeight = aspectHeight + PREVIEW_FIT_INSET
-    const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, contentWidth, contentHeight)
+    const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth, aspectHeight)
     setZoom(nextZoom)
     requestAnimationFrame(() => {
       if (viewport) viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })

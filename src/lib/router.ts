@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 export type Route =
   | "/"
   | "/app"
+  | "/generate"
   | "/builder"
   | "/preview"
   | "/live-changes"
@@ -13,7 +14,7 @@ export type Route =
   | "/terms"
   | "/contact"
 
-const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const KNOWN: Route[] = ["/", "/app", "/generate", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
 export function replaceRoute(r: Route) {

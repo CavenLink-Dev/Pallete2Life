@@ -33,6 +33,7 @@ type Props = {
   roleBindings?: RoleBindings
   roleOptions?: readonly string[]
   defaultRoleByIndex?: readonly string[]
+  unassignedRoleSwatchIds?: readonly string[]
   onRoleChange?: (role: string, swatchId: string) => void
   onClose?: () => void
   className?: string
@@ -49,6 +50,7 @@ export default function PaletteRail({
   roleBindings = {},
   roleOptions = [],
   defaultRoleByIndex = [],
+  unassignedRoleSwatchIds = [],
   onRoleChange,
   onClose,
   className = "",
@@ -76,6 +78,7 @@ export default function PaletteRail({
   const swatchRole = (swatchId: string) => {
     const entry = Object.entries(roleBindings).find(([, id]) => id === swatchId)
     if (entry) return entry[0]
+    if (unassignedRoleSwatchIds.includes(swatchId)) return ""
     const index = palette.findIndex((s) => s.id === swatchId)
     return index >= 0 && index < defaultRoleByIndex.length ? defaultRoleByIndex[index] : ""
   }

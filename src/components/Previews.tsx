@@ -533,8 +533,9 @@ export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupK
 
   if (!asset) return <div className="grid h-full min-h-96 place-items-center bg-white text-sm font-semibold text-charcoal/50">Template not found</div>
   if (asset.renderer === "built-in") {
+    const baseWidth = group === "application" ? 390 : 1440
     return (
-      <BuiltInPreviewFrame ref={builtInRef}>
+      <BuiltInPreviewFrame ref={builtInRef} baseWidth={baseWidth}>
         <Suspense fallback={<div className="grid h-full min-h-96 place-items-center bg-white text-sm font-semibold text-charcoal/50">Loading template...</div>}>
           <BuiltInTemplatePreview key={`${group}/${sub}/${templateId}`} asset={asset} theme={theme} />
         </Suspense>
@@ -547,56 +548,40 @@ export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupK
 const BUILT_IN_DEFAULT_ZOOM = 1
 const ZOOM_STEP = 0.1
 
-const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactNode }>(function BuiltInPreviewFrame({ children }, ref) {
+const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactNode; baseWidth: number }>(function BuiltInPreviewFrame({ children, baseWidth }, ref) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [dragging, setDragging] = useState(false)
   const [zoom, setZoom] = useState(BUILT_IN_DEFAULT_ZOOM)
-  const [contentSize, setContentSize] = useState({ width: 0, height: 0 })
-
-  const measureFitZoom = useCallback(() => {
-    const viewport = viewportRef.current
-    const content = contentRef.current
-    if (!viewport || !content) return { zoom: BUILT_IN_DEFAULT_ZOOM, width: 0, height: 0 }
-    const width = content.scrollWidth
-    const height = content.scrollHeight
-    const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, width, height)
-    return { zoom: nextZoom, width, height }
-  }, [])
+  const [contentHeight, setContentHeight] = useState(0)
 
   const fit = useCallback(() => {
-    setZoom(BUILT_IN_DEFAULT_ZOOM)
-    requestAnimationFrame(() => {
-      const viewport = viewportRef.current
-      if (!viewport) return
-      const measured = measureFitZoom()
-      setContentSize({ width: measured.width, height: measured.height })
-      setZoom(measured.zoom)
-      viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
-    })
-  }, [measureFitZoom])
+    const viewport = viewportRef.current
+    const content = contentRef.current
+    if (!viewport || !content) return
+    const height = content.scrollHeight
+    setContentHeight(height)
+    setZoom(computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth + PREVIEW_FIT_INSET, height + PREVIEW_FIT_INSET))
+    viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
+  }, [baseWidth])
 
   useImperativeHandle(ref, () => ({ fitToScreen: fit }), [fit])
 
-  useLayoutEffect(() => {
-    fit()
-  }, [children, fit])
+  useLayoutEffect(() => { fit() }, [children, baseWidth, fit])
 
   useEffect(() => {
     const viewport = viewportRef.current
-    const content = contentRef.current
     if (!viewport) return
     const observer = new ResizeObserver(() => fit())
     observer.observe(viewport)
-    if (content) observer.observe(content)
     return () => observer.disconnect()
   }, [fit])
 
   const changeZoom = (direction: -1 | 1) => setZoom((current) => clampPreviewZoom(Math.round((current + direction * ZOOM_STEP) * 10) / 10))
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current
-    if (!viewport || event.button !== 0 || zoom >= 0.99) return
+    if (!viewport || event.button !== 0) return
     dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
     viewport.setPointerCapture(event.pointerId)
     setDragging(true)
@@ -622,17 +607,16 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
           <div
             className="shrink-0"
             style={{
-              width: contentSize.width ? contentSize.width * zoom : undefined,
-              height: contentSize.height ? contentSize.height * zoom : undefined,
+              width: baseWidth * zoom,
+              height: contentHeight ? contentHeight * zoom : undefined,
             }}
           >
             <div
               ref={contentRef}
-              className="w-full max-w-[1440px] origin-top"
               style={{
+                width: baseWidth,
                 transform: `scale(${zoom})`,
                 transformOrigin: "top left",
-                width: contentSize.width || undefined,
               }}
             >
               {children}

@@ -1,10 +1,13 @@
+import { useState } from "react"
 import { BRAND } from "../lib/color"
 import { useNav } from "../lib/router"
 import PublicHeader from "../components/PublicHeader"
 import PublicFooter from "../components/PublicFooter"
+import { GuideWalkthrough } from "../components/generate-design/GuideStep"
 
 export default function Help() {
   const nav = useNav()
+  const [guideOpen, setGuideOpen] = useState(false)
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
@@ -14,6 +17,14 @@ export default function Help() {
           <p className="mt-3 text-[15px] text-charcoal/65">
             Everything you need to know about HueSet, in plain language.
           </p>
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className="mt-4 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+            style={{ background: BRAND.brand }}
+          >
+            Replay the HueSet guide
+          </button>
         </div>
 
         <Section title="How HueSet works">
@@ -67,6 +78,7 @@ export default function Help() {
         </Section>
       </main>
       <PublicFooter />
+      <GuideWalkthrough open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   )
 }
