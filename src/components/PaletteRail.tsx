@@ -206,22 +206,11 @@ function SwatchRow({ swatch, open, role, overlay, onToggleEditor, onRename, onTo
           <button
             type="button"
             onClick={() => onRemove(swatch.id)}
-            className="hidden h-8 w-8 place-items-center rounded-[5px] text-charcoal/40 hover:bg-white hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:grid"
+            className="grid h-8 w-8 place-items-center rounded-[5px] text-charcoal/40 opacity-0 hover:bg-white hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100"
             aria-label={`Remove ${swatch.name}`}
             title="Remove colour"
           >
             <TrashIcon />
-          </button>
-        )}
-        {onRemove && canRemove && (
-          <button
-            type="button"
-            onClick={() => onRemove(swatch.id)}
-            className="grid h-8 w-8 place-items-center rounded-[5px] text-charcoal/40 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:hidden"
-            aria-label={`Remove ${swatch.name}`}
-            tabIndex={-1}
-          >
-            <span className="sr-only">Remove</span>
           </button>
         )}
         <button
