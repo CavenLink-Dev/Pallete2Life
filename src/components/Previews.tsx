@@ -562,13 +562,13 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
     if (!viewport || !content) return
     const height = content.scrollHeight
     setContentHeight(height)
-    setZoom(computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth + PREVIEW_FIT_INSET, height + PREVIEW_FIT_INSET))
+    setZoom(computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth, height))
     viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
   }, [baseWidth])
 
   useImperativeHandle(ref, () => ({ fitToScreen: fit }), [fit])
 
-  useLayoutEffect(() => { fit() }, [children, baseWidth, fit])
+  useLayoutEffect(() => { fit() }, [baseWidth, fit])
 
   useEffect(() => {
     const viewport = viewportRef.current
@@ -602,7 +602,7 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
         <span className="w-12 text-center text-[11px] font-bold tabular-nums text-charcoal/65" aria-live="polite">{Math.round(zoom * 100)}%</span>
         <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= PREVIEW_FIT_MAX_ZOOM}><ZoomInIcon /></PreviewZoomButton>
       </div>
-      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : zoom < 0.99 ? "cursor-grab" : ""}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
+      <div ref={viewportRef} className={`h-full w-full overflow-auto ${dragging ? "cursor-grabbing touch-none select-none" : "cursor-grab"}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
         <div className="flex min-h-full w-full justify-center" style={{ padding: PREVIEW_FIT_INSET / 2 }}>
           <div
             className="shrink-0"
