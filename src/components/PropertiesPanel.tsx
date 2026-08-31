@@ -58,7 +58,7 @@ export default function PropertiesPanel(p: Props) {
   return (
     <aside
       className="relative flex h-full w-[369px] shrink-0 flex-col border-l border-[#e5e7eb] bg-white text-[#111827]"
-      aria-label="Palette Preview properties"
+      aria-label="HueSet properties"
       style={UI_FONT}
     >
       {/* Scrolling body */}
@@ -195,7 +195,7 @@ export default function PropertiesPanel(p: Props) {
         >
           {p.isPro ? "★ Pro" : "Go Pro"}
         </button>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]" style={UI_FONT}>Palette Preview</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]" style={UI_FONT}>HueSet</span>
       </div>
     </aside>
   )

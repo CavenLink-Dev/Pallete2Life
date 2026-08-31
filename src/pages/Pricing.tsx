@@ -40,7 +40,7 @@ export default function Pricing() {
               onClick={nav("/app")}
               className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
             >
-              Open Palette Preview
+              Open HueSet
             </a>
           </div>
 
@@ -78,7 +78,7 @@ export default function Pricing() {
               className="mt-auto inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
               style={{ background: BRAND.brand }}
             >
-              Open Palette Preview
+              Open HueSet
             </a>
             <p className="text-center text-[11px] text-charcoal/45">
               Accounts and payments coming soon.
@@ -87,7 +87,7 @@ export default function Pricing() {
         </div>
 
         <p className="text-center text-[13px] text-charcoal/55">
-          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how Palette Preview works</a>.
+          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how HueSet works</a>.
         </p>
       </main>
       <PublicFooter />

@@ -39,6 +39,11 @@ function loadStored<T>(key: string, fallback: T): T {
   }
 }
 
+function loadBrand(): Brand {
+  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null })
+  return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
+}
+
 function useStored(key: string, value: unknown) {
   useEffect(() => {
     try {
@@ -66,7 +71,7 @@ export default function Builder() {
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
   const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => loadStored("templateByType", {}))
-  const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
+  const [brand, setBrand] = useState<Brand>(loadBrand)
   const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
   const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle))
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
@@ -322,7 +327,7 @@ export default function Builder() {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-softgrey bg-white px-2 sm:px-3">
           <div className="flex min-w-0 items-center gap-1">
-            <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Palette Preview home" title="Palette Preview home">
+            <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="HueSet home" title="HueSet home">
               <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
             </a>
             <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setInspectorOpen(false) }}><PaletteIcon /></ToolbarButton>

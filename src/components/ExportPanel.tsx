@@ -88,7 +88,7 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
       onToast("Project reopened", "success")
       onClose()
     } catch {
-      onToast("This does not look like a Palette Preview project file", "error")
+      onToast("This does not look like a HueSet project file", "error")
     }
   }
 
@@ -201,7 +201,7 @@ function downloadRaster(palette: Swatch[], type: "png" | "jpeg", onToast: Props[
   })
   context.fillStyle = "#7A818B"
   context.font = "500 16px Inter, Arial, sans-serif"
-  context.fillText("Made with Palette Preview", margin, 370)
+  context.fillText("Made with HueSet", margin, 370)
   canvas.toBlob((blob) => { if (blob) downloadBlob(`palette-preview.${type === "jpeg" ? "jpg" : "png"}`, blob, onToast) }, type === "jpeg" ? "image/jpeg" : "image/png", 0.92)
 }
 
@@ -215,7 +215,7 @@ function makePaletteSvg(palette: Swatch[]): string {
     const text = (r + g + b) / 3 > 160 ? "#0E1821" : "#FFFFFF"
     return `<g><rect x="${x}" y="50" width="${swatchWidth}" height="270" fill="${swatch.hex}"/><text x="${x + 18}" y="88" font-family="Inter,Arial,sans-serif" font-size="20" font-weight="700" fill="${text}">${escapeXml(swatch.name)}</text><text x="${x + 18}" y="290" font-family="Menlo,monospace" font-size="18" font-weight="700" fill="${text}">${swatch.hex.toUpperCase()}</text></g>`
   }).join("")
-  return `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420"><rect width="1400" height="420" fill="#F8F8F6"/>${swatches}<text x="40" y="370" font-family="Inter,Arial,sans-serif" font-size="16" fill="#7A818B">Made with Palette Preview</text></svg>`
+  return `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420"><rect width="1400" height="420" fill="#F8F8F6"/>${swatches}<text x="40" y="370" font-family="Inter,Arial,sans-serif" font-size="16" fill="#7A818B">Made with HueSet</text></svg>`
 }
 
 function downloadBlob(name: string, blob: Blob, onToast: Props["onToast"]) {

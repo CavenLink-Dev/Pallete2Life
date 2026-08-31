@@ -12,12 +12,12 @@ export default function Help() {
         <div>
           <h1 className="text-[32px] font-bold sm:text-[42px]" style={{ fontFamily: "var(--font-display)" }}>Help & guide</h1>
           <p className="mt-3 text-[15px] text-charcoal/65">
-            Everything you need to know about Palette Preview, in plain language.
+            Everything you need to know about HueSet, in plain language.
           </p>
         </div>
 
-        <Section title="How Palette Preview works">
-          <p>Palette Preview keeps your colours, templates and export tools together in one workspace.</p>
+        <Section title="How HueSet works">
+          <p>HueSet keeps your colours, templates and export tools together in one workspace so you can decide on a visual direction before moving into Figma or development.</p>
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
             <li><b>Create your colours.</b> Open Palette, choose a swatch and edit its HEX, RGB or HSL values. Lock colours you want Randomise to keep.</li>
             <li><b>Try a template.</b> Use <b>Change template</b> in the toolbar to see the palette on a real interface.</li>
@@ -48,7 +48,7 @@ export default function Help() {
         </Section>
 
         <Section title="Undo, Redo and Reset">
-          <p>Palette Preview keeps a history of your palette changes. Use <b>Undo</b> and <b>Redo</b> to walk back and forth. <b>Reset palette</b> starts over — it asks for confirmation because your work would be lost.</p>
+          <p>HueSet keeps a history of your palette changes. Use <b>Undo</b> and <b>Redo</b> to walk back and forth. <b>Reset palette</b> starts over — it asks for confirmation because your work would be lost.</p>
         </Section>
 
         <Section title="Accessibility">

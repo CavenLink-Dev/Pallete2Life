@@ -60,7 +60,7 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
           <div>
             <p className="text-[10px] font-bold uppercase text-charcoal/45">Design system</p>
             <h2 id="token-system-title" className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Token system</h2>
-            <p className="mt-1 text-[12px] text-charcoal/55">Start with understandable choices. Palette Preview keeps the technical token names underneath.</p>
+            <p className="mt-1 text-[12px] text-charcoal/55">Start with understandable choices. HueSet keeps the technical token names underneath.</p>
           </div>
           <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close token system" title="Close"><CloseIcon /></button>
         </header>

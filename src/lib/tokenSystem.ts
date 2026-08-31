@@ -318,7 +318,7 @@ export function tokenSystemExport(system: DesignTokenSystem, palette: Swatch[], 
     semantic: { colour: semanticTokens, spacing: system.semantic.spacing, typography: system.semantic.typography },
     component: { buttonMain: system.component.buttonMain, cardDefault: system.component.cardDefault },
     state: system.state,
-    export: { generatedBy: "Palette Preview", version: 1 },
+    export: { generatedBy: "HueSet", version: 1 },
   }
 }
 

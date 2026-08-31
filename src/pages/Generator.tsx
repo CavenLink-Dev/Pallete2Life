@@ -157,7 +157,7 @@ export default function Generator() {
           href="/"
           onClick={nav("/")}
           className="mr-1 flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-          aria-label="Palette Preview home"
+          aria-label="HueSet home"
         >
           <img src="/app-icon-64.png" alt="" width={30} height={30} className="h-[30px] w-[30px] rounded-md" />
           <span className="hidden text-[14px] font-bold sm:block" style={{ fontFamily: "var(--font-display)" }}>

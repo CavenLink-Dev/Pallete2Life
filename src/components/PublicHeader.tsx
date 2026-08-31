@@ -3,7 +3,7 @@ import { BRAND } from "../lib/color"
 import { useNav, useRoute, type Route } from "../lib/router"
 
 const NAV: { to: Route; label: string }[] = [
-  { to: "/app", label: "Open Palette Preview" },
+  { to: "/app", label: "Open HueSet" },
   { to: "/live-changes", label: "Live Changes" },
   { to: "/help", label: "Help" },
 ]
@@ -30,7 +30,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
         href="/"
         onClick={nav("/")}
         className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-        aria-label="Palette Preview — home"
+        aria-label="HueSet home"
       >
         <img
           src="/logo-64.png"
@@ -40,7 +40,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
           className={compact ? "h-[30px] w-[30px] object-contain" : "h-[38px] w-[38px] object-contain sm:h-[42px] sm:w-[42px]"}
         />
         <span className={compact ? "text-[15px] font-bold" : "text-[20px] font-bold sm:text-[24px]"} style={{ fontFamily: "var(--font-display)" }}>
-          Palette <span style={{ color: BRAND.brand }}>Preview</span>
+          Hue<span style={{ color: BRAND.brand }}>Set</span>
         </span>
       </a>
 

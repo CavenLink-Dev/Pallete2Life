@@ -187,7 +187,7 @@ export function BrandLogo({ color, size = 20 }: { color: string; size?: number }
   }
   return (
     <span className="flex items-center gap-2 font-bold" style={{ fontFamily: "var(--font-display)", fontSize: size, color }}>
-      <BrandSymbol color={color} size={size + 4} /> {ctx?.brand.name ?? "Palette Preview"}
+      <BrandSymbol color={color} size={size + 4} /> {ctx?.brand.name ?? "HueSet"}
     </span>
   )
 }

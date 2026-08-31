@@ -63,6 +63,11 @@ function saveStored(key: string, value: unknown) {
   }
 }
 
+function loadBrand(): Brand {
+  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null })
+  return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
+}
+
 function defaultRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
   const at = (index: number) => palette[index]?.id ?? palette[0]?.id ?? ""
   return {
@@ -87,7 +92,7 @@ export default function LiveChanges() {
   const toast = useToast()
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [roles, setRoles] = useState<Record<LiveRole, string>>(() => loadRoleBindings(palette))
-  const [brand, setBrand] = useState<Brand>(() => loadStored("brand", { name: "Palette Preview", logo: null, symbol: null }))
+  const [brand, setBrand] = useState<Brand>(loadBrand)
   const [brandOpen, setBrandOpen] = useState(false)
   const [preview, setPreview] = useState<LivePreviewKind>("website")
 

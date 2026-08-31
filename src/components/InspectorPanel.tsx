@@ -76,7 +76,7 @@ export default function InspectorPanel(p: Props) {
           <ProjectControls {...p} selectedTarget={selectedTarget} />
         )}
       </div>
-      <div className="border-t border-[#e5e7eb] px-4 py-3 text-[11px] text-[#6b7280]">Palette Preview</div>
+      <div className="border-t border-[#e5e7eb] px-4 py-3 text-[11px] text-[#6b7280]">HueSet</div>
     </aside>
   )
 }

@@ -9,7 +9,7 @@ export default function Privacy() {
         <h1 className="text-[32px] font-bold sm:text-[40px]" style={{ fontFamily: "var(--font-display)" }}>Privacy Policy</h1>
         <p className="text-[13px] text-charcoal/50">Last updated: today</p>
         <div className="flex flex-col gap-4 text-[14.5px] leading-relaxed text-charcoal/75">
-          <p><b>Short version.</b> Palette Preview is a browser tool. Your palettes, uploaded logos and edit-mode assignments live only on your device (localStorage). We do not collect them, we cannot see them, and clearing your browser data deletes them.</p>
+          <p><b>Short version.</b> HueSet is a browser tool. Your palettes, uploaded logos and edit-mode assignments live only on your device (localStorage). We do not collect them, we cannot see them, and clearing your browser data deletes them.</p>
           <h2 className="mt-4 text-[17px] font-bold" style={{ fontFamily: "var(--font-display)" }}>What we store</h2>
           <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
             <li>Your current palette, brand assets, button style choices and element assignments — kept in your browser's <code>localStorage</code>.</li>

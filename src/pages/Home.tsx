@@ -17,10 +17,10 @@ export default function Home() {
               className="text-[38px] font-bold leading-[1.05] tracking-tight sm:text-[52px] lg:text-[60px]"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Pick colours once. Preview them everywhere.
+              Preview your website or app style before you build.
             </h1>
             <p className="mt-6 max-w-xl text-[16px] leading-relaxed text-charcoal/65 sm:text-[17px]">
-              Build a simple palette with main, secondary, tertiary and support colours, then see how those roles shift across websites, mobile apps, buttons, navigation and more.
+              Explore colour, typography and interface direction on real templates, then carry clearer visual decisions into Figma or development.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <a
@@ -29,7 +29,7 @@ export default function Home() {
                 className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
                 style={{ background: BRAND.brand }}
               >
-                Open Palette Preview
+                Open HueSet
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
@@ -43,22 +43,22 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Steps */}
+        {/* How it works */}
         <section className="border-y border-softgrey bg-white px-6 py-16 sm:py-20">
           <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-3">
-            <Step n={1} title="Choose colour roles" body="Start with main, secondary, tertiary, surface and text colours, then rename them to match your project." />
-            <Step n={2} title="Test real interfaces" body="Apply the same palette to pages, buttons, nav bars, app screens, forms, alerts and charts." />
-            <Step n={3} title="Keep it readable" body="Use simple previews and accessible contrast checks before you export the colours." />
+            <Step n={1} title="Set your visual direction" body="Choose colour roles and shape the essential style decisions for your product." />
+            <Step n={2} title="Preview real interfaces" body="See that direction across website pages, app screens and reusable UI components." />
+            <Step n={3} title="Move forward clearly" body="Export practical values and tokens when you are ready to continue in Figma or code." />
           </div>
         </section>
 
         {/* What you can preview */}
         <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            One palette, many useful branches
+            Make visual decisions in context
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] text-charcoal/65">
-            The same colours do different jobs depending on the surface. Try each branch before deciding.
+            Test how your style behaves across the surfaces people will actually use before committing to the build.
           </p>
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Tile label="Websites" desc="Landing pages, SaaS, e-commerce, sign-in, paywall." />
@@ -75,7 +75,7 @@ export default function Home() {
         {/* CTA */}
         <section className="border-t border-softgrey bg-white px-6 py-20 text-center sm:py-24">
           <h2 className="text-[26px] font-bold sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-            Start with a palette that earns its place.
+            See the direction before you commit to the build.
           </h2>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <a
@@ -84,7 +84,7 @@ export default function Home() {
               className="inline-flex items-center gap-2 rounded-xl px-5 py-3 text-[15px] font-semibold text-white shadow-lg shadow-[#20B9FA]/25 transition-transform hover:-translate-y-0.5"
               style={{ background: BRAND.brand }}
             >
-              Open Palette Preview
+              Open HueSet
             </a>
           </div>
         </section>
@@ -133,7 +133,7 @@ function HeroMock() {
       <div className="relative flex h-full flex-col items-center justify-center gap-4 px-6 pb-16 text-center">
         <span className="text-[11px] font-bold uppercase tracking-[0.24em]" style={{ color: BRAND.brand }}>Live preview</span>
         <h4 className="text-[24px] font-bold leading-tight text-white sm:text-[32px]" style={{ fontFamily: "var(--font-display)" }}>
-          Design with confidence.
+          See your style in context.
         </h4>
         <div className="flex gap-2">
           <button className="rounded-lg px-4 py-2 text-[13px] font-semibold text-white shadow-lg" style={{ background: BRAND.brand }}>
