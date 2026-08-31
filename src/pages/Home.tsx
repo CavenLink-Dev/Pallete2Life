@@ -15,7 +15,7 @@ export default function Home() {
   const nav = useNav()
   const [demoStyle, setDemoStyle] = useState<DemoStyle>("simple")
   const [colours, setColours] = useState<Record<DemoColour, string>>({
-    primary: "#2AB0E4",
+    primary: "#0878A8",
     secondary: "#0E6E86",
     text: "#FFFFFF",
   })
