@@ -15,7 +15,7 @@ export default function Home() {
   const nav = useNav()
   const [demoStyle, setDemoStyle] = useState<DemoStyle>("simple")
   const [colours, setColours] = useState<Record<DemoColour, string>>({
-    primary: "#0878A8",
+    primary: "#13A8E7",
     secondary: "#0E6E86",
     text: "#FFFFFF",
   })
@@ -33,7 +33,7 @@ export default function Home() {
     <div className="hueset-home" id="top">
       <header className="home-nav">
         <div className="home-wrap home-nav-inner">
-          <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" />HueSet</a>
+          <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" /><span><b>Hue</b>Set</span></a>
           <nav className="home-nav-links" aria-label="Primary">
             <a href="#try">Try it</a>
             <a href="#how">How it works</a>
@@ -103,13 +103,22 @@ export default function Home() {
                         <div key={role} className={`home-role ${used ? "" : "dim"}`}>
                           <div className="home-role-label"><span>{label}</span><span className="not-used">not used</span></div>
                           <div className="home-colour-pick">
-                            <input
-                              type="color"
-                              value={colours[role]}
-                              aria-label={`${label} colour`}
-                              onChange={(event) => setColours((current) => ({ ...current, [role]: event.target.value.toUpperCase() }))}
-                            />
-                            <span className="home-hex">{colours[role].toUpperCase()}</span>
+                            {used ? (
+                              <>
+                                <input
+                                  type="color"
+                                  value={colours[role]}
+                                  aria-label={`${label} colour`}
+                                  onChange={(event) => setColours((current) => ({ ...current, [role]: event.target.value.toUpperCase() }))}
+                                />
+                                <span className="home-hex">{colours[role].toUpperCase()}</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="home-unused-swatch" aria-hidden="true" />
+                                <span className="home-hex">N/A</span>
+                              </>
+                            )}
                           </div>
                         </div>
                       )
@@ -161,7 +170,7 @@ export default function Home() {
 
       <footer className="home-footer">
         <div className="home-wrap home-footer-inner">
-          <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" />HueSet</a>
+          <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" /><span><b>Hue</b>Set</span></a>
           <nav aria-label="Footer">
             <a href="#try">Try it</a>
             <a href="#start">Get started</a>
