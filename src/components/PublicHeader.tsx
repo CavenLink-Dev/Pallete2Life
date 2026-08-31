@@ -4,7 +4,7 @@ import { useNav, useRoute, type Route } from "../lib/router"
 
 const NAV: { to: Route; label: string }[] = [
   { to: "/app", label: "Open HueSet" },
-  { to: "/live-changes", label: "Live Changes" },
+  { to: "/quick-design", label: "Quick Design" },
   { to: "/help", label: "Help" },
 ]
 

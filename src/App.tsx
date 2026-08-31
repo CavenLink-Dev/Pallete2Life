@@ -8,13 +8,14 @@ import Help from "./pages/Help"
 import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
-import LiveChanges from "./pages/LiveChanges"
+import QuickDesign from "./pages/QuickDesign"
 
 export default function App() {
   const [route] = useRoute()
 
   useEffect(() => {
     if (route === "/preview" || route === "/builder") replaceRoute("/app")
+    if (route === "/live-changes") replaceRoute("/quick-design")
   }, [route])
 
   let page: React.ReactNode
@@ -26,7 +27,8 @@ export default function App() {
     case "/builder":
       page = null
       break
-    case "/live-changes": page = <LiveChanges />; break
+    case "/quick-design":
+    case "/live-changes": page = <QuickDesign />; break
     case "/pricing":  page = <Pricing />;  break
     case "/help":     page = <Help />;     break
     case "/privacy":  page = <Privacy />;  break

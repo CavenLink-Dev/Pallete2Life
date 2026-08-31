@@ -6,13 +6,14 @@ export type Route =
   | "/builder"
   | "/preview"
   | "/live-changes"
+  | "/quick-design"
   | "/pricing"
   | "/help"
   | "/privacy"
   | "/terms"
   | "/contact"
 
-const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/live-changes", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const KNOWN: Route[] = ["/", "/app", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
 export function replaceRoute(r: Route) {

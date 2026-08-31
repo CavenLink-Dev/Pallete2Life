@@ -87,8 +87,8 @@ function loadRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
   return Object.fromEntries(ROLE_OPTIONS.map(({ key }) => [key, ids.has(stored[key] ?? "") ? stored[key] : defaults[key]])) as Record<LiveRole, string>
 }
 
-/* #LiveChangesPage /live-changes - quick palette testing with three previews. */
-export default function LiveChanges() {
+/* #QuickDesignPage /quick-design - quick colour testing with three previews. */
+export default function QuickDesign() {
   const toast = useToast()
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [roles, setRoles] = useState<Record<LiveRole, string>>(() => loadRoleBindings(palette))
@@ -140,7 +140,7 @@ export default function LiveChanges() {
 
   const addColour = () => {
     if (palette.length >= MAX_COLOURS) {
-      toast.push("Quick Palette supports up to 8 colours", "error")
+      toast.push("Quick Design supports up to 8 colours", "error")
       return
     }
     const hex = randomHex()
@@ -174,9 +174,9 @@ export default function LiveChanges() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h1 className="text-[30px] font-bold leading-tight sm:text-[38px]" style={{ fontFamily: "var(--font-display)" }}>
-                  Live Changes
+                  Quick Design
                 </h1>
-                <p className="mt-2 text-sm text-charcoal/55">Quick Palette <span aria-hidden>·</span> Changes save automatically</p>
+                <p className="mt-2 text-sm text-charcoal/55">Quick Design <span aria-hidden>·</span> Changes save automatically</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={randomise} className="inline-flex h-10 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-sm font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">

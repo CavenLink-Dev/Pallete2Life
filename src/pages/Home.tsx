@@ -27,6 +27,7 @@ export default function Home() {
       : { "--txt": colours.primary, "--border": colours.secondary }
 
   const openApp = nav("/app")
+  const openQuickDesign = nav("/quick-design")
 
   return (
     <div className="hueset-home" id="top">
@@ -50,7 +51,7 @@ export default function Home() {
               <p className="home-lead">Generate variables, preview, test, edit and create tokens. Then output to any design project.</p>
               <div className="home-hero-cta">
                 <a href="/app" onClick={openApp} className="home-btn home-btn-primary">Generate Design <span aria-hidden>→</span></a>
-                <a href="/app" onClick={openApp} className="home-btn home-btn-secondary">Quick Palette</a>
+                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary">Quick Design</a>
               </div>
             </div>
 
@@ -146,9 +147,9 @@ export default function Home() {
                 <details><summary>What are tokens and variables?</summary><p>Just saved colours. Change one and it updates everywhere you used it, so your design stays in sync.</p></details>
               </div>
               <div className="home-path">
-                <h3>Quick Palette</h3>
+                <h3>Quick Design</h3>
                 <p>Pick colours and see them on a ready-made template right away. Fast and simple.</p>
-                <a href="/app" onClick={openApp} className="home-btn home-btn-secondary">Quick Palette</a>
+                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary">Quick Design</a>
                 <details><summary>What's this for?</summary><p>Best if you want to play with colours quickly and get an instant live preview.</p></details>
               </div>
             </div>
