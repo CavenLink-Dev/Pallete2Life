@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -19,15 +19,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { createPortal } from "react-dom"
-import {
-  hexToHsl,
-  hexToRgb,
-  hslToHex,
-  normalizeHex,
-  rgbToHex,
-  type RoleBindings,
-  type Swatch,
-} from "../lib/color"
+import { type RoleBindings, type Swatch } from "../lib/color"
 import ColorEditor from "./ColorEditor"
 
 type Props = {
@@ -39,11 +31,12 @@ type Props = {
   onToggleLock: (id: string) => void
   onReorder?: (activeId: string, overId: string) => void
   roleBindings?: RoleBindings
+  roleOptions?: readonly string[]
+  defaultRoleByIndex?: readonly string[]
   onRoleChange?: (role: string, swatchId: string) => void
+  onClose?: () => void
   className?: string
 }
-
-const ROLES = ["Page Background", "Secondary Background", "Primary", "Secondary", "Accent", "Main Text", "Secondary Text", "Surface", "Border"]
 
 export default function PaletteRail({
   palette,
@@ -54,7 +47,10 @@ export default function PaletteRail({
   onToggleLock,
   onReorder,
   roleBindings = {},
+  roleOptions = [],
+  defaultRoleByIndex = [],
   onRoleChange,
+  onClose,
   className = "",
 }: Props) {
   const [editorId, setEditorId] = useState<string | null>(null)
@@ -79,7 +75,9 @@ export default function PaletteRail({
 
   const swatchRole = (swatchId: string) => {
     const entry = Object.entries(roleBindings).find(([, id]) => id === swatchId)
-    return entry?.[0] ?? null
+    if (entry) return entry[0]
+    const index = palette.findIndex((s) => s.id === swatchId)
+    return index >= 0 && index < defaultRoleByIndex.length ? defaultRoleByIndex[index] : ""
   }
 
   return (
@@ -87,9 +85,20 @@ export default function PaletteRail({
       <header className="flex h-12 shrink-0 items-center gap-1 border-b border-softgrey px-2">
         <h2 className="min-w-0 flex-1 truncate px-1 text-[13px] font-bold">Palette</h2>
         <RailAction label="Add colour" onClick={onAdd}><PlusIcon /></RailAction>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            aria-label="Collapse palette"
+            title="Collapse palette"
+          >
+            <CollapseIcon />
+          </button>
+        )}
       </header>
 
-      <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5 ${editorId ? "pb-[300px]" : ""}`}>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <SortableContext items={palette.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <div className="flex flex-col gap-0.5">
@@ -100,6 +109,8 @@ export default function PaletteRail({
                   open={swatch.id === editorId}
                   dragging={swatch.id === dragId}
                   role={swatchRole(swatch.id)}
+                  roleOptions={roleOptions}
+                  onRoleChange={onRoleChange}
                   onToggleEditor={() => setEditorId(editorId === swatch.id ? null : swatch.id)}
                   onRename={onRename}
                   onToggleLock={onToggleLock}
@@ -111,7 +122,14 @@ export default function PaletteRail({
           </SortableContext>
           {createPortal(
             <DragOverlay dropAnimation={null}>
-              {dragSwatch && <SwatchRow swatch={dragSwatch} role={swatchRole(dragSwatch.id)} overlay />}
+              {dragSwatch && (
+                <SwatchRow
+                  swatch={dragSwatch}
+                  role={swatchRole(dragSwatch.id)}
+                  roleOptions={roleOptions}
+                  overlay
+                />
+              )}
             </DragOverlay>,
             document.body,
           )}
@@ -127,28 +145,14 @@ export default function PaletteRail({
         />,
         document.body,
       )}
-
-      {editorId && editorSwatch && onRoleChange && (
-        <div className="shrink-0 border-t border-softgrey px-2 py-2">
-          <label className="grid gap-0.5">
-            <span className="text-[10px] font-bold uppercase text-charcoal/50">Role</span>
-            <select
-              value={swatchRole(editorSwatch.id) ?? ""}
-              onChange={(e) => onRoleChange(e.target.value, editorSwatch.id)}
-              className="h-8 rounded-[6px] border border-softgrey bg-offwhite px-2 text-[11px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              <option value="">None</option>
-              {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-            </select>
-          </label>
-        </div>
-      )}
     </section>
   )
 }
 
-function SortableRow({ swatch, open, dragging, role, onToggleEditor, onRename, onToggleLock, onRemove, canRemove }: {
-  swatch: Swatch; open: boolean; dragging: boolean; role: string | null
+function SortableRow({ swatch, open, dragging, role, roleOptions, onRoleChange, onToggleEditor, onRename, onToggleLock, onRemove, canRemove }: {
+  swatch: Swatch; open: boolean; dragging: boolean; role: string
+  roleOptions: readonly string[]
+  onRoleChange?: (role: string, swatchId: string) => void
   onToggleEditor: () => void; onRename: (id: string, name: string) => void
   onToggleLock: (id: string) => void; onRemove: (id: string) => void; canRemove: boolean
 }) {
@@ -161,6 +165,8 @@ function SortableRow({ swatch, open, dragging, role, onToggleEditor, onRename, o
         swatch={swatch}
         open={open}
         role={role}
+        roleOptions={roleOptions}
+        onRoleChange={onRoleChange}
         onToggleEditor={onToggleEditor}
         onRename={onRename}
         onToggleLock={onToggleLock}
@@ -172,17 +178,19 @@ function SortableRow({ swatch, open, dragging, role, onToggleEditor, onRename, o
   )
 }
 
-function SwatchRow({ swatch, open, role, overlay, onToggleEditor, onRename, onToggleLock, onRemove, canRemove, dragListeners }: {
-  swatch: Swatch; open?: boolean; role: string | null; overlay?: boolean
+function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onToggleEditor, onRename, onToggleLock, onRemove, canRemove, dragListeners }: {
+  swatch: Swatch; open?: boolean; role: string; roleOptions: readonly string[]
+  overlay?: boolean
+  onRoleChange?: (role: string, swatchId: string) => void
   onToggleEditor?: () => void; onRename?: (id: string, name: string) => void
   onToggleLock?: (id: string) => void; onRemove?: (id: string) => void; canRemove?: boolean
   dragListeners?: Record<string, unknown>
 }) {
   return (
-    <div className={`group relative flex h-12 items-center gap-1.5 rounded-[7px] border p-1 ${overlay ? "border-brand bg-white shadow-lg" : open ? "border-brand/30 bg-brand/5" : "border-transparent hover:border-softgrey hover:bg-offwhite"}`}>
+    <div className={`group relative flex items-start gap-1.5 rounded-[7px] border p-1.5 ${overlay ? "border-brand bg-white shadow-lg" : open ? "border-brand/30 bg-brand/5" : "border-transparent hover:border-softgrey hover:bg-offwhite"}`}>
       <button
         type="button"
-        className="h-10 w-10 shrink-0 rounded-[6px] border border-charcoal/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1"
+        className="mt-0.5 h-10 w-10 shrink-0 rounded-[6px] border border-charcoal/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1"
         style={{ backgroundColor: swatch.hex }}
         onClick={onToggleEditor}
         aria-expanded={open}
@@ -196,17 +204,30 @@ function SwatchRow({ swatch, open, role, overlay, onToggleEditor, onRename, onTo
           className="h-5 w-full truncate rounded-[3px] bg-transparent px-0.5 text-[11px] font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-brand"
           aria-label={`Name for ${swatch.hex}`}
         />
-        <div className="flex items-center gap-1.5 px-0.5">
-          <span className="font-mono text-[10px] uppercase text-charcoal/50">{swatch.hex}</span>
-          {role && <span className="truncate text-[9px] font-semibold text-brand/70">{role}</span>}
-        </div>
+        <span className="block px-0.5 font-mono text-[10px] uppercase text-charcoal/50">{swatch.hex}</span>
+        {onRoleChange && roleOptions.length > 0 && (
+          <label className="mt-1 block">
+            <span className="sr-only">Role for {swatch.name}</span>
+            <select
+              value={role}
+              onChange={(e) => onRoleChange(e.target.value, swatch.id)}
+              className="h-7 w-full rounded-[5px] border border-softgrey bg-offwhite px-1.5 text-[10px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              aria-label={`Role for ${swatch.name}`}
+            >
+              <option value="">No role</option>
+              {roleOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
-      <div className="flex shrink-0 items-center">
+      <div className="flex shrink-0 flex-col items-center">
         {onRemove && canRemove && (
           <button
             type="button"
             onClick={() => onRemove(swatch.id)}
-            className="grid h-8 w-8 place-items-center rounded-[5px] text-charcoal/40 opacity-0 hover:bg-white hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100"
+            className="grid h-7 w-7 place-items-center rounded-[5px] text-charcoal/40 opacity-0 hover:bg-white hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100"
             aria-label={`Remove ${swatch.name}`}
             title="Remove colour"
           >
@@ -216,7 +237,7 @@ function SwatchRow({ swatch, open, role, overlay, onToggleEditor, onRename, onTo
         <button
           type="button"
           onClick={() => onToggleLock?.(swatch.id)}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-[5px] text-charcoal/45 hover:bg-white hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-[5px] text-charcoal/45 hover:bg-white hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           aria-pressed={!!swatch.locked}
           aria-label={`${swatch.locked ? "Unlock" : "Lock"} ${swatch.name}`}
           title={`${swatch.locked ? "Unlock" : "Lock"} colour`}
@@ -226,7 +247,7 @@ function SwatchRow({ swatch, open, role, overlay, onToggleEditor, onRename, onTo
         <button
           type="button"
           {...dragListeners}
-          className="grid h-8 w-8 shrink-0 cursor-grab place-items-center rounded-[5px] text-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand active:cursor-grabbing"
+          className="grid h-7 w-7 shrink-0 cursor-grab place-items-center rounded-[5px] text-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand active:cursor-grabbing"
           aria-label={`Drag to reorder ${swatch.name}`}
           title="Drag to reorder"
         >
@@ -242,6 +263,7 @@ function RailAction({ label, onClick, children }: { label: string; onClick: () =
 }
 
 const PlusIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+const CollapseIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /><path d="M4 4v16" /></svg>
 const LockedIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
 const UnlockedIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 7.5-2" /></svg>
 const TrashIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /></svg>

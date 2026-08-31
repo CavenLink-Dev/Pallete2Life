@@ -30,8 +30,8 @@ const STORE_KEY = "hueframe:v1"
 const MAX_HISTORY = 40
 const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
 const DEFAULT_SELECTION: Selection = { group: "website", sub: "landing-page" }
-const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
-const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Heading Text", "Body Text", "Border"]
+const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
+const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 
 function loadStored<T>(key: string, fallback: T): T {
   try {
@@ -86,6 +86,7 @@ export default function Builder() {
   const [templateOpen, setTemplateOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(true)
   const [customiseOpen, setCustomiseOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
   const [brandOpen, setBrandOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
@@ -176,6 +177,7 @@ export default function Builder() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPaletteSheetOpen(false)
+        setPaletteOpen(false)
         setCustomiseOpen(false)
         setTemplateOpen(false)
         setMoreOpen(false)
@@ -202,6 +204,11 @@ export default function Builder() {
   const templateId = templateByType[selectionKey] ?? currentType.templates[0]?.key ?? ""
   const templateAsset = templateAssetById.get(templateId)
   const templateName = templateAsset?.name ?? `${currentType.templates.find((item) => item.key === templateId)?.label ?? "Default"} ${currentType.label}`
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => previewRef.current?.fitToScreen())
+    return () => cancelAnimationFrame(frame)
+  }, [templateId, selectionKey, paletteOpen, customiseOpen])
   const roleLabels = selection.group === "application" ? APPLICATION_ROLE_LABELS : WEBSITE_ROLE_LABELS
   const theme = useMemo(() => deriveTheme(palette, roleLabels, roleBindings), [palette, roleLabels, roleBindings])
   const trio = useMemo(() => paletteToTrio(palette), [palette])
@@ -237,6 +244,24 @@ export default function Builder() {
       return next
     })
   }, [mutatePalette])
+
+  const handleRoleChange = useCallback((role: string, swatchId: string) => {
+    setRoleBindings((bindings) => {
+      const next = { ...bindings }
+      for (const [key, id] of Object.entries(next)) {
+        if (id === swatchId) delete next[key]
+      }
+      if (role) next[role] = swatchId
+      return next
+    })
+  }, [])
+
+  const paletteRoleOptions = useMemo(() => {
+    if (selection.group === "application") {
+      return APPLICATION_ROLE_LABELS
+    }
+    return WEBSITE_ROLE_LABELS
+  }, [selection.group])
 
   const currentElementValues = useMemo(() => {
     if (!selectedElement) return null
@@ -384,32 +409,38 @@ export default function Builder() {
 
   return (
     <div className="flex h-dvh min-h-0 w-full overflow-hidden bg-offwhite text-charcoal">
-      <PaletteRail
-        className="hidden w-[240px] shrink-0 border-r border-softgrey lg:flex"
-        palette={palette}
-        onAdd={addColour}
-        onChange={changeColour}
-        onRename={renameColour}
-        onRemove={removeColour}
-        onToggleLock={toggleLock}
-        onReorder={reorderPalette}
-        roleBindings={roleBindings}
-        onRoleChange={(role, swatchId) => setRoleBindings((b) => ({ ...b, [role]: swatchId }))}
-      />
+      {paletteOpen && (
+        <PaletteRail
+          className="hidden w-[240px] shrink-0 border-r border-softgrey lg:flex"
+          palette={palette}
+          onAdd={addColour}
+          onChange={changeColour}
+          onRename={renameColour}
+          onRemove={removeColour}
+          onToggleLock={toggleLock}
+          onReorder={reorderPalette}
+          roleBindings={roleBindings}
+          roleOptions={paletteRoleOptions}
+          defaultRoleByIndex={paletteRoleOptions}
+          onRoleChange={handleRoleChange}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-softgrey bg-white px-2 sm:px-3">
-          <div className="flex min-w-0 items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center gap-1">
             <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="HueSet home" title="HueSet home">
               <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
             </a>
             <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setCustomiseOpen(false) }}><PaletteIcon /></ToolbarButton>
-            <span className="hidden max-w-[100px] truncate px-1 text-[12px] font-semibold text-charcoal/70 sm:block" title={templateName}>{templateName}</span>
-            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
-            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
+            <ToolbarButton className="hidden lg:grid" label={paletteOpen ? "Hide palette" : "Show palette"} pressed={paletteOpen} onClick={() => setPaletteOpen((open) => !open)}><PaletteIcon /></ToolbarButton>
+            <span className="hidden min-w-0 flex-1 truncate px-1 text-[12px] font-semibold text-charcoal/70 sm:block" title={templateName}>{templateName}</span>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
+            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
+            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
             <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
             <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
@@ -505,7 +536,9 @@ export default function Builder() {
             onToggleLock={toggleLock}
             onReorder={reorderPalette}
             roleBindings={roleBindings}
-            onRoleChange={(role, swatchId) => setRoleBindings((b) => ({ ...b, [role]: swatchId }))}
+            roleOptions={paletteRoleOptions}
+            defaultRoleByIndex={paletteRoleOptions}
+            onRoleChange={handleRoleChange}
           />
         </SheetBackdrop>
       )}

@@ -1,8 +1,9 @@
 import { readableOn, shade, withAlpha, type Theme } from "../lib/color"
 import { BrandLogo, BrandSymbol, Editable, PreviewButton, usePreview } from "./PreviewCtx"
-import { forwardRef, lazy, Suspense, useImperativeHandle, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
+import { forwardRef, lazy, Suspense, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import TemplatePreview, { type TemplatePreviewHandle } from "./TemplatePreview"
 import { templateAssetById, templateGroups, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
+import { clampPreviewZoom, computeFitZoom, PREVIEW_FIT_INSET, PREVIEW_FIT_MAX_ZOOM, PREVIEW_FIT_MIN_ZOOM } from "../lib/previewFit"
 
 const BuiltInTemplatePreview = lazy(() => import("./BuiltInTemplatePreview"))
 
@@ -544,25 +545,58 @@ export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupK
 })
 
 const BUILT_IN_DEFAULT_ZOOM = 1
+const ZOOM_STEP = 0.1
 
 const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactNode }>(function BuiltInPreviewFrame({ children }, ref) {
   const viewportRef = useRef<HTMLDivElement | null>(null)
+  const contentRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [dragging, setDragging] = useState(false)
   const [zoom, setZoom] = useState(BUILT_IN_DEFAULT_ZOOM)
-  const fit = () => {
+  const [contentSize, setContentSize] = useState({ width: 0, height: 0 })
+
+  const measureFitZoom = useCallback(() => {
+    const viewport = viewportRef.current
+    const content = contentRef.current
+    if (!viewport || !content) return { zoom: BUILT_IN_DEFAULT_ZOOM, width: 0, height: 0 }
+    const width = content.scrollWidth
+    const height = content.scrollHeight
+    const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, width, height)
+    return { zoom: nextZoom, width, height }
+  }, [])
+
+  const fit = useCallback(() => {
     setZoom(BUILT_IN_DEFAULT_ZOOM)
     requestAnimationFrame(() => {
       const viewport = viewportRef.current
-      if (viewport) viewport.scrollTo({ top: 0, left: Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2), behavior: "smooth" })
+      if (!viewport) return
+      const measured = measureFitZoom()
+      setContentSize({ width: measured.width, height: measured.height })
+      setZoom(measured.zoom)
+      viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
     })
-  }
-  useImperativeHandle(ref, () => ({ fitToScreen: fit }), [])
+  }, [measureFitZoom])
 
-  const changeZoom = (direction: -1 | 1) => setZoom((current) => Math.min(1.5, Math.max(0.5, Math.round((current + direction * 0.1) * 10) / 10)))
+  useImperativeHandle(ref, () => ({ fitToScreen: fit }), [fit])
+
+  useLayoutEffect(() => {
+    fit()
+  }, [children, fit])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    const content = contentRef.current
+    if (!viewport) return
+    const observer = new ResizeObserver(() => fit())
+    observer.observe(viewport)
+    if (content) observer.observe(content)
+    return () => observer.disconnect()
+  }, [fit])
+
+  const changeZoom = (direction: -1 | 1) => setZoom((current) => clampPreviewZoom(Math.round((current + direction * ZOOM_STEP) * 10) / 10))
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current
-    if (!viewport || event.button !== 0) return
+    if (!viewport || event.button !== 0 || zoom >= 0.99) return
     dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
     viewport.setPointerCapture(event.pointerId)
     setDragging(true)
@@ -579,13 +613,31 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
       <div className="absolute bottom-3 right-3 z-20 flex h-12 items-center rounded-[8px] border border-[#d7d9dd] bg-white/95 p-0.5 shadow-sm backdrop-blur" role="group" aria-label="Preview zoom controls">
-        <PreviewZoomButton label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= 0.5}><ZoomOutIcon /></PreviewZoomButton>
+        <PreviewZoomButton label="Zoom out" onClick={() => changeZoom(-1)} disabled={zoom <= PREVIEW_FIT_MIN_ZOOM}><ZoomOutIcon /></PreviewZoomButton>
         <span className="w-12 text-center text-[11px] font-bold tabular-nums text-charcoal/65" aria-live="polite">{Math.round(zoom * 100)}%</span>
-        <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= 1.5}><ZoomInIcon /></PreviewZoomButton>
+        <PreviewZoomButton label="Zoom in" onClick={() => changeZoom(1)} disabled={zoom >= PREVIEW_FIT_MAX_ZOOM}><ZoomInIcon /></PreviewZoomButton>
       </div>
-      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : "cursor-grab"}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
-        <div className="mx-auto origin-top" style={{ width: `${100 / zoom}%`, minHeight: `${100 / zoom}%`, transform: `scale(${zoom})` }}>
-          {children}
+      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : zoom < 0.99 ? "cursor-grab" : ""}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
+        <div className="flex min-h-full w-full justify-center" style={{ padding: PREVIEW_FIT_INSET / 2 }}>
+          <div
+            className="shrink-0"
+            style={{
+              width: contentSize.width ? contentSize.width * zoom : undefined,
+              height: contentSize.height ? contentSize.height * zoom : undefined,
+            }}
+          >
+            <div
+              ref={contentRef}
+              className="w-full max-w-[1440px] origin-top"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: "top left",
+                width: contentSize.width || undefined,
+              }}
+            >
+              {children}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import { templateAssetById } from "../lib/templateAssets"
+import { clampPreviewZoom, computeFitZoom, PREVIEW_FIT_INSET, PREVIEW_FIT_MAX_ZOOM, PREVIEW_FIT_MIN_ZOOM } from "../lib/previewFit"
 
 type LoadedSvg = {
   markup: string
@@ -7,8 +8,8 @@ type LoadedSvg = {
   height: number
 }
 
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 2
+const MIN_ZOOM = PREVIEW_FIT_MIN_ZOOM
+const MAX_ZOOM = PREVIEW_FIT_MAX_ZOOM
 const ZOOM_STEP = 0.1
 const sourceCache = new Map<string, Promise<LoadedSvg>>()
 
@@ -79,18 +80,36 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
   }, [template])
 
   const changeZoom = (direction: -1 | 1) => {
-    setZoom((current) => clamp(Math.round((current + direction * ZOOM_STEP) * 100) / 100, MIN_ZOOM, MAX_ZOOM))
+    setZoom((current) => clampPreviewZoom(Math.round((current + direction * ZOOM_STEP) * 100) / 100))
   }
 
-  const fitToScreen = () => {
-    setZoom(1)
+  const fitToScreen = useCallback(() => {
+    const viewport = viewportRef.current
+    if (!viewport || !svg || !template) return
+    const baseWidth = template.category === "Application" ? 390 : 1440
+    const aspectHeight = svg.height * (baseWidth / svg.width)
+    const contentWidth = baseWidth + PREVIEW_FIT_INSET
+    const contentHeight = aspectHeight + PREVIEW_FIT_INSET
+    const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, contentWidth, contentHeight)
+    setZoom(nextZoom)
     requestAnimationFrame(() => {
-      const viewport = viewportRef.current
-      if (viewport) viewport.scrollTo({ top: 0, left: Math.max(0, (viewport.scrollWidth - viewport.clientWidth) / 2), behavior: "smooth" })
+      if (viewport) viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
     })
-  }
+  }, [svg, template])
 
-  useImperativeHandle(ref, () => ({ fitToScreen }), [])
+  useImperativeHandle(ref, () => ({ fitToScreen }), [fitToScreen])
+
+  useLayoutEffect(() => {
+    fitToScreen()
+  }, [fitToScreen, templateId])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport || !svg) return
+    const observer = new ResizeObserver(() => fitToScreen())
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [fitToScreen, svg])
 
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current
@@ -140,8 +159,8 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
         />
       </div>
 
-      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : "cursor-grab"}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
-        <div className="min-h-full p-3 sm:p-4">
+      <div ref={viewportRef} className={`h-full w-full touch-none overflow-auto ${dragging ? "cursor-grabbing select-none" : zoom < 0.99 ? "cursor-grab" : ""}`} onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}>
+        <div className="flex min-h-full items-start justify-center" style={{ padding: PREVIEW_FIT_INSET / 2 }}>
           <div className={frameClass} style={frameStyle}>
             <div
               className="template-svg-stage w-full"
@@ -181,10 +200,6 @@ function ZoomButton({
       {icon}
     </button>
   )
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
 }
 
 const ZoomOutIcon = () => (

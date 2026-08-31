@@ -184,8 +184,9 @@ export function deriveTheme(
   const surfaceFallback = shade(paper, luminance(paper) > 0.5 ? -0.04 : 0.06)
   const surface = byRole("secondary background", "input fill", "surface", "card")
     ?? (hasRoles ? surfaceFallback : at(1, surfaceFallback))
-  const secondary = byRole("secondary series", "success accent") ?? surface
-  const accent = byRole("brand primary", "sale accent", "chart accent", "primary button", "primary series", "warning accent", "active", "accent")
+  const secondary = byRole("secondary", "secondary series", "success accent", "secondary accent") ?? surface
+  const tertiary = byRole("tertiary", "tertiary accent") ?? secondary
+  const accent = byRole("brand primary", "primary", "sale accent", "chart accent", "primary button", "primary series", "warning accent", "active", "accent")
     ?? (hasRoles ? BRAND.brand : at(2, BRAND.brand))
   const ink = byRole("heading text", "heading", "nav text", "label text")
     ?? (hasRoles ? readableOn(paper) : at(3, readableOn(paper)))
@@ -198,6 +199,7 @@ export function deriveTheme(
     brand: accent,
     accent,
     secondary,
+    tertiary,
     ink,
     inkSoft: body,
     inkFaint: withAlpha(body, 0.1),

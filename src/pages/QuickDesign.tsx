@@ -117,6 +117,7 @@ export default function QuickDesign() {
     brand: colours.button,
     accent: colours.button,
     secondary: colours.accent,
+    tertiary: colours.accent,
     ink: colours.text,
     inkSoft: colours.text,
     inkFaint: colours.border,
