@@ -1,6 +1,10 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
+import { withAlpha } from "../lib/color"
+import { ELEMENT_DEFAULTS } from "../lib/designTokens"
+import { svgElementsForCategory } from "../lib/svgTemplateElements"
 import { templateAssetById } from "../lib/templateAssets"
 import { clampPreviewZoom, computeFitZoom, PREVIEW_FIT_INSET, PREVIEW_FIT_MAX_ZOOM, PREVIEW_FIT_MIN_ZOOM } from "../lib/previewFit"
+import { usePreview, useScope } from "./PreviewCtx"
 
 type LoadedSvg = {
   markup: string
@@ -54,6 +58,8 @@ export type TemplatePreviewHandle = { fitToScreen: () => void }
 
 const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }>(function TemplatePreview({ templateId }, ref) {
   const template = templateAssetById.get(templateId)
+  const ctx = usePreview()
+  const scope = useScope()
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const dragRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null)
   const [svg, setSvg] = useState<LoadedSvg | null>(null)
@@ -110,6 +116,7 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
   }, [fitToScreen, svg])
 
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("[data-hue-element]")) return
     const viewport = viewportRef.current
     if (!viewport || event.button !== 0) return
     dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
@@ -134,8 +141,10 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
     width: `${Math.round(baseWidth * zoom)}px`,
   }
   const frameClass = template.category === "Application"
-    ? "mx-auto shrink-0 bg-white shadow-[0_22px_55px_-24px_rgba(14,24,33,0.42)]"
-    : "mx-auto shrink-0 bg-white"
+    ? "relative mx-auto shrink-0 bg-white shadow-[0_22px_55px_-24px_rgba(14,24,33,0.42)]"
+    : "relative mx-auto shrink-0 bg-white"
+  const svgElements = svgElementsForCategory(template.category)
+  const editMode = ctx?.editMode ?? false
 
   return (
     <div className="relative h-full w-full bg-[#eceef1]">
@@ -166,6 +175,43 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
               aria-label={`${template.category} ${template.type} ${template.variant} template`}
               dangerouslySetInnerHTML={{ __html: svg.markup }}
             />
+            {editMode && ctx && (
+              <div className="pointer-events-none absolute inset-0">
+                {svgElements.map((element) => {
+                  const fullId = scope ? `${scope}:${element.id}` : element.id
+                  const selected = ctx.selectedElement?.id === fullId
+                  return (
+                    <button
+                      key={element.id}
+                      type="button"
+                      data-hue-element={element.id}
+                      className="pointer-events-auto absolute rounded border-0 bg-transparent p-0"
+                      style={{
+                        left: `${element.x}%`,
+                        top: `${element.y}%`,
+                        width: `${element.w}%`,
+                        height: `${element.h}%`,
+                        outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha("#20B9FA", selected ? 0.95 : 0.7)}`,
+                        outlineOffset: 2,
+                        cursor: "pointer",
+                      }}
+                      title={`Edit ${element.label}`}
+                      aria-label={`Edit ${element.label}`}
+                      onClick={(event) => {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        ctx.selectElement({
+                          id: fullId,
+                          kind: element.kind,
+                          label: element.label,
+                          defaults: ELEMENT_DEFAULTS[element.kind],
+                        })
+                      }}
+                    />
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

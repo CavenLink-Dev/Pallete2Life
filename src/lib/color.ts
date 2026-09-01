@@ -1,5 +1,33 @@
-export type Swatch = { id: string; name: string; hex: string; locked?: boolean }
+export type Swatch = { id: string; name: string; hex: string; locked?: boolean; autoNamed?: boolean }
 export type RoleBindings = Record<string, string>
+
+/** Roles that may only be displayed on one swatch at a time. */
+export const SINGLETON_ROLES = [
+  "Page Background",
+  "App Background",
+  "Form Background",
+  "Card Background",
+  "Nav Background",
+  "Secondary Background",
+  "Brand Primary",
+  "Primary",
+  "Heading Text",
+  "Heading",
+  "Body Text",
+  "Body",
+  "Surface",
+  "Border",
+  "Input Border",
+  "Card Border",
+  "Divider",
+  "Outline",
+] as const
+
+const SINGLETON_ROLE_KEYS = new Set(SINGLETON_ROLES.map((role) => role.trim().toLowerCase()))
+
+export function isSingletonRole(role: string): boolean {
+  return SINGLETON_ROLE_KEYS.has(role.trim().toLowerCase())
+}
 
 export const BRAND = {
   brand: "#20B9FA",
@@ -103,6 +131,91 @@ export function rgbString(hex: string): string {
 export function hslString(hex: string): string {
   const { h, s, l } = hexToHsl(hex)
   return `${h}°, ${s}%, ${l}%`
+}
+
+export function createSwatch(hex: string, index = 0, autoNamed = true): Swatch {
+  const normalized = normalizeHex(hex)
+  const name = autoNamed !== false ? colorName(normalized) : `Colour ${index + 1}`
+  return {
+    id: uid(),
+    hex: normalized,
+    name,
+    ...(autoNamed === false ? { autoNamed: false } : {}),
+  }
+}
+
+export function updateSwatchHex(swatch: Swatch, newHex: string): Swatch {
+  const hex = normalizeHex(newHex)
+  if (swatch.autoNamed === false) return { ...swatch, hex }
+  return { ...swatch, hex, name: colorName(hex) }
+}
+
+export function applyRoleChange(
+  role: string,
+  swatchId: string,
+  roleBindings: RoleBindings,
+  unassignedRoleSwatchIds: readonly string[],
+  roleLabels: readonly string[],
+): { roleBindings: RoleBindings; unassignedRoleSwatchIds: string[] } {
+  void roleLabels
+
+  let nextUnassigned = [...unassignedRoleSwatchIds]
+  if (role) {
+    nextUnassigned = nextUnassigned.filter((id) => id !== swatchId)
+  } else if (!nextUnassigned.includes(swatchId)) {
+    nextUnassigned = [...nextUnassigned, swatchId]
+  }
+
+  const nextBindings = { ...roleBindings }
+  for (const [key, id] of Object.entries(nextBindings)) {
+    if (id === swatchId) delete nextBindings[key]
+  }
+
+  if (role) {
+    nextBindings[role] = swatchId
+  }
+
+  return { roleBindings: nextBindings, unassignedRoleSwatchIds: nextUnassigned }
+}
+
+export function resolveSwatchRole(
+  swatchId: string,
+  palette: Swatch[],
+  roleBindings: RoleBindings,
+  unassignedRoleSwatchIds: readonly string[],
+  defaultRoleByIndex: readonly string[],
+): string {
+  const bound = Object.entries(roleBindings).find(([, id]) => id === swatchId)
+  if (bound) return bound[0]
+  if (unassignedRoleSwatchIds.includes(swatchId)) return ""
+
+  const index = palette.findIndex((swatch) => swatch.id === swatchId)
+  if (index < 0 || index >= defaultRoleByIndex.length) return ""
+
+  const fallbackRole = defaultRoleByIndex[index]
+  if (!fallbackRole) return ""
+
+  if (isSingletonRole(fallbackRole)) {
+    const holder = roleBindings[fallbackRole]
+    if (holder && holder !== swatchId) return ""
+  }
+
+  return fallbackRole
+}
+
+export function pruneBindingsForSwatch(
+  swatchId: string,
+  roleBindings: RoleBindings,
+  unassignedRoleSwatchIds: readonly string[],
+): { roleBindings: RoleBindings; unassignedRoleSwatchIds: string[] } {
+  const nextBindings = { ...roleBindings }
+  for (const [key, id] of Object.entries(nextBindings)) {
+    if (id === swatchId) delete nextBindings[key]
+  }
+  return {
+    roleBindings: nextBindings,
+    unassignedRoleSwatchIds: unassignedRoleSwatchIds.filter((id) => id !== swatchId),
+  }
 }
 
 export function colorName(hex: string): string {

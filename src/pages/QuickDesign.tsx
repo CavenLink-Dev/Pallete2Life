@@ -1,15 +1,22 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   BRAND,
-  colorName,
+  createSwatch,
   normalizeHex,
   randomHex,
   readableOn,
-  uid,
+  updateSwatchHex,
   type Swatch,
 } from "../lib/color"
-import { loadPalette, savePalette, writeHashPalette } from "../lib/paletteStore"
-import { isBrandLike, isStringMap } from "../lib/storedShape"
+import { writeHashPalette } from "../lib/paletteStore"
+import {
+  applyQuickRoleToBindings,
+  QUICK_ROLE_OPTIONS,
+  quickRolesFromBindings,
+  type QuickPreviewKind,
+  type QuickRole,
+} from "../lib/quickRoleBridge"
+import { loadWorkspace, saveWorkspaceProject } from "../lib/workspaceStore"
 import PublicFooter from "../components/PublicFooter"
 import PublicHeader from "../components/PublicHeader"
 import PaywallOverlay from "../components/PaywallOverlay"
@@ -20,24 +27,13 @@ import { loadEntitlement, mockSubscribePro, needsPro, saveEntitlement, type Enti
 import {
   LiveChangePreview,
   type LivePreviewKind,
-  type LiveRole,
   type LiveRoleColors,
 } from "../components/LiveChangePreviews"
 import { createTokenSystem } from "../lib/tokenSystem"
 import { ACCESSIBILITY_STATUS_LABEL, evaluateAccessibility, worstAccessibilityStatus } from "../lib/accessibility"
 
-const STORE_KEY = "hueframe:v1"
 const MAX_COLOURS = 8
 const MIN_COLOURS = 2
-
-const ROLE_OPTIONS: { key: LiveRole; label: string }[] = [
-  { key: "background", label: "Background" },
-  { key: "surface", label: "Surface" },
-  { key: "button", label: "Button" },
-  { key: "text", label: "Text" },
-  { key: "border", label: "Border" },
-  { key: "accent", label: "Accent" },
-]
 
 const PREVIEW_OPTIONS: { key: LivePreviewKind; label: string }[] = [
   { key: "website", label: "Basic Website" },
@@ -45,77 +41,41 @@ const PREVIEW_OPTIONS: { key: LivePreviewKind; label: string }[] = [
   { key: "components", label: "Basic Components" },
 ]
 
-function loadStored<T>(key: string, fallback: T, isValid?: (value: unknown) => value is T): T {
-  try {
-    const raw = localStorage.getItem(STORE_KEY)
-    if (!raw) return fallback
-    const value = JSON.parse(raw)?.[key]
-    if (value === undefined || value === null) return fallback
-    if (isValid && !isValid(value)) return fallback
-    return value as T
-  } catch {
-    return fallback
-  }
-}
-
-function saveStored(key: string, value: unknown) {
-  try {
-    const raw = localStorage.getItem(STORE_KEY)
-    const data = raw ? JSON.parse(raw) : {}
-    data[key] = value
-    localStorage.setItem(STORE_KEY, JSON.stringify(data))
-  } catch {
-    /* storage unavailable */
-  }
-}
-
-function loadBrand(): Brand {
-  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null }, isBrandLike as (v: unknown) => v is Brand)
-  return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
-}
-
-function defaultRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
-  const at = (index: number) => palette[index]?.id ?? palette[0]?.id ?? ""
-  return {
-    background: at(0),
-    surface: at(1),
-    button: at(2),
-    text: at(3),
-    border: at(4),
-    accent: at(2),
-  }
-}
-
-function loadRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
-  const defaults = defaultRoleBindings(palette)
-  const stored = loadStored<Partial<Record<LiveRole, string>>>("liveRoles", {}, isStringMap as (v: unknown) => v is Partial<Record<LiveRole, string>>)
-  const ids = new Set(palette.map((swatch) => swatch.id))
-  return Object.fromEntries(ROLE_OPTIONS.map(({ key }) => [key, ids.has(stored[key] ?? "") ? stored[key] : defaults[key]])) as Record<LiveRole, string>
-}
-
 /* #QuickDesignPage /quick-design - quick colour testing with three previews. */
 export default function QuickDesign() {
   const toast = useToast()
-  const [palette, setPalette] = useState<Swatch[]>(loadPalette)
-  const [roles, setRoles] = useState<Record<LiveRole, string>>(() => loadRoleBindings(palette))
-  const [brand, setBrand] = useState<Brand>(loadBrand)
+  const [initial] = useState(() => loadWorkspace())
+  const [palette, setPalette] = useState<Swatch[]>(() => initial.project.palette)
+  const [roleBindings, setRoleBindings] = useState(() => initial.project.roleBindings)
+  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState(() => initial.project.unassignedRoleSwatchIds)
+  const [brand, setBrand] = useState<Brand>(() => initial.project.brand)
   const [brandOpen, setBrandOpen] = useState(false)
   const [preview, setPreview] = useState<LivePreviewKind>("website")
   const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
   const [paywallOpen, setPaywallOpen] = useState(() => needsPro(loadEntitlement()))
 
+  const roles = useMemo(
+    () => quickRolesFromBindings(roleBindings, palette, preview as QuickPreviewKind),
+    [roleBindings, palette, preview],
+  )
+
   useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
 
   useEffect(() => {
-    savePalette(palette)
+    const current = loadWorkspace().project
+    saveWorkspaceProject({
+      ...current,
+      palette,
+      brand,
+      roleBindings,
+      unassignedRoleSwatchIds,
+    })
     writeHashPalette(palette)
-  }, [palette])
-  useEffect(() => saveStored("liveRoles", roles), [roles])
-  useEffect(() => saveStored("brand", brand), [brand])
+  }, [palette, brand, roleBindings, unassignedRoleSwatchIds])
 
   const paletteById = useMemo(() => new Map(palette.map((swatch) => [swatch.id, swatch])), [palette])
   const colours = useMemo(() => Object.fromEntries(
-    ROLE_OPTIONS.map(({ key }) => [key, paletteById.get(roles[key])?.hex ?? palette[0]?.hex ?? "#FFFFFF"]),
+    QUICK_ROLE_OPTIONS.map(({ key }) => [key, paletteById.get(roles[key])?.hex ?? palette[0]?.hex ?? "#FFFFFF"]),
   ) as LiveRoleColors, [palette, paletteById, roles])
   const accessibilityChecks = useMemo(() => evaluateAccessibility({
     brand: colours.button,
@@ -134,7 +94,7 @@ export default function QuickDesign() {
 
   const changeColour = (id: string, value: string) => {
     const hex = normalizeHex(value)
-    setPalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, hex, name: colorName(hex) } : swatch))
+    setPalette((current) => current.map((swatch) => swatch.id === id ? updateSwatchHex(swatch, hex) : swatch))
   }
 
   const randomise = () => {
@@ -144,8 +104,7 @@ export default function QuickDesign() {
     }
     setPalette((current) => current.map((swatch) => {
       if (swatch.locked) return swatch
-      const hex = randomHex()
-      return { ...swatch, hex, name: colorName(hex) }
+      return updateSwatchHex(swatch, randomHex())
     }))
   }
 
@@ -154,8 +113,7 @@ export default function QuickDesign() {
       toast.push("Quick Design supports up to 8 colours", "error")
       return
     }
-    const hex = randomHex()
-    setPalette((current) => [...current, { id: uid(), hex, name: colorName(hex) }])
+    setPalette((current) => [...current, createSwatch(randomHex(), current.length)])
   }
 
   const removeColour = (id: string) => {
@@ -166,10 +124,21 @@ export default function QuickDesign() {
     const fallback = palette.find((swatch) => swatch.id !== id)
     setPalette((current) => current.filter((swatch) => swatch.id !== id))
     if (fallback) {
-      setRoles((current) => Object.fromEntries(
-        ROLE_OPTIONS.map(({ key }) => [key, current[key] === id ? fallback.id : current[key]]),
-      ) as Record<LiveRole, string>)
+      setRoleBindings((current) => {
+        const next = { ...current }
+        for (const [role, swatchId] of Object.entries(next)) {
+          if (swatchId === id) next[role] = fallback.id
+        }
+        return next
+      })
     }
+    setUnassignedRoleSwatchIds((current) => current.filter((swatchId) => swatchId !== id))
+  }
+
+  const setQuickRole = (quickRole: QuickRole, swatchId: string) => {
+    const result = applyQuickRoleToBindings(quickRole, swatchId, roleBindings, unassignedRoleSwatchIds, preview as QuickPreviewKind)
+    setRoleBindings(result.roleBindings)
+    setUnassignedRoleSwatchIds(result.unassignedRoleSwatchIds)
   }
 
   const toggleLock = (id: string) => {
@@ -216,14 +185,14 @@ export default function QuickDesign() {
               <div>
                 <h2 className="text-base font-bold" style={{ fontFamily: "var(--font-display)" }}>Visual roles</h2>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {ROLE_OPTIONS.map(({ key, label }) => (
+                  {QUICK_ROLE_OPTIONS.map(({ key, label }) => (
                     <label key={key} className="flex items-center gap-3 rounded-lg border border-softgrey bg-offwhite px-3 py-2.5">
                       <span className="h-7 w-7 shrink-0 rounded-md border border-black/10" style={{ background: colours[key] }} aria-hidden />
                       <span className="min-w-0 flex-1">
                         <span className="block text-[11px] font-semibold text-charcoal/50">{label}</span>
                         <select
                           value={roles[key]}
-                          onChange={(event) => setRoles((current) => ({ ...current, [key]: event.target.value }))}
+                          onChange={(event) => setQuickRole(key, event.target.value)}
                           className="block w-full appearance-none bg-transparent text-sm font-semibold outline-none"
                           aria-label={`${label} colour`}
                         >

@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { createPortal } from "react-dom"
-import { type RoleBindings, type Swatch } from "../lib/color"
+import { type RoleBindings, resolveSwatchRole, type Swatch } from "../lib/color"
 import ColorEditor from "./ColorEditor"
 
 type Props = {
@@ -75,13 +75,8 @@ export default function PaletteRail({
     if (over && active.id !== over.id) onReorder?.(String(active.id), String(over.id))
   }
 
-  const swatchRole = (swatchId: string) => {
-    const entry = Object.entries(roleBindings).find(([, id]) => id === swatchId)
-    if (entry) return entry[0]
-    if (unassignedRoleSwatchIds.includes(swatchId)) return ""
-    const index = palette.findIndex((s) => s.id === swatchId)
-    return index >= 0 && index < defaultRoleByIndex.length ? defaultRoleByIndex[index] : ""
-  }
+  const swatchRole = (swatchId: string) =>
+    resolveSwatchRole(swatchId, palette, roleBindings, unassignedRoleSwatchIds, defaultRoleByIndex)
 
   return (
     <section className={`flex min-h-0 flex-col overflow-hidden bg-white ${className}`} aria-label="Palette">

@@ -1,18 +1,22 @@
 import { createDefaultPalette, loadPalette } from "./paletteStore"
+import { migrateLiveRolesToBindings } from "./quickRoleBridge"
 import { templateGroups, templateAssetById, type TemplateGroupKey } from "./templateAssets"
-import { uid, type RoleBindings, type Swatch } from "./color"
+import { isSingletonRole, uid, type RoleBindings, type Swatch } from "./color"
 import type { ElementOverrides } from "./designTokens"
 
 const STORE_KEY = "hueframe:v1"
 
 type Brand = { name: string; logo: string | null; symbol: string | null }
-type ButtonStyle = "flat" | "depth" | "elevated" | "outline" | "glass" | "gradient"
-const VALID_BUTTON_STYLES: ButtonStyle[] = ["flat", "depth", "elevated", "outline", "glass", "gradient"]
 
 type WorkspaceSelection = { group: TemplateGroupKey; sub: string }
 
+export type WorkspacePreferences = {
+  paletteOpen: boolean
+  customiseOpen: boolean
+}
+
 export type WorkspaceProject = {
-  schemaVersion: 1
+  schemaVersion: 2
   palette: Swatch[]
   selection: WorkspaceSelection
   templateByType: Record<string, string>
@@ -21,8 +25,7 @@ export type WorkspaceProject = {
   elementOverrides: ElementOverrides
   roleBindings: RoleBindings
   unassignedRoleSwatchIds: string[]
-  buttonStyle: ButtonStyle
-  assignments: Record<string, string>
+  preferences: WorkspacePreferences
 }
 
 export type WorkspaceLoadResult = {
@@ -33,9 +36,14 @@ export type WorkspaceLoadResult = {
 
 export const DEFAULT_WORKSPACE_SELECTION: WorkspaceSelection = { group: "website", sub: "landing-page" }
 
+const DEFAULT_PREFERENCES: WorkspacePreferences = {
+  paletteOpen: true,
+  customiseOpen: true,
+}
+
 export function createDefaultProject(): WorkspaceProject {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     palette: createDefaultPalette(),
     selection: { ...DEFAULT_WORKSPACE_SELECTION },
     templateByType: {},
@@ -44,9 +52,42 @@ export function createDefaultProject(): WorkspaceProject {
     elementOverrides: {},
     roleBindings: {},
     unassignedRoleSwatchIds: [],
-    buttonStyle: "flat",
-    assignments: {},
+    preferences: { ...DEFAULT_PREFERENCES },
   }
+}
+
+export function projectToPersistedFields(project: WorkspaceProject): Record<string, unknown> {
+  return {
+    schemaVersion: project.schemaVersion,
+    palette: project.palette,
+    selection: project.selection,
+    templateByType: project.templateByType,
+    brand: project.brand,
+    designId: project.designId,
+    elementOverrides: project.elementOverrides,
+    roleBindings: project.roleBindings,
+    unassignedRoleSwatchIds: project.unassignedRoleSwatchIds,
+    preferences: project.preferences,
+  }
+}
+
+export function dedupeSingletonRoles(roleBindings: RoleBindings, issues: string[]): RoleBindings {
+  const result: RoleBindings = {}
+  const seenSingletonKeys = new Set<string>()
+
+  for (const [role, swatchId] of Object.entries(roleBindings)) {
+    if (isSingletonRole(role)) {
+      const key = role.trim().toLowerCase()
+      if (seenSingletonKeys.has(key)) {
+        issues.push(`Duplicate singleton role binding "${role}", dropped`)
+        continue
+      }
+      seenSingletonKeys.add(key)
+    }
+    result[role] = swatchId
+  }
+
+  return result
 }
 
 function isValidGroupSub(group: unknown, sub: unknown): boolean {
@@ -121,7 +162,7 @@ function validateRoleBindings(raw: unknown, paletteIds: Set<string>, issues: str
       issues.push(`Role binding "${key}" → unknown swatch id "${val}", dropped`)
     }
   }
-  return result
+  return dedupeSingletonRoles(result, issues)
 }
 
 function validateUnassignedIds(raw: unknown, paletteIds: Set<string>): string[] {
@@ -129,17 +170,10 @@ function validateUnassignedIds(raw: unknown, paletteIds: Set<string>): string[] 
   return raw.filter((id): id is string => typeof id === "string" && paletteIds.has(id))
 }
 
-function validateButtonStyle(raw: unknown): ButtonStyle {
-  return (VALID_BUTTON_STYLES as unknown[]).includes(raw) ? (raw as ButtonStyle) : "flat"
-}
-
-function validateStringRecord(raw: unknown): Record<string, string> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {}
-  const result: Record<string, string> = {}
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (typeof v === "string") result[k] = v
-  }
-  return result
+function validateLegacyFields(blob: Record<string, unknown>): void {
+  /* legacy buttonStyle / assignments / liveRoles — ignored on read; liveRoles migrated separately */
+  void blob.buttonStyle
+  void blob.assignments
 }
 
 function validateElementOverrides(raw: unknown): ElementOverrides {
@@ -154,6 +188,22 @@ function validateElementOverrides(raw: unknown): ElementOverrides {
     result[k] = ov
   }
   return result
+}
+
+function validatePreferences(raw: unknown, issues: string[]): WorkspacePreferences {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    if (raw !== null && raw !== undefined) {
+      issues.push("Invalid preferences shape, using defaults")
+    }
+    return { ...DEFAULT_PREFERENCES }
+  }
+  const prefs = raw as Record<string, unknown>
+  const paletteOpen = typeof prefs.paletteOpen === "boolean" ? prefs.paletteOpen : DEFAULT_PREFERENCES.paletteOpen
+  const customiseOpen = typeof prefs.customiseOpen === "boolean" ? prefs.customiseOpen : DEFAULT_PREFERENCES.customiseOpen
+  if (typeof prefs.paletteOpen !== "boolean" || typeof prefs.customiseOpen !== "boolean") {
+    issues.push("Invalid preferences fields, using defaults where needed")
+  }
+  return { paletteOpen, customiseOpen }
 }
 
 function writeRepaired(fields: Record<string, unknown>): void {
@@ -177,7 +227,7 @@ export function loadWorkspace(): WorkspaceLoadResult {
   const issues: string[] = []
   let recovered = false
 
-  // Palette: hash → localStorage → default (handles empty-filter case after paletteStore guard)
+  // Palette: merge hash into stored palette when hash exists
   const palette = loadPalette()
   const paletteIds = new Set(palette.map((s) => s.id))
 
@@ -202,20 +252,40 @@ export function loadWorkspace(): WorkspaceLoadResult {
     return { project, recovered, issues }
   }
 
+  const storedSchemaVersion = blob.schemaVersion
+  const hasStoredBlob = Object.keys(blob).length > 0
+  const needsV2Migration = hasStoredBlob && storedSchemaVersion !== 2
+
   const selection = validateSelection(blob.selection, issues)
   const templateByType = validateTemplateByType(blob.templateByType, selection, issues)
   const brand = validateBrand(blob.brand)
-  const roleBindings = validateRoleBindings(blob.roleBindings, paletteIds, issues)
+  let roleBindings = validateRoleBindings(blob.roleBindings, paletteIds, issues)
   const unassignedRoleSwatchIds = validateUnassignedIds(blob.unassignedRoleSwatchIds, paletteIds)
-  const buttonStyle = validateButtonStyle(blob.buttonStyle)
-  const assignments = validateStringRecord(blob.assignments)
+  validateLegacyFields(blob)
+
+  // Migrate legacy Quick Design liveRoles → shared roleBindings when bindings are empty
+  if (Object.keys(roleBindings).length === 0 && blob.liveRoles) {
+    const migrated = migrateLiveRolesToBindings(blob.liveRoles, paletteIds)
+    if (Object.keys(migrated).length > 0) {
+      roleBindings = dedupeSingletonRoles(migrated, issues)
+      issues.push("Migrated legacy liveRoles into roleBindings")
+      recovered = true
+    }
+  }
   const elementOverrides = validateElementOverrides(blob.elementOverrides)
   const designId = typeof blob.designId === "string" && blob.designId.length > 0 ? blob.designId : uid()
+  const preferences = needsV2Migration
+    ? { ...DEFAULT_PREFERENCES }
+    : validatePreferences(blob.preferences, issues)
 
   if (issues.length > 0) recovered = true
+  if (needsV2Migration) {
+    issues.push("Migrated workspace from schema v1 to v2")
+    recovered = true
+  }
 
   const project: WorkspaceProject = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     palette,
     selection,
     templateByType,
@@ -224,27 +294,24 @@ export function loadWorkspace(): WorkspaceLoadResult {
     elementOverrides,
     roleBindings,
     unassignedRoleSwatchIds,
-    buttonStyle,
-    assignments,
+    preferences,
   }
 
   // Write repaired fields back so next load is clean
   if (recovered) {
-    writeRepaired({
-      schemaVersion: 1,
-      selection: project.selection,
-      templateByType: project.templateByType,
-      brand: project.brand,
-      designId: project.designId,
-      elementOverrides: project.elementOverrides,
-      roleBindings: project.roleBindings,
-      unassignedRoleSwatchIds: project.unassignedRoleSwatchIds,
-      buttonStyle: project.buttonStyle,
-      assignments: project.assignments,
-    })
+    writeRepaired(projectToPersistedFields(project))
   }
 
   return { project, recovered, issues }
+}
+
+/** Atomically saves the full workspace project to localStorage. */
+export function saveWorkspaceProject(project: WorkspaceProject): void {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(projectToPersistedFields(project)))
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 /** Saves a single field to the workspace blob (same merge pattern as Builder's useStored). */
@@ -253,7 +320,7 @@ export function saveWorkspaceField(key: string, value: unknown): void {
     const raw = localStorage.getItem(STORE_KEY)
     const data: Record<string, unknown> = raw ? (JSON.parse(raw) as Record<string, unknown>) : {}
     data[key] = value
-    data.schemaVersion = 1
+    data.schemaVersion = 2
     localStorage.setItem(STORE_KEY, JSON.stringify(data))
   } catch {
     /* storage unavailable */

@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { loadWorkspace, createDefaultProject } from "./workspaceStore"
+import {
+  loadWorkspace,
+  createDefaultProject,
+  dedupeSingletonRoles,
+  saveWorkspaceProject,
+  projectToPersistedFields,
+} from "./workspaceStore"
 
 const STORE_KEY = "hueframe:v1"
 
@@ -14,12 +20,51 @@ beforeEach(() => {
 describe("createDefaultProject", () => {
   it("returns a project with all required fields", () => {
     const p = createDefaultProject()
-    expect(p.schemaVersion).toBe(1)
+    expect(p.schemaVersion).toBe(2)
     expect(p.palette.length).toBeGreaterThan(0)
     expect(p.selection.group).toBe("website")
     expect(p.selection.sub).toBe("landing-page")
     expect(p.brand.name).toBe("HueSet")
     expect(p.designId.length).toBeGreaterThan(0)
+    expect(p.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+  })
+})
+
+describe("dedupeSingletonRoles", () => {
+  it("drops duplicate singleton role bindings with different casing", () => {
+    const issues: string[] = []
+    const result = dedupeSingletonRoles(
+      {
+        "Brand Primary": "a",
+        "brand primary": "b",
+        Accent: "c",
+      },
+      issues,
+    )
+    expect(result["Brand Primary"]).toBe("a")
+    expect(result["brand primary"]).toBeUndefined()
+    expect(result.Accent).toBe("c")
+    expect(issues.some((issue) => issue.includes("Duplicate singleton role"))).toBe(true)
+  })
+})
+
+describe("projectToPersistedFields", () => {
+  it("includes schemaVersion 2 and preferences", () => {
+    const project = createDefaultProject()
+    const fields = projectToPersistedFields(project)
+    expect(fields.schemaVersion).toBe(2)
+    expect(fields.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+  })
+})
+
+describe("saveWorkspaceProject", () => {
+  it("writes the full project atomically", () => {
+    const project = createDefaultProject()
+    project.preferences = { paletteOpen: false, customiseOpen: true }
+    saveWorkspaceProject(project)
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) ?? "{}")
+    expect(raw.schemaVersion).toBe(2)
+    expect(raw.preferences).toEqual({ paletteOpen: false, customiseOpen: true })
   })
 })
 
@@ -30,6 +75,8 @@ describe("loadWorkspace — fresh load", () => {
     expect(project.selection.group).toBe("website")
     expect(project.selection.sub).toBe("landing-page")
     expect(project.designId.length).toBeGreaterThan(0)
+    expect(project.schemaVersion).toBe(2)
+    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
     expect(recovered).toBe(false)
     expect(issues).toHaveLength(0)
   })
@@ -40,20 +87,40 @@ describe("loadWorkspace — valid stored data", () => {
     localStorage.setItem(
       STORE_KEY,
       JSON.stringify({
+        schemaVersion: 2,
         palette: [{ id: "abc", name: "Test Red", hex: "#FF0000" }],
         brand: { name: "ACME Corp", logo: null, symbol: null },
         selection: { group: "website", sub: "landing-page" },
+        preferences: { paletteOpen: false, customiseOpen: false },
       }),
     )
     const { project } = loadWorkspace()
     expect(project.palette[0].hex).toBe("#FF0000")
     expect(project.brand.name).toBe("ACME Corp")
+    expect(project.preferences).toEqual({ paletteOpen: false, customiseOpen: false })
+  })
+
+  it("merges hash palette into stored palette", () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        palette: [{ id: "abc", name: "Custom", hex: "#2060E0", autoNamed: false }],
+        selection: { group: "website", sub: "landing-page" },
+      }),
+    )
+    window.history.replaceState(null, "", "/#p=00FF00")
+    const { project } = loadWorkspace()
+    expect(project.palette[0].id).toBe("abc")
+    expect(project.palette[0].name).toBe("Custom")
+    expect(project.palette[0].hex).toBe("#00FF00")
   })
 
   it("drops role bindings that reference unknown swatch ids", () => {
     localStorage.setItem(
       STORE_KEY,
       JSON.stringify({
+        schemaVersion: 2,
         palette: [{ id: "real-id", name: "A", hex: "#AABBCC" }],
         roleBindings: { "Brand Primary": "real-id", Accent: "ghost-id" },
         selection: { group: "website", sub: "landing-page" },
@@ -63,6 +130,24 @@ describe("loadWorkspace — valid stored data", () => {
     expect(project.roleBindings["Brand Primary"]).toBe("real-id")
     expect(project.roleBindings["Accent"]).toBeUndefined()
     expect(issues.some((i) => i.includes("ghost-id"))).toBe(true)
+  })
+})
+
+describe("loadWorkspace — schema migration", () => {
+  it("migrates v1 workspaces to v2 with default preferences", () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        palette: [{ id: "abc", name: "Test", hex: "#AABBCC" }],
+        selection: { group: "website", sub: "landing-page" },
+      }),
+    )
+    const { project, recovered, issues } = loadWorkspace()
+    expect(project.schemaVersion).toBe(2)
+    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+    expect(recovered).toBe(true)
+    expect(issues.some((issue) => issue.includes("schema v1 to v2"))).toBe(true)
   })
 })
 
@@ -127,5 +212,21 @@ describe("loadWorkspace — corrupt / incomplete data", () => {
     )
     const { project } = loadWorkspace()
     expect(project.brand.name).toBe("HueSet")
+  })
+
+  it("migrates legacy liveRoles into roleBindings", () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        palette: [{ id: "a1", name: "A", hex: "#AABBCC" }],
+        liveRoles: { background: "a1", button: "a1" },
+        selection: { group: "website", sub: "landing-page" },
+      }),
+    )
+    const { project, recovered } = loadWorkspace()
+    expect(project.roleBindings["Page Background"]).toBe("a1")
+    expect(project.roleBindings["Brand Primary"]).toBe("a1")
+    expect(recovered).toBe(true)
   })
 })

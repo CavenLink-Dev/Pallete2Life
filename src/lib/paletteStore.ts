@@ -1,4 +1,4 @@
-import { uid, type Swatch } from "./color"
+import { createSwatch, updateSwatchHex, uid, type Swatch } from "./color"
 
 const STORE_KEY = "hueframe:v1"
 const HASH_KEY = "p"
@@ -12,7 +12,50 @@ const DEFAULT_COLOURS = [
 ]
 
 export function createDefaultPalette(): Swatch[] {
-  return DEFAULT_COLOURS.map((colour) => ({ ...colour, id: uid() }))
+  return DEFAULT_COLOURS.map((colour) => ({ ...colour, id: uid(), autoNamed: false }))
+}
+
+function cleanStoredSwatch(item: unknown): Swatch | null {
+  if (!item || typeof item !== "object") return null
+  const record = item as Record<string, unknown>
+  if (typeof record.id !== "string" || typeof record.name !== "string" || typeof record.hex !== "string") {
+    return null
+  }
+  return {
+    id: record.id,
+    name: record.name,
+    hex: record.hex,
+    locked: !!record.locked,
+    ...(typeof record.autoNamed === "boolean" ? { autoNamed: record.autoNamed } : {}),
+  }
+}
+
+/** Reads the palette from localStorage only (no URL hash). */
+export function loadPaletteFromStorage(): Swatch[] {
+  try {
+    const raw = localStorage.getItem(STORE_KEY)
+    const palette = raw ? JSON.parse(raw)?.palette : null
+    if (!Array.isArray(palette) || palette.length === 0) return createDefaultPalette()
+    const cleaned = palette.map(cleanStoredSwatch).filter((item): item is Swatch => item !== null)
+    // Filtering can empty a non-empty array if every entry was malformed.
+    // Downstream code indexes palette[0..4] freely, so never hand back [].
+    return cleaned.length ? cleaned : createDefaultPalette()
+  } catch {
+    return createDefaultPalette()
+  }
+}
+
+/** Applies hash hexes by index onto stored swatches; extra hash slots become new swatches. */
+export function mergeHashPalette(stored: Swatch[], hashPalette: Swatch[]): Swatch[] {
+  const merged = stored.map((swatch, index) => {
+    const hashSwatch = hashPalette[index]
+    if (!hashSwatch) return swatch
+    return updateSwatchHex(swatch, hashSwatch.hex)
+  })
+  for (let index = stored.length; index < hashPalette.length; index++) {
+    merged.push(createSwatch(hashPalette[index].hex, index))
+  }
+  return merged
 }
 
 /* Reads a palette from the location hash: `#p=RRGGBB,RRGGBB,...`.
@@ -51,24 +94,13 @@ export function writeHashPalette(palette: Swatch[]) {
   }, 200)
 }
 
-/* Priority: URL hash > localStorage > default palette. This lets a
- * pasted share link deterministically restore a palette. */
+/* Priority: merge URL hash into stored palette when hash exists;
+ * otherwise localStorage > default palette. */
 export function loadPalette(): Swatch[] {
+  const stored = loadPaletteFromStorage()
   const fromHash = readHashPalette()
-  if (fromHash) return fromHash
-  try {
-    const raw = localStorage.getItem(STORE_KEY)
-    const palette = raw ? JSON.parse(raw)?.palette : null
-    if (!Array.isArray(palette) || palette.length === 0) return createDefaultPalette()
-    const cleaned = palette
-      .filter((item) => item && typeof item.id === "string" && typeof item.name === "string" && typeof item.hex === "string")
-      .map((item) => ({ id: item.id, name: item.name, hex: item.hex, locked: !!item.locked }))
-    // Filtering can empty a non-empty array if every entry was malformed.
-    // Downstream code indexes palette[0..4] freely, so never hand back [].
-    return cleaned.length ? cleaned : createDefaultPalette()
-  } catch {
-    return createDefaultPalette()
-  }
+  if (fromHash) return mergeHashPalette(stored, fromHash)
+  return stored
 }
 
 export function savePalette(palette: Swatch[]) {

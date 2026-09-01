@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { deriveTheme, hslToHex, randomHex, uid, type RoleBindings, type Swatch } from "../lib/color"
-import { DEFAULT_BUTTON_PROPS, paletteToTrio, type ButtonStyle } from "../components/ButtonPreview"
+import { applyRoleChange, createSwatch, deriveTheme, hslToHex, pruneBindingsForSwatch, randomHex, updateSwatchHex, type RoleBindings, type Swatch } from "../lib/color"
+import { DEFAULT_BUTTON_PROPS, paletteToTrio } from "../components/ButtonPreview"
 import { GROUPS, PreviewRenderer, type GroupKey, type PreviewRendererHandle } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
 import BrandUpload from "../components/BrandUpload"
@@ -17,62 +17,39 @@ import SecondOpinionPanel from "../components/SecondOpinionPanel"
 import { useToast } from "../components/Toast"
 import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import { evaluateAccessibility } from "../lib/accessibility"
-import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
-import { loadWorkspace } from "../lib/workspaceStore"
+import { createDefaultPalette, mergeHashPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
+import { createHistoryState, type WorkspaceSnapshot } from "../lib/workspaceHistory"
+import { loadWorkspace, saveWorkspaceProject } from "../lib/workspaceStore"
 import { useNav, useRoute } from "../lib/router"
 import ErrorBoundary from "../components/ErrorBoundary"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
-import { ELEMENT_DEFAULTS, elementTokens, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
+import { ELEMENT_DEFAULTS, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
 import { templateAssetById } from "../lib/templateAssets"
 import { readGenerateResult } from "../lib/generateFlowStore"
-import { isBrandLike, isString, isStringArray, isStringMap, isPlainObject } from "../lib/storedShape"
-
 type Selection = { group: GroupKey; sub: string }
 
-const STORE_KEY = "hueframe:v1"
-const MAX_HISTORY = 40
-const START_NAMES = ["Primary", "Secondary", "Tertiary", "Quaternary", "Quinary", "Senary"]
-const DEFAULT_SELECTION: Selection = { group: "website", sub: "landing-page" }
 const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 
-/**
- * Reads one key out of the shared project blob.
- *
- * `isValid` is optional but should be supplied whenever the caller feeds the
- * result somewhere that assumes a shape (iteration, spread, Object.entries).
- * Without it a corrupted value reaches render and throws.
- */
-function loadStored<T>(key: string, fallback: T, isValid?: (value: unknown) => value is T): T {
-  try {
-    const raw = localStorage.getItem(STORE_KEY)
-    if (!raw) return fallback
-    const value = JSON.parse(raw)?.[key]
-    if (value === undefined || value === null) return fallback
-    if (isValid && !isValid(value)) return fallback
-    return value as T
-  } catch {
-    return fallback
+function projectSnapshot(project: {
+  palette: Swatch[]
+  selection: Selection
+  templateByType: Record<string, string>
+  elementOverrides: ElementOverrides
+  roleBindings: RoleBindings
+  unassignedRoleSwatchIds: string[]
+  brand: Brand
+}): WorkspaceSnapshot {
+  return {
+    palette: project.palette,
+    selection: project.selection,
+    templateByType: project.templateByType,
+    elementOverrides: project.elementOverrides,
+    roleBindings: project.roleBindings,
+    unassignedRoleSwatchIds: project.unassignedRoleSwatchIds,
+    brand: project.brand,
   }
-}
-
-function loadBrand(): Brand {
-  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null }, isBrandLike as (v: unknown) => v is Brand)
-  return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
-}
-
-function useStored(key: string, value: unknown) {
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORE_KEY)
-      const data = raw ? JSON.parse(raw) : {}
-      data[key] = value
-      localStorage.setItem(STORE_KEY, JSON.stringify(data))
-    } catch {
-      /* storage unavailable */
-    }
-  }, [key, value])
 }
 
 export default function Builder() {
@@ -82,29 +59,26 @@ export default function Builder() {
   const previewRef = useRef<PreviewRendererHandle | null>(null)
   const canvasRef = useRef<HTMLElement | null>(null)
   const moreMenuRef = useRef<HTMLDivElement | null>(null)
-  const skipHistory = useRef(false)
   const randomiseCount = useRef(0)
   const recentCurated = useRef<number[]>([])
 
   const [initial] = useState(() => loadWorkspace())
+  const historyRef = useRef(createHistoryState(projectSnapshot(initial.project)))
+  const [forceHistory, setForceHistory] = useState(0)
 
   const [palette, setPalette] = useState<Swatch[]>(() => initial.project.palette)
   const [selection, setSelection] = useState<Selection>(() => initial.project.selection)
   const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => initial.project.templateByType)
-  const [brand, setBrand] = useState<Brand>(() => initial.project.brand)
-  const [assignments] = useState<Record<string, string>>(() => initial.project.assignments)
-  const [buttonStyle] = useState<ButtonStyle>(() => initial.project.buttonStyle)
+  const [brand, setBrandState] = useState<Brand>(() => initial.project.brand)
   const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
   const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => initial.project.elementOverrides)
   const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => initial.project.roleBindings)
   const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => initial.project.unassignedRoleSwatchIds)
-  const [undoStack, setUndoStack] = useState<Swatch[][]>([])
-  const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
-  const [paletteOpen, setPaletteOpen] = useState(true)
-  const [customiseOpen, setCustomiseOpen] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1200px)").matches)
+  const [paletteOpen, setPaletteOpen] = useState(() => initial.project.preferences.paletteOpen)
+  const [customiseOpen, setCustomiseOpen] = useState(() => initial.project.preferences.customiseOpen)
   const [brandOpen, setBrandOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportPaywallOpen, setExportPaywallOpen] = useState(false)
@@ -115,16 +89,26 @@ export default function Builder() {
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
   const [designId] = useState<string>(() => initial.project.designId)
 
-  useStored("palette", palette)
-  useStored("templateByType", templateByType)
-  useStored("brand", brand)
-  useStored("designId", designId)
-  useStored("elementOverrides", elementOverrides)
-  useStored("roleBindings", roleBindings)
-  useStored("unassignedRoleSwatchIds", unassignedRoleSwatchIds)
-  useStored("selection", selection)
-  useStored("buttonStyle", buttonStyle)
-  useStored("assignments", assignments)
+  const applySnapshot = useCallback((snap: WorkspaceSnapshot) => {
+    setPalette(snap.palette)
+    setSelection(snap.selection as Selection)
+    setTemplateByType(snap.templateByType)
+    setElementOverrides(snap.elementOverrides)
+    setRoleBindings(snap.roleBindings)
+    setUnassignedRoleSwatchIds(snap.unassignedRoleSwatchIds)
+    setBrandState(snap.brand)
+  }, [])
+
+  const commit = useCallback((updater: (snap: WorkspaceSnapshot) => WorkspaceSnapshot) => {
+    const next = updater(historyRef.current.snapshot)
+    historyRef.current = historyRef.current.pushSnapshot(next)
+    applySnapshot(next)
+    setForceHistory((tick) => tick + 1)
+  }, [applySnapshot])
+
+  const setBrand = useCallback((next: Brand) => {
+    commit((snap) => ({ ...snap, brand: next }))
+  }, [commit])
 
   useEffect(() => {
     if (import.meta.env.DEV && initial.recovered) {
@@ -137,33 +121,51 @@ export default function Builder() {
   useEffect(() => { writeHashPalette(palette) }, [palette])
 
   useEffect(() => {
+    saveWorkspaceProject({
+      schemaVersion: 2,
+      palette,
+      selection,
+      templateByType,
+      brand,
+      designId,
+      elementOverrides,
+      roleBindings,
+      unassignedRoleSwatchIds,
+      preferences: { paletteOpen, customiseOpen },
+    })
+  }, [palette, selection, templateByType, brand, designId, elementOverrides, roleBindings, unassignedRoleSwatchIds, paletteOpen, customiseOpen])
+
+  useEffect(() => {
     if (needsPro(entitlement)) setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
   }, [])
 
   useEffect(() => {
     const result = readGenerateResult()
     if (!result) return
-    setSelection({ group: result.group as GroupKey, sub: result.sub })
-    setTemplateByType((c) => ({ ...c, [`${result.group}/${result.sub}`]: result.templateId }))
-  }, [])
+    commit((snap) => ({
+      ...snap,
+      selection: { group: result.group, sub: result.sub },
+      templateByType: { ...snap.templateByType, [`${result.group}/${result.sub}`]: result.templateId },
+    }))
+  }, [commit])
 
   useEffect(() => {
     const onHashChange = () => {
-      const next = readHashPalette()
-      if (!next || next.map((swatch) => swatch.hex).join() === palette.map((swatch) => swatch.hex).join()) return
-      skipHistory.current = true
-      setPalette(next)
+      const hashPalette = readHashPalette()
+      if (!hashPalette) return
+      historyRef.current.withSkipHistory(() => {
+        const snap = historyRef.current.snapshot
+        const nextPalette = mergeHashPalette(snap.palette, hashPalette)
+        if (nextPalette.map((swatch) => swatch.hex).join() === snap.palette.map((swatch) => swatch.hex).join()) return
+        const updated = { ...snap, palette: nextPalette }
+        historyRef.current = historyRef.current.pushSnapshot(updated)
+        applySnapshot(updated)
+        setForceHistory((tick) => tick + 1)
+      })
     }
     window.addEventListener("hashchange", onHashChange)
     return () => window.removeEventListener("hashchange", onHashChange)
-  }, [palette])
-
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1200px)")
-    const update = () => setCustomiseOpen(query.matches)
-    query.addEventListener("change", update)
-    return () => query.removeEventListener("change", update)
-  }, [])
+  }, [applySnapshot])
 
   useEffect(() => {
     if (!moreOpen) return
@@ -174,39 +176,20 @@ export default function Builder() {
     return () => document.removeEventListener("pointerdown", close)
   }, [moreOpen])
 
-  const mutatePalette = useCallback((updater: (current: Swatch[]) => Swatch[]) => {
-    setPalette((current) => {
-      const next = updater(current)
-      if (!skipHistory.current && JSON.stringify(next) !== JSON.stringify(current)) {
-        setUndoStack((stack) => stack.length >= MAX_HISTORY ? [...stack.slice(1), current] : [...stack, current])
-        setRedoStack([])
-      }
-      skipHistory.current = false
-      return next
-    })
-  }, [])
-
   const undo = useCallback(() => {
-    setUndoStack((stack) => {
-      if (!stack.length) return stack
-      const previous = stack[stack.length - 1]
-      setRedoStack((redo) => [...redo, palette])
-      skipHistory.current = true
-      setPalette(previous)
-      return stack.slice(0, -1)
-    })
-  }, [palette])
+    historyRef.current = historyRef.current.undo()
+    applySnapshot(historyRef.current.snapshot)
+    setForceHistory((tick) => tick + 1)
+  }, [applySnapshot])
 
   const redo = useCallback(() => {
-    setRedoStack((stack) => {
-      if (!stack.length) return stack
-      const next = stack[stack.length - 1]
-      setUndoStack((undoHistory) => [...undoHistory, palette])
-      skipHistory.current = true
-      setPalette(next)
-      return stack.slice(0, -1)
-    })
-  }, [palette])
+    historyRef.current = historyRef.current.redo()
+    applySnapshot(historyRef.current.snapshot)
+    setForceHistory((tick) => tick + 1)
+  }, [applySnapshot])
+
+  const canUndo = useMemo(() => historyRef.current.canUndo, [forceHistory])
+  const canRedo = useMemo(() => historyRef.current.canRedo, [forceHistory])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -263,42 +246,28 @@ export default function Builder() {
   const clearSelection = useCallback(() => setSelectedElement(null), [])
 
   const handleElementChange = useCallback((key: string, value: string | boolean) => {
-    setSelectedElement((current) => {
-      if (!current) return current
-      setElementOverrides((overrides) => {
-        const prev = overrides[current.id] ?? {}
-        return { ...overrides, [current.id]: { ...prev, [key]: value } }
-      })
-      return current
+    if (!selectedElement) return
+    const elementId = selectedElement.id
+    commit((snap) => {
+      const prev = snap.elementOverrides[elementId] ?? {}
+      return {
+        ...snap,
+        elementOverrides: { ...snap.elementOverrides, [elementId]: { ...prev, [key]: value } },
+      }
     })
-  }, [])
+  }, [commit, selectedElement])
 
   const reorderPalette = useCallback((activeId: string, overId: string) => {
-    mutatePalette((current) => {
-      const from = current.findIndex((s) => s.id === activeId)
-      const to = current.findIndex((s) => s.id === overId)
-      if (from === -1 || to === -1 || from === to) return current
-      const next = [...current]
+    commit((snap) => {
+      const from = snap.palette.findIndex((s) => s.id === activeId)
+      const to = snap.palette.findIndex((s) => s.id === overId)
+      if (from === -1 || to === -1 || from === to) return snap
+      const next = [...snap.palette]
       const [moved] = next.splice(from, 1)
       next.splice(to, 0, moved)
-      return next
+      return { ...snap, palette: next }
     })
-  }, [mutatePalette])
-
-  const handleRoleChange = useCallback((role: string, swatchId: string) => {
-    setUnassignedRoleSwatchIds((ids) => {
-      if (role) return ids.filter((id) => id !== swatchId)
-      return ids.includes(swatchId) ? ids : [...ids, swatchId]
-    })
-    setRoleBindings((bindings) => {
-      const next = { ...bindings }
-      for (const [key, id] of Object.entries(next)) {
-        if (id === swatchId) delete next[key]
-      }
-      if (role) next[role] = swatchId
-      return next
-    })
-  }, [])
+  }, [commit])
 
   const paletteRoleOptions = useMemo(() => {
     if (selection.group === "application") {
@@ -306,6 +275,13 @@ export default function Builder() {
     }
     return WEBSITE_ROLE_LABELS
   }, [selection.group])
+
+  const handleRoleChange = useCallback((role: string, swatchId: string) => {
+    commit((snap) => {
+      const result = applyRoleChange(role, swatchId, snap.roleBindings, snap.unassignedRoleSwatchIds, paletteRoleOptions)
+      return { ...snap, ...result }
+    })
+  }, [commit, paletteRoleOptions])
 
   const currentElementValues = useMemo(() => {
     if (!selectedElement) return null
@@ -315,23 +291,26 @@ export default function Builder() {
 
   const previewContext = useMemo<PreviewCtxValue>(() => ({
     editMode: true,
-    assignments,
-    roleColor: (swatchId) => palette.find((swatch) => swatch.id === swatchId)?.hex,
+    assignments: {},
+    roleColor: (roleName) => {
+      const boundId = roleBindings[roleName]
+      return boundId ? palette.find((swatch) => swatch.id === boundId)?.hex : undefined
+    },
     tokenColor: (role) => {
       const key = semanticKeyForRole(role)
       return key ? semanticColour(tokenSystem, palette, key, theme.accent) : theme.accent
     },
     brand,
-    buttonStyle,
+    buttonStyle: "flat",
     buttonProps: DEFAULT_BUTTON_PROPS,
     trio,
     selectedElement,
     elementOverrides,
     tokenSystem,
     selectElement,
-  }), [assignments, brand, buttonStyle, elementOverrides, palette, selectedElement, selectElement, theme.accent, tokenSystem, trio])
+  }), [brand, elementOverrides, palette, roleBindings, selectedElement, selectElement, theme.accent, tokenSystem, trio])
 
-  const trySelect = useCallback((next: Selection, nextTemplate?: string) => {
+  const trySelect = useCallback((next: Selection) => {
     const group = GROUPS.find((item) => item.key === next.group)
     const type = group?.subs.find((item) => item.key === next.sub) ?? group?.subs[0]
     if (!group || !type) return false
@@ -339,28 +318,69 @@ export default function Builder() {
       setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
       return false
     }
-    setSelection({ group: group.key, sub: type.key })
+    commit((snap) => ({ ...snap, selection: { group: group.key, sub: type.key } }))
     return true
-  }, [entitlement])
+  }, [commit, entitlement])
 
   const chooseTemplate = (id: string, label: string) => {
-    if (!trySelect(selection, id)) return
-    setTemplateByType((current) => ({ ...current, [selectionKey]: id }))
+    if (!canUseWorkspace(entitlement)) {
+      setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
+      return
+    }
+    commit((snap) => ({
+      ...snap,
+      templateByType: { ...snap.templateByType, [selectionKey]: id },
+    }))
     markOnboardingStep("template")
     toast.push(`Template: ${label}`, "success")
   }
 
   const changeColour = (id: string, hex: string) => {
-    mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, hex } : swatch))
+    commit((snap) => ({
+      ...snap,
+      palette: snap.palette.map((swatch) => swatch.id === id ? updateSwatchHex(swatch, hex) : swatch),
+    }))
     markOnboardingStep("pick")
   }
-  const renameColour = (id: string, name: string) => mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, name } : swatch))
-  const toggleLock = (id: string) => mutatePalette((current) => current.map((swatch) => swatch.id === id ? { ...swatch, locked: !swatch.locked } : swatch))
+  const renameColour = (id: string, name: string) => commit((snap) => ({
+    ...snap,
+    palette: snap.palette.map((swatch) => swatch.id === id ? { ...swatch, name, autoNamed: false } : swatch),
+  }))
+  const toggleLock = (id: string) => commit((snap) => ({
+    ...snap,
+    palette: snap.palette.map((swatch) => swatch.id === id ? { ...swatch, locked: !swatch.locked } : swatch),
+  }))
   const addColour = () => {
-    mutatePalette((current) => [...current, { id: uid(), name: START_NAMES[current.length] ?? `Colour ${current.length + 1}`, hex: randomHex() }])
+    commit((snap) => ({
+      ...snap,
+      palette: [...snap.palette, createSwatch(randomHex(), snap.palette.length)],
+    }))
     markOnboardingStep("pick")
   }
-  const removeColour = (id: string) => mutatePalette((current) => current.length > 1 ? current.filter((swatch) => swatch.id !== id) : current)
+  const removeColour = (id: string) => commit((snap) => {
+    if (snap.palette.length <= 1) return snap
+    const { roleBindings: nextBindings, unassignedRoleSwatchIds: nextUnassigned } = pruneBindingsForSwatch(id, snap.roleBindings, snap.unassignedRoleSwatchIds)
+    return {
+      ...snap,
+      palette: snap.palette.filter((swatch) => swatch.id !== id),
+      roleBindings: nextBindings,
+      unassignedRoleSwatchIds: nextUnassigned,
+    }
+  })
+
+  const coherentElementOverrides = (prev: ElementOverrides): ElementOverrides => {
+    const typo = randomTypographyTokens()
+    const btn = randomButtonTokens()
+    const next = { ...prev }
+    for (const [id, ov] of Object.entries(next)) {
+      if (id.startsWith("text-") || id.includes("/text")) {
+        next[id] = { ...ov, ...typo }
+      } else if (id.startsWith("button-") || id.includes("/button")) {
+        next[id] = { ...ov, ...btn }
+      }
+    }
+    return next
+  }
 
   const smartRandomise = (current: Swatch[]) => {
     const hue = Math.floor(Math.random() * 360)
@@ -372,10 +392,10 @@ export default function Builder() {
       { s: dark ? 5 : 12, l: dark ? 92 : 15 },
       { s: dark ? 10 : 8, l: dark ? 65 : 42 },
     ]
-    return current.map((swatch, index) => swatch.locked ? swatch : {
-      ...swatch,
-      hex: hslToHex((hue + Math.max(0, index - roles.length + 1) * 43) % 360, roles[index]?.s ?? 55, roles[index]?.l ?? 55),
-    })
+    return current.map((swatch, index) => swatch.locked ? swatch : updateSwatchHex(
+      swatch,
+      hslToHex((hue + Math.max(0, index - roles.length + 1) * 43) % 360, roles[index]?.s ?? 55, roles[index]?.l ?? 55),
+    ))
   }
 
   const randomise = () => {
@@ -390,36 +410,28 @@ export default function Builder() {
       const curated = pickCuratedPalette(locks, recentCurated.current)
       if (curated) {
         recentCurated.current = [curated.index, ...recentCurated.current].slice(0, 20)
-        mutatePalette((current) => current.map((swatch, index) => swatch.locked ? swatch : { ...swatch, hex: curated.palette[index] ?? randomHex() }))
+        commit((snap) => ({
+          ...snap,
+          palette: snap.palette.map((swatch, index) => swatch.locked ? swatch : updateSwatchHex(swatch, curated.palette[index] ?? randomHex())),
+        }))
         return
       }
     }
-    mutatePalette(smartRandomise)
-    applyCoherentOverrides()
-  }
-
-  const applyCoherentOverrides = () => {
-    const typo = randomTypographyTokens()
-    const btn = randomButtonTokens()
-    setElementOverrides((prev) => {
-      const next = { ...prev }
-      for (const [id, ov] of Object.entries(next)) {
-        if (id.startsWith("text-") || id.includes("/text")) {
-          next[id] = { ...ov, ...typo }
-        } else if (id.startsWith("button-") || id.includes("/button")) {
-          next[id] = { ...ov, ...btn }
-        }
-      }
-      return next
-    })
+    commit((snap) => ({
+      ...snap,
+      palette: smartRandomise(snap.palette),
+      elementOverrides: coherentElementOverrides(snap.elementOverrides),
+    }))
   }
 
   const reset = () => {
-    setUndoStack((history) => [...history, palette])
-    setRedoStack([])
-    skipHistory.current = true
-    setUnassignedRoleSwatchIds([])
-    setPalette(createDefaultPalette())
+    commit((snap) => ({
+      ...snap,
+      palette: createDefaultPalette(),
+      roleBindings: {},
+      unassignedRoleSwatchIds: [],
+      elementOverrides: {},
+    }))
     setConfirmReset(false)
     toast.push("Palette reset", "success")
   }
@@ -434,18 +446,23 @@ export default function Builder() {
   }
 
   const reopenProject = (project: ImportedProject) => {
-    skipHistory.current = false
-    mutatePalette(() => project.palette)
-    const id = project.project?.templateId
-    const asset = id ? templateAssetById.get(id) : undefined
-    if (asset) {
-      const group = asset.category.toLowerCase() as GroupKey
-      const type = GROUPS.find((item) => item.key === group)?.subs.find((item) => item.templates.some((template) => template.key === id))
-      if (type) {
-        setSelection({ group, sub: type.key })
-        setTemplateByType((current) => ({ ...current, [`${group}/${type.key}`]: id! }))
+    commit((snap) => {
+      let next: WorkspaceSnapshot = { ...snap, palette: project.palette }
+      const id = project.project?.templateId
+      const asset = id ? templateAssetById.get(id) : undefined
+      if (asset) {
+        const group = asset.category.toLowerCase() as GroupKey
+        const type = GROUPS.find((item) => item.key === group)?.subs.find((item) => item.templates.some((template) => template.key === id))
+        if (type) {
+          next = {
+            ...next,
+            selection: { group, sub: type.key },
+            templateByType: { ...next.templateByType, [`${group}/${type.key}`]: id! },
+          }
+        }
       }
-    }
+      return next
+    })
   }
 
   const handleExport = () => {
@@ -502,8 +519,8 @@ export default function Builder() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!undoStack.length}><UndoIcon /></ToolbarButton>
-            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!redoStack.length}><RedoIcon /></ToolbarButton>
+            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!canUndo}><UndoIcon /></ToolbarButton>
+            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!canRedo}><RedoIcon /></ToolbarButton>
             <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
             <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
@@ -587,7 +604,7 @@ export default function Builder() {
       {customiseOpen && (
         <CustomisePanel
           onClose={() => setCustomiseOpen(false)}
-          className="hidden w-[280px] shrink-0 border-l border-softgrey min-[1200px]:flex"
+          className="fixed bottom-0 right-0 top-12 z-30 flex w-[280px] shrink-0 flex-col border-l border-softgrey bg-white shadow-xl lg:static lg:z-auto lg:shadow-none"
           selectedElement={selectedElement}
           elementValues={currentElementValues}
           onElementChange={handleElementChange}
@@ -626,32 +643,6 @@ export default function Builder() {
             onRoleChange={handleRoleChange}
           />
         </SheetBackdrop>
-      )}
-
-      {customiseOpen && (
-        <>
-          <div className="fixed inset-0 z-40 hidden bg-charcoal/25 lg:block min-[1200px]:hidden" onClick={() => setCustomiseOpen(false)} aria-hidden />
-          <CustomisePanel
-            onClose={() => setCustomiseOpen(false)}
-            className="fixed bottom-0 right-0 top-12 z-50 hidden w-[280px] border-l border-softgrey shadow-xl lg:flex min-[1200px]:hidden"
-            selectedElement={selectedElement}
-            elementValues={currentElementValues}
-            onElementChange={handleElementChange}
-            onClearSelection={clearSelection}
-            roleOptions={roleLabels}
-          />
-          <SheetBackdrop className="lg:hidden" onClose={() => setCustomiseOpen(false)}>
-            <CustomisePanel
-              onClose={() => setCustomiseOpen(false)}
-              className="h-[min(52dvh,420px)] w-full rounded-t-[8px] border-t border-softgrey"
-              selectedElement={selectedElement}
-              elementValues={currentElementValues}
-              onElementChange={handleElementChange}
-              onClearSelection={clearSelection}
-              roleOptions={roleLabels}
-            />
-          </SheetBackdrop>
-        </>
       )}
 
       {brandOpen && <BrandUpload brand={brand} onChange={setBrand} onClose={() => setBrandOpen(false)} />}
