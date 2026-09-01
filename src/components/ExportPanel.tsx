@@ -32,6 +32,7 @@ type Props = {
   accessibilityChecks?: AccessibilityCheck[]
   onImportProject?: (project: ImportedProject) => void
   onToast: (msg: string, kind?: "info" | "success" | "error") => void
+  onSuccessfulExport?: () => void
   locked?: boolean
 }
 
@@ -42,20 +43,17 @@ const SECTIONS: { key: ExportSection; label: string; note: string }[] = [
   { key: "project", label: "Project", note: "Save and reopen" },
 ]
 
-export default function ExportPanel({ open, onClose, palette, tokenSystem, project, accessibilityChecks = [], onImportProject, onToast, locked = false }: Props) {
+export default function ExportPanel({ open, onClose, palette, tokenSystem, project, accessibilityChecks = [], onImportProject, onToast, onSuccessfulExport, locked = false }: Props) {
   const [section, setSection] = useState<ExportSection>("palette")
   const [format, setFormat] = useState<CodeFormat>(tokenSystem ? "tokens" : "css")
   const importRef = useRef<HTMLInputElement | null>(null)
-  const dialogRef = useDialogFocus<HTMLDivElement>(open)
+  const dialogRef = useDialogFocus<HTMLDivElement>(open, onClose)
   const system = useMemo(() => tokenSystem ?? createTokenSystem(palette), [palette, tokenSystem])
   const formatted = useMemo(() => renderCode(format, palette, system, !!tokenSystem), [format, palette, system, tokenSystem])
 
   useEffect(() => {
-    if (!open) return
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose() }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose, open])
+    if (!open) setSection("palette")
+  }, [open])
 
   if (!open) return null
 
@@ -63,12 +61,13 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
     try {
       await navigator.clipboard.writeText(text)
       onToast(`${label} copied`, "success")
+      onSuccessfulExport?.()
     } catch {
       onToast("Your browser blocked clipboard access", "error")
     }
   }
 
-  const downloadText = (name: string, mime: string, content: string) => downloadBlob(name, new Blob([content], { type: mime }), onToast)
+  const downloadText = (name: string, mime: string, content: string) => downloadBlob(name, new Blob([content], { type: mime }), onToast, onSuccessfulExport)
   const projectFile = JSON.stringify({
     format: "palette-preview-project",
     version: 2,
@@ -108,7 +107,7 @@ export default function ExportPanel({ open, onClose, palette, tokenSystem, proje
         <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
           {section === "palette" && <PaletteExport palette={palette} onCopy={copy} onText={() => downloadText("palette-preview-colours.txt", "text/plain", paletteText(palette))} />}
           {section === "code" && (locked ? <LockedSection label="Code export" /> : <CodeExport format={format} formatted={formatted} hasSystem={!!tokenSystem} onFormat={setFormat} onCopy={() => copy(formatted, codeLabel(format))} onDownload={() => downloadText(codeFilename(format), format === "json" || format === "tokens" ? "application/json" : "text/plain", formatted)} />)}
-          {section === "visual" && <VisualExport palette={palette} onSvg={() => downloadText("palette-preview.svg", "image/svg+xml", makePaletteSvg(palette))} onRaster={(type) => downloadRaster(palette, type, onToast)} />}
+          {section === "visual" && <VisualExport palette={palette} onSvg={() => downloadText("palette-preview.svg", "image/svg+xml", makePaletteSvg(palette))} onRaster={(type) => downloadRaster(palette, type, onToast, onSuccessfulExport)} />}
           {section === "project" && (locked ? <LockedSection label="Project export" /> : <ProjectExport hasSystem={!!tokenSystem} accessibilityChecks={accessibilityChecks} onSave={() => downloadText("palette-preview-project.json", "application/json", projectFile)} canImport={!!onImportProject} onImport={() => importRef.current?.click()} />)}
         </div>
 
@@ -184,7 +183,7 @@ function paletteText(palette: Swatch[]) {
   return `Name\tHEX\tRGB\tHSL\n${palette.map((swatch) => `${swatch.name}\t${swatch.hex.toUpperCase()}\trgb(${rgbString(swatch.hex)})\thsl(${hslString(swatch.hex)})`).join("\n")}\n`
 }
 
-function downloadRaster(palette: Swatch[], type: "png" | "jpeg", onToast: Props["onToast"]) {
+function downloadRaster(palette: Swatch[], type: "png" | "jpeg", onToast: Props["onToast"], onSuccessfulExport?: () => void) {
   const canvas = document.createElement("canvas")
   canvas.width = 1400
   canvas.height = 420
@@ -207,7 +206,7 @@ function downloadRaster(palette: Swatch[], type: "png" | "jpeg", onToast: Props[
   context.fillStyle = "#7A818B"
   context.font = "500 16px Inter, Arial, sans-serif"
   context.fillText("Made with HueSet", margin, 370)
-  canvas.toBlob((blob) => { if (blob) downloadBlob(`palette-preview.${type === "jpeg" ? "jpg" : "png"}`, blob, onToast) }, type === "jpeg" ? "image/jpeg" : "image/png", 0.92)
+  canvas.toBlob((blob) => { if (blob) downloadBlob(`palette-preview.${type === "jpeg" ? "jpg" : "png"}`, blob, onToast, onSuccessfulExport) }, type === "jpeg" ? "image/jpeg" : "image/png", 0.92)
 }
 
 function makePaletteSvg(palette: Swatch[]): string {
@@ -223,7 +222,7 @@ function makePaletteSvg(palette: Swatch[]): string {
   return `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="1400" height="420" viewBox="0 0 1400 420"><rect width="1400" height="420" fill="#F8F8F6"/>${swatches}<text x="40" y="370" font-family="Inter,Arial,sans-serif" font-size="16" fill="#7A818B">Made with HueSet</text></svg>`
 }
 
-function downloadBlob(name: string, blob: Blob, onToast: Props["onToast"]) {
+function downloadBlob(name: string, blob: Blob, onToast: Props["onToast"], onSuccessfulExport?: () => void) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
@@ -233,6 +232,7 @@ function downloadBlob(name: string, blob: Blob, onToast: Props["onToast"]) {
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
   onToast(`Saved ${name}`, "success")
+  onSuccessfulExport?.()
 }
 
 const codeLabel = (format: CodeFormat) => format === "css" ? "CSS variables" : format === "tailwind" ? "Tailwind config" : format === "tokens" ? "Design tokens" : "JSON"

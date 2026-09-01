@@ -10,20 +10,31 @@ const FOCUSABLE = [
   "summary",
 ].join(",")
 
-export function useDialogFocus<T extends HTMLElement>(open: boolean) {
+export function useDialogFocus<T extends HTMLElement>(open: boolean, onEscape?: () => void) {
   const dialogRef = useRef<T | null>(null)
 
   useEffect(() => {
     if (!open || !dialogRef.current) return
     const dialog = dialogRef.current
     const returnTarget = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
     const frame = window.requestAnimationFrame(() => {
-      dialog.querySelector<HTMLElement>(FOCUSABLE)?.focus()
+      const preferred = dialog.querySelector<HTMLElement>("[data-dialog-initial-focus]")
+      ;(preferred ?? dialog.querySelector<HTMLElement>(FOCUSABLE))?.focus()
     })
 
-    const keepFocusInside = (event: KeyboardEvent) => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation()
+        onEscape?.()
+        return
+      }
       if (event.key !== "Tab") return
-      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((control) => control.offsetParent !== null)
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((control) => {
+        if (control.hasAttribute("disabled") || control.getAttribute("aria-hidden") === "true") return false
+        return control.getClientRects().length > 0
+      })
       if (!controls.length) return
       const first = controls[0]
       const last = controls[controls.length - 1]
@@ -36,13 +47,14 @@ export function useDialogFocus<T extends HTMLElement>(open: boolean) {
       }
     }
 
-    document.addEventListener("keydown", keepFocusInside)
+    document.addEventListener("keydown", onKeyDown, true)
     return () => {
       window.cancelAnimationFrame(frame)
-      document.removeEventListener("keydown", keepFocusInside)
+      document.removeEventListener("keydown", onKeyDown, true)
+      document.body.style.overflow = previousOverflow
       returnTarget?.focus()
     }
-  }, [open])
+  }, [open, onEscape])
 
   return dialogRef
 }

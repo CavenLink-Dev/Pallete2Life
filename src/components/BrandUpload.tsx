@@ -47,6 +47,7 @@ export default function BrandUpload({
         <div className="mt-5">
           <label className="mb-1 block text-xs font-semibold text-charcoal/60">Company name</label>
           <input
+            aria-label="Company name"
             value={name}
             onChange={(e) => { setName(e.target.value); onChange({ ...brand, name: e.target.value }) }}
             className="h-11 w-full rounded-[7px] border border-softgrey px-3 text-sm outline-none focus:border-[#20B9FA] focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"

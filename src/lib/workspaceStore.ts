@@ -1,5 +1,5 @@
 import { createDefaultPalette, loadPalette } from "./paletteStore"
-import { migrateLiveRolesToBindings } from "./quickRoleBridge"
+import { migrateLiveRolesToBindings, type QuickPreviewKind } from "./quickRoleBridge"
 import { fullTemplateGroups } from "./templateCatalog"
 import { templateAssetById, type TemplateGroupKey } from "./templateAssets"
 import { isSingletonRole, uid, type RoleBindings, type Swatch } from "./color"
@@ -8,12 +8,14 @@ import type { ElementOverrides } from "./designTokens"
 const STORE_KEY = "hueframe:v1"
 
 type Brand = { name: string; logo: string | null; symbol: string | null }
+export const DEFAULT_BRAND: Brand = { name: "HueSet", logo: null, symbol: null }
 
 type WorkspaceSelection = { group: TemplateGroupKey; sub: string }
 
 export type WorkspacePreferences = {
   paletteOpen: boolean
   customiseOpen: boolean
+  quickPreview: QuickPreviewKind
 }
 
 export type WorkspaceProject = {
@@ -40,6 +42,7 @@ export const DEFAULT_WORKSPACE_SELECTION: WorkspaceSelection = { group: "website
 const DEFAULT_PREFERENCES: WorkspacePreferences = {
   paletteOpen: true,
   customiseOpen: true,
+  quickPreview: "website",
 }
 
 export function createDefaultProject(): WorkspaceProject {
@@ -48,7 +51,7 @@ export function createDefaultProject(): WorkspaceProject {
     palette: createDefaultPalette(),
     selection: { ...DEFAULT_WORKSPACE_SELECTION },
     templateByType: {},
-    brand: { name: "HueSet", logo: null, symbol: null },
+    brand: { ...DEFAULT_BRAND },
     designId: uid(),
     elementOverrides: {},
     roleBindings: {},
@@ -107,10 +110,10 @@ function validateSelection(raw: unknown, issues: string[]): WorkspaceSelection {
 }
 
 function validateBrand(raw: unknown): Brand {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { name: "HueSet", logo: null, symbol: null }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ...DEFAULT_BRAND }
   const b = raw as Record<string, unknown>
   const rawName = typeof b.name === "string" ? b.name : ""
-  const name = rawName === "Palette Preview" ? "HueSet" : rawName || "HueSet"
+  const name = rawName === "Palette Preview" ? DEFAULT_BRAND.name : rawName || DEFAULT_BRAND.name
   const logo = typeof b.logo === "string" ? b.logo : null
   const symbol = typeof b.symbol === "string" ? b.symbol : null
   return { name, logo, symbol }
@@ -201,10 +204,18 @@ function validatePreferences(raw: unknown, issues: string[]): WorkspacePreferenc
   const prefs = raw as Record<string, unknown>
   const paletteOpen = typeof prefs.paletteOpen === "boolean" ? prefs.paletteOpen : DEFAULT_PREFERENCES.paletteOpen
   const customiseOpen = typeof prefs.customiseOpen === "boolean" ? prefs.customiseOpen : DEFAULT_PREFERENCES.customiseOpen
+  const quickPreview = validateQuickPreview(prefs.quickPreview, issues)
   if (typeof prefs.paletteOpen !== "boolean" || typeof prefs.customiseOpen !== "boolean") {
     issues.push("Invalid preferences fields, using defaults where needed")
   }
-  return { paletteOpen, customiseOpen }
+  return { paletteOpen, customiseOpen, quickPreview }
+}
+
+function validateQuickPreview(raw: unknown, issues: string[]): QuickPreviewKind {
+  if (raw === undefined) return DEFAULT_PREFERENCES.quickPreview
+  if (raw === "website" || raw === "app" || raw === "components") return raw
+  issues.push("Invalid quick preview preference, using default")
+  return DEFAULT_PREFERENCES.quickPreview
 }
 
 function writeRepaired(fields: Record<string, unknown>): void {

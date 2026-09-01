@@ -18,21 +18,28 @@ describe("quickRoleBridge", () => {
       new Set(["a", "b", "c"]),
     )
     expect(bindings["Page Background"]).toBe("a")
+    expect(bindings["App Background"]).toBe("a")
     expect(bindings["Brand Primary"]).toBe("c")
     expect(bindings["Body Text"]).toBe("b")
   })
 
-  it("reads quick roles from shared roleBindings", () => {
+  it("reads quick roles from shared roleBindings across all previews", () => {
     const roles = quickRolesFromBindings(
-      { "Page Background": "b", "Brand Primary": "c" },
+      { "App Background": "b", "Brand Primary": "c" },
       palette,
     )
     expect(roles.background).toBe("b")
     expect(roles.button).toBe("c")
+    expect(quickRolesFromBindings({ "Page Background": "b" }, palette).background).toBe("b")
+    expect(quickRolesFromBindings({ "App Background": "b" }, palette).background).toBe("b")
   })
 
-  it("writes quick role changes into roleBindings", () => {
+  it("writes quick role changes into synchronized roleBindings", () => {
     const { roleBindings } = applyQuickRoleToBindings("accent", "a", {}, [])
     expect(roleBindings.Accent).toBe("a")
+
+    const background = applyQuickRoleToBindings("background", "b", {}, [])
+    expect(background.roleBindings["Page Background"]).toBe("b")
+    expect(background.roleBindings["App Background"]).toBe("b")
   })
 })

@@ -68,6 +68,7 @@ export default function Builder() {
 
   const [initial] = useState(() => loadWorkspace())
   const historyRef = useRef(createHistoryState(projectSnapshot(initial.project)))
+  const quickPreviewRef = useRef(initial.project.preferences.quickPreview)
   const [forceHistory, setForceHistory] = useState(0)
 
   const [palette, setPalette] = useState<Swatch[]>(() => initial.project.palette)
@@ -136,7 +137,7 @@ export default function Builder() {
       elementOverrides,
       roleBindings,
       unassignedRoleSwatchIds,
-      preferences: { paletteOpen, customiseOpen },
+      preferences: { paletteOpen, customiseOpen, quickPreview: quickPreviewRef.current },
     })
   }, [palette, selection, templateByType, brand, designId, elementOverrides, roleBindings, unassignedRoleSwatchIds, paletteOpen, customiseOpen])
 

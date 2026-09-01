@@ -33,12 +33,17 @@ export const BRAND = {
   brand: "#20B9FA",
   brandLight: "#4BC6FB",
   brandDark: "#05A9F0",
+  /** Darker fill for white text on primary CTAs. Passes WCAG 2.2 AA 4.5:1. */
+  cta: "#0B6F9A",
   charcoal: "#0E1821",
   offwhite: "#F8F8F6",
   white: "#FFFFFF",
   softgrey: "#E7E9ED",
   medgrey: "#7A818B",
 }
+
+export const BRAND_CTA_ON_WHITE = "#0B6F9A"
+export const BRAND_TEXT_ON_WHITE = "#0A6288"
 
 let counter = 0
 export const uid = () => `c${Date.now().toString(36)}${(counter++).toString(36)}`
@@ -148,6 +153,29 @@ export function updateSwatchHex(swatch: Swatch, newHex: string): Swatch {
   const hex = normalizeHex(newHex)
   if (swatch.autoNamed === false) return { ...swatch, hex }
   return { ...swatch, hex, name: colorName(hex) }
+}
+
+export function refreshPaletteAutoNames(palette: Swatch[]): Swatch[] {
+  const usedNames = new Set<string>()
+
+  return palette.map((swatch, index) => {
+    if (swatch.autoNamed === false) {
+      const name = swatch.name.trim() || `Colour ${index + 1}`
+      usedNames.add(name.toLowerCase())
+      return name === swatch.name ? swatch : { ...swatch, name }
+    }
+
+    const base = colorName(swatch.hex)
+    let name = base
+    let suffix = 2
+    while (usedNames.has(name.toLowerCase())) {
+      name = `${base} ${suffix}`
+      suffix += 1
+    }
+
+    usedNames.add(name.toLowerCase())
+    return swatch.name === name ? swatch : { ...swatch, name }
+  })
 }
 
 export function applyRoleChange(

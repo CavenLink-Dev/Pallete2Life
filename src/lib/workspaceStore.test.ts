@@ -26,7 +26,7 @@ describe("createDefaultProject", () => {
     expect(p.selection.sub).toBe("landing-page")
     expect(p.brand.name).toBe("HueSet")
     expect(p.designId.length).toBeGreaterThan(0)
-    expect(p.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+    expect(p.preferences).toEqual({ paletteOpen: true, customiseOpen: true, quickPreview: "website" })
   })
 })
 
@@ -51,20 +51,21 @@ describe("dedupeSingletonRoles", () => {
 describe("projectToPersistedFields", () => {
   it("includes schemaVersion 2 and preferences", () => {
     const project = createDefaultProject()
+    project.preferences.quickPreview = "components"
     const fields = projectToPersistedFields(project)
     expect(fields.schemaVersion).toBe(2)
-    expect(fields.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+    expect(fields.preferences).toEqual({ paletteOpen: true, customiseOpen: true, quickPreview: "components" })
   })
 })
 
 describe("saveWorkspaceProject", () => {
   it("writes the full project atomically", () => {
     const project = createDefaultProject()
-    project.preferences = { paletteOpen: false, customiseOpen: true }
+    project.preferences = { paletteOpen: false, customiseOpen: true, quickPreview: "app" }
     saveWorkspaceProject(project)
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) ?? "{}")
     expect(raw.schemaVersion).toBe(2)
-    expect(raw.preferences).toEqual({ paletteOpen: false, customiseOpen: true })
+    expect(raw.preferences).toEqual({ paletteOpen: false, customiseOpen: true, quickPreview: "app" })
   })
 })
 
@@ -76,7 +77,7 @@ describe("loadWorkspace — fresh load", () => {
     expect(project.selection.sub).toBe("landing-page")
     expect(project.designId.length).toBeGreaterThan(0)
     expect(project.schemaVersion).toBe(2)
-    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true, quickPreview: "website" })
     expect(recovered).toBe(false)
     expect(issues).toHaveLength(0)
   })
@@ -91,13 +92,28 @@ describe("loadWorkspace — valid stored data", () => {
         palette: [{ id: "abc", name: "Test Red", hex: "#FF0000" }],
         brand: { name: "ACME Corp", logo: null, symbol: null },
         selection: { group: "website", sub: "landing-page" },
-        preferences: { paletteOpen: false, customiseOpen: false },
+        preferences: { paletteOpen: false, customiseOpen: false, quickPreview: "app" },
       }),
     )
     const { project } = loadWorkspace()
     expect(project.palette[0].hex).toBe("#FF0000")
     expect(project.brand.name).toBe("ACME Corp")
-    expect(project.preferences).toEqual({ paletteOpen: false, customiseOpen: false })
+    expect(project.preferences).toEqual({ paletteOpen: false, customiseOpen: false, quickPreview: "app" })
+  })
+
+  it("defaults missing quick preview to website without invalidating builder preferences", () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        selection: { group: "website", sub: "landing-page" },
+        preferences: { paletteOpen: false, customiseOpen: false },
+      }),
+    )
+    const { project, recovered, issues } = loadWorkspace()
+    expect(project.preferences).toEqual({ paletteOpen: false, customiseOpen: false, quickPreview: "website" })
+    expect(recovered).toBe(false)
+    expect(issues).toEqual([])
   })
 
   it("merges hash palette into stored palette", () => {
@@ -145,7 +161,7 @@ describe("loadWorkspace — schema migration", () => {
     )
     const { project, recovered, issues } = loadWorkspace()
     expect(project.schemaVersion).toBe(2)
-    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true })
+    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true, quickPreview: "website" })
     expect(recovered).toBe(true)
     expect(issues.some((issue) => issue.includes("schema v1 to v2"))).toBe(true)
   })
@@ -226,7 +242,23 @@ describe("loadWorkspace — corrupt / incomplete data", () => {
     )
     const { project, recovered } = loadWorkspace()
     expect(project.roleBindings["Page Background"]).toBe("a1")
+    expect(project.roleBindings["App Background"]).toBe("a1")
     expect(project.roleBindings["Brand Primary"]).toBe("a1")
     expect(recovered).toBe(true)
+  })
+
+  it("repairs an invalid quick preview preference", () => {
+    localStorage.setItem(
+      STORE_KEY,
+      JSON.stringify({
+        schemaVersion: 2,
+        selection: { group: "website", sub: "landing-page" },
+        preferences: { paletteOpen: true, customiseOpen: true, quickPreview: "tablet" },
+      }),
+    )
+    const { project, recovered, issues } = loadWorkspace()
+    expect(project.preferences).toEqual({ paletteOpen: true, customiseOpen: true, quickPreview: "website" })
+    expect(recovered).toBe(true)
+    expect(issues.some((issue) => issue.includes("quick preview"))).toBe(true)
   })
 })

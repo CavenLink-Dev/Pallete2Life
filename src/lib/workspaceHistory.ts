@@ -14,29 +14,29 @@ export type WorkspaceSnapshot = {
   brand: Brand
 }
 
-export type HistoryState = {
-  snapshot: WorkspaceSnapshot
-  undoStack: WorkspaceSnapshot[]
-  redoStack: WorkspaceSnapshot[]
+export type HistoryState<TSnapshot> = {
+  snapshot: TSnapshot
+  undoStack: TSnapshot[]
+  redoStack: TSnapshot[]
   canUndo: boolean
   canRedo: boolean
-  pushSnapshot: (next: WorkspaceSnapshot) => HistoryState
-  undo: () => HistoryState
-  redo: () => HistoryState
+  pushSnapshot: (next: TSnapshot) => HistoryState<TSnapshot>
+  undo: () => HistoryState<TSnapshot>
+  redo: () => HistoryState<TSnapshot>
   withSkipHistory: <T>(fn: () => T) => T
 }
 
-function snapshotsEqual(a: WorkspaceSnapshot, b: WorkspaceSnapshot): boolean {
+function genericSnapshotsEqual<TSnapshot>(a: TSnapshot, b: TSnapshot): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-export function createHistoryState(initial: WorkspaceSnapshot): HistoryState {
+export function createHistoryState<TSnapshot>(initial: TSnapshot): HistoryState<TSnapshot> {
   let snapshot = initial
-  let undoStack: WorkspaceSnapshot[] = []
-  let redoStack: WorkspaceSnapshot[] = []
+  let undoStack: TSnapshot[] = []
+  let redoStack: TSnapshot[] = []
   let skipHistoryDepth = 0
 
-  function buildState(): HistoryState {
+  function buildState(): HistoryState<TSnapshot> {
     return {
       snapshot,
       undoStack: [...undoStack],
@@ -59,13 +59,13 @@ export function createHistoryState(initial: WorkspaceSnapshot): HistoryState {
     }
   }
 
-  function pushSnapshot(next: WorkspaceSnapshot): HistoryState {
+  function pushSnapshot(next: TSnapshot): HistoryState<TSnapshot> {
     if (skipHistoryDepth > 0) {
       snapshot = next
       return buildState()
     }
 
-    if (snapshotsEqual(snapshot, next)) {
+    if (genericSnapshotsEqual(snapshot, next)) {
       return buildState()
     }
 
@@ -75,7 +75,7 @@ export function createHistoryState(initial: WorkspaceSnapshot): HistoryState {
     return buildState()
   }
 
-  function undo(): HistoryState {
+  function undo(): HistoryState<TSnapshot> {
     if (undoStack.length === 0) {
       return buildState()
     }
@@ -89,7 +89,7 @@ export function createHistoryState(initial: WorkspaceSnapshot): HistoryState {
     })
   }
 
-  function redo(): HistoryState {
+  function redo(): HistoryState<TSnapshot> {
     if (redoStack.length === 0) {
       return buildState()
     }

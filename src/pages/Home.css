@@ -1,6 +1,6 @@
 .hueset-home {
-  --home-brand: #13a8e7;
-  --home-brand-ink: #0878a8;
+  --home-brand: #0b6f9a;
+  --home-brand-ink: #0a6288;
   --home-ink: #151a1e;
   --home-strong-surface: #2e333a;
   --home-muted: #5e6a75;
@@ -85,8 +85,8 @@
 .home-nav-links > a:not(.home-btn) { color: var(--home-muted); font-size: 14px; font-weight: 500; padding: 6px 8px; }
 .home-nav-links > a:not(.home-btn):hover { color: var(--home-ink); }
 
-.home-nav-btn { min-height: 38px; padding: 8px 16px; font-size: 14px; }
-.home-nav-btn.home-btn-secondary { min-height: 38px; padding: 8px 16px; font-size: 14px; }
+.home-nav-btn { min-height: 44px; padding: 8px 16px; font-size: 14px; }
+.home-nav-btn.home-btn-secondary { min-height: 44px; padding: 8px 16px; font-size: 14px; }
 
 /* -------------------------------------------------- */
 /* hero                                               */
@@ -101,7 +101,7 @@
   padding-bottom: var(--sp-section);
 }
 .home-hero h1 { margin-bottom: 0; color: var(--home-bg); font-size: clamp(34px, 5.6vw, 58px); text-shadow: none; }
-.home-hero-palette { color: var(--home-brand); }
+.home-hero-palette { color: var(--home-brand-ink); }
 .home-lead {
   max-width: 38ch;
   margin: var(--sp-4) 0 var(--sp-8);
@@ -243,7 +243,7 @@
     --sp-section: 44px;
   }
   .home-nav-inner { gap: 8px; }
-  .home-nav-btn { padding: 8px 12px; font-size: 13px; }
+  .home-nav-btn { min-height: 44px; padding: 8px 12px; font-size: 13px; }
   .home-nav-links > a:not(.home-btn) { display: none; }
   .home-roles { grid-template-columns: 1fr; }
   .home-role-label { min-height: 0; margin-bottom: var(--sp-2); }

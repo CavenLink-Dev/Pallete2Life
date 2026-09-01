@@ -12,29 +12,15 @@ export const QUICK_ROLE_OPTIONS: { key: QuickRole; label: string }[] = [
   { key: "accent", label: "Accent" },
 ]
 
-const WEBSITE_BUILDER_ROLES: Record<QuickRole, string> = {
-  background: "Page Background",
-  surface: "Secondary Background",
-  button: "Brand Primary",
-  text: "Body Text",
-  border: "Border",
-  accent: "Accent",
-}
-
-const APP_BUILDER_ROLES: Record<QuickRole, string> = {
-  background: "App Background",
-  surface: "Secondary Background",
-  button: "Brand Primary",
-  text: "Body Text",
-  border: "Border",
-  accent: "Accent",
-}
-
 export type QuickPreviewKind = "website" | "app" | "components"
 
-function builderRoleForQuick(quickRole: QuickRole, preview: QuickPreviewKind): string {
-  const map = preview === "app" ? APP_BUILDER_ROLES : WEBSITE_BUILDER_ROLES
-  return map[quickRole]
+const QUICK_ROLE_BINDINGS: Record<QuickRole, readonly string[]> = {
+  background: ["Page Background", "App Background"],
+  surface: ["Secondary Background"],
+  button: ["Brand Primary"],
+  text: ["Body Text"],
+  border: ["Border"],
+  accent: ["Accent"],
 }
 
 function defaultQuickRoles(palette: Swatch[]): Record<QuickRole, string> {
@@ -53,17 +39,18 @@ function defaultQuickRoles(palette: Swatch[]): Record<QuickRole, string> {
 export function quickRolesFromBindings(
   roleBindings: RoleBindings,
   palette: Swatch[],
-  preview: QuickPreviewKind = "website",
 ): Record<QuickRole, string> {
   const defaults = defaultQuickRoles(palette)
   const ids = new Set(palette.map((s) => s.id))
   const result = { ...defaults }
 
   for (const { key } of QUICK_ROLE_OPTIONS) {
-    const builderRole = builderRoleForQuick(key, preview)
-    const bound = roleBindings[builderRole]
-    if (bound && ids.has(bound)) {
-      result[key] = bound
+    for (const builderRole of QUICK_ROLE_BINDINGS[key]) {
+      const bound = roleBindings[builderRole]
+      if (bound && ids.has(bound)) {
+        result[key] = bound
+        break
+      }
     }
   }
 
@@ -76,10 +63,25 @@ export function applyQuickRoleToBindings(
   swatchId: string,
   roleBindings: RoleBindings,
   unassignedRoleSwatchIds: readonly string[],
-  preview: QuickPreviewKind = "website",
 ): { roleBindings: RoleBindings; unassignedRoleSwatchIds: string[] } {
-  const builderRole = builderRoleForQuick(quickRole, preview)
-  return applyRoleChange(builderRole, swatchId, roleBindings, unassignedRoleSwatchIds, [])
+  const builderRoles = QUICK_ROLE_BINDINGS[quickRole]
+  const primaryRole = builderRoles[0]
+  const result = applyRoleChange(primaryRole, swatchId, roleBindings, unassignedRoleSwatchIds, [])
+  if (builderRoles.length === 1) return result
+
+  const nextBindings = { ...result.roleBindings }
+  const mirroredRoleKeys = new Set(builderRoles.map((role) => role.trim().toLowerCase()))
+
+  for (const [key, id] of Object.entries(nextBindings)) {
+    if (id !== swatchId && mirroredRoleKeys.has(key.trim().toLowerCase())) {
+      delete nextBindings[key]
+    }
+  }
+  for (const role of builderRoles) {
+    nextBindings[role] = swatchId
+  }
+
+  return { roleBindings: nextBindings, unassignedRoleSwatchIds: result.unassignedRoleSwatchIds }
 }
 
 /** One-time migration from legacy liveRoles blob field → roleBindings. */
@@ -94,7 +96,9 @@ export function migrateLiveRolesToBindings(
   for (const { key } of QUICK_ROLE_OPTIONS) {
     const swatchId = raw[key]
     if (typeof swatchId === "string" && paletteIds.has(swatchId)) {
-      bindings[WEBSITE_BUILDER_ROLES[key]] = swatchId
+      for (const builderRole of QUICK_ROLE_BINDINGS[key]) {
+        bindings[builderRole] = swatchId
+      }
     }
   }
 

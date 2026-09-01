@@ -17,7 +17,7 @@ describe("refresh persistence", () => {
       { id: "a1", name: "My Brand Coral", hex: "#FF0000", autoNamed: false },
       ...project.palette.slice(1),
     ]
-    project.preferences = { paletteOpen: true, customiseOpen: false }
+    project.preferences = { paletteOpen: true, customiseOpen: false, quickPreview: "website" }
     saveWorkspaceProject(project)
 
     const { project: loaded } = loadWorkspace()

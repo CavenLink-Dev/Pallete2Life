@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { colorName, createSwatch, updateSwatchHex } from "./color"
+import { colorName, createSwatch, refreshPaletteAutoNames, updateSwatchHex } from "./color"
 
 describe("colorName", () => {
   it("names a saturated blue", () => {
@@ -55,5 +55,21 @@ describe("updateSwatchHex", () => {
     const swatch = { id: "s1", hex: "#2060E0", name: "Old Blue" }
     const updated = updateSwatchHex(swatch, "#102A43")
     expect(updated.name).toBe("Deep Sky Blue")
+  })
+})
+
+describe("refreshPaletteAutoNames", () => {
+  it("updates auto-generated names from the current hex and avoids duplicates", () => {
+    const swatches = [
+      { id: "manual", hex: "#F46B5E", name: "Red", autoNamed: false as const },
+      { id: "auto-1", hex: "#F46B5E", name: "Old 1" },
+      { id: "auto-2", hex: "#F46B5E", name: "Old 2" },
+    ]
+
+    expect(refreshPaletteAutoNames(swatches)).toEqual([
+      { id: "manual", hex: "#F46B5E", name: "Red", autoNamed: false },
+      { id: "auto-1", hex: "#F46B5E", name: "Red 2" },
+      { id: "auto-2", hex: "#F46B5E", name: "Red 3" },
+    ])
   })
 })

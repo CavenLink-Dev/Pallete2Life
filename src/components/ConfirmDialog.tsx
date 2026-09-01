@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { BRAND } from "../lib/color"
 import { useDialogFocus } from "../lib/useDialogFocus"
 
@@ -17,15 +16,7 @@ type Props = {
 export default function ConfirmDialog({
   open, title, body, confirmLabel, cancelLabel = "Cancel", destructive, onConfirm, onCancel,
 }: Props) {
-  const dialogRef = useDialogFocus<HTMLDivElement>(open)
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [open, onCancel, onConfirm])
+  const dialogRef = useDialogFocus<HTMLDivElement>(open, onCancel)
 
   if (!open) return null
   return (
@@ -48,15 +39,16 @@ export default function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="h-11 rounded-[7px] border border-softgrey bg-white px-4 text-[12.5px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+            className="h-11 rounded-[7px] border border-softgrey bg-white px-4 text-[12.5px] font-semibold text-charcoal/70 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
+            data-dialog-initial-focus
             onClick={onConfirm}
-            className="h-11 rounded-[7px] px-4 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA]"
-            style={{ background: destructive ? "#C22F2F" : BRAND.brand }}
+            className="h-11 rounded-[7px] px-4 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-cta"
+            style={{ background: destructive ? "#C22F2F" : BRAND.cta }}
           >
             {confirmLabel}
           </button>
