@@ -101,7 +101,7 @@
   padding-bottom: var(--sp-section);
 }
 .home-hero h1 { margin-bottom: 0; color: var(--home-bg); font-size: clamp(34px, 5.6vw, 58px); text-shadow: none; }
-.home-hero-palette { color: var(--home-brand-ink); }
+.home-hero-palette { color: var(--home-brand); }
 .home-lead {
   max-width: 38ch;
   margin: var(--sp-4) 0 var(--sp-8);
@@ -110,7 +110,6 @@
   line-height: 1.6;
 }
 .home-hero-cta { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
-.home-hero-timing { margin: calc(var(--sp-4) * -1) 0 0; font-size: var(--home-text-small); }
 .home-hero a:focus-visible { outline-color: var(--home-bg); }
 
 /* -------------------------------------------------- */

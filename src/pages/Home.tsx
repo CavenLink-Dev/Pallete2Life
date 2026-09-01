@@ -54,7 +54,6 @@ export default function Home() {
                 <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-primary">Preview My Palette <span aria-hidden>→</span></a>
                 <a href="/generate" onClick={openGenerate} className="home-btn home-btn-secondary">Build a Full Design System</a>
               </div>
-              <p className="home-lead home-hero-timing">Quick preview · about 30 seconds. Full system · about 3–5 minutes · Beta.</p>
             </div>
 
             <div className="home-promo" aria-hidden="true">
