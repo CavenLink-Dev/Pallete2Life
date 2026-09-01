@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="HueSet  Preview your style before you build">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f7f8fa"/>
+      <stop offset="100%" stop-color="#eef6fb"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="80" y="80" width="1040" height="470" rx="32" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="140" y="160" width="72" height="72" rx="16" fill="#20B9FA"/>
+  <rect x="156" y="176" width="40" height="40" rx="8" fill="#ffffff" opacity="0.35"/>
+  <text x="240" y="205" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="48" font-weight="700" fill="#1f2937">HueSet</text>
+  <text x="140" y="290" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="42" font-weight="700" fill="#111827">Preview your style before you build</text>
+  <text x="140" y="350" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="24" fill="#4b5563">Palettes, templates, and exports in one lightweight workspace.</text>
+  <rect x="140" y="400" width="180" height="56" rx="12" fill="#20B9FA"/>
+  <text x="172" y="436" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#ffffff">Generate Design</text>
+  <rect x="340" y="400" width="160" height="56" rx="12" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="372" y="436" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="20" font-weight="600" fill="#374151">Quick Design</text>
+  <g transform="translate(760 150)">
+    <rect width="300" height="320" rx="20" fill="#f3f4f6" stroke="#e5e7eb"/>
+    <rect x="24" y="24" width="252" height="36" rx="8" fill="#ffffff"/>
+    <rect x="24" y="80" width="120" height="24" rx="6" fill="#20B9FA"/>
+    <rect x="24" y="120" width="200" height="16" rx="4" fill="#d1d5db"/>
+    <rect x="24" y="148" width="160" height="16" rx="4" fill="#d1d5db"/>
+    <rect x="24" y="200" width="252" height="48" rx="10" fill="#20B9FA"/>
+    <rect x="24" y="268" width="80" height="48" rx="10" fill="#93c5fd"/>
+    <rect x="116" y="268" width="80" height="48" rx="10" fill="#fca5a5"/>
+    <rect x="208" y="268" width="68" height="48" rx="10" fill="#86efac"/>
+  </g>
+</svg>

@@ -1,4 +1,6 @@
 import { BRAND } from "../lib/color"
+import { buildNotifyMeMailto } from "../lib/contactSupport"
+import { PAYMENTS_ENABLED, PRICING } from "../lib/entitlement"
 import { ACCESSIBILITY_STATUS_LABEL, accessibilityCheckLabel, type AccessibilityCheck } from "../lib/accessibility"
 import DialogShell from "./DialogShell"
 
@@ -40,15 +42,26 @@ export default function SecondOpinionPanel({ open, onClose, checks, isPro, onUpg
                 Get detailed WCAG contrast analysis, focus visibility checks, and touch target recommendations for every palette you create.
               </p>
             </div>
-            <button
-              type="button"
-              data-dialog-initial-focus
-              onClick={onUpgrade}
-              className="min-h-11 rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-              style={{ background: BRAND.cta }}
-            >
-              Upgrade to Pro &middot; $14.99/mo
-            </button>
+            {PAYMENTS_ENABLED ? (
+              <button
+                type="button"
+                data-dialog-initial-focus
+                onClick={onUpgrade}
+                className="min-h-11 rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
+                style={{ background: BRAND.cta }}
+              >
+                Upgrade to Pro · {PRICING.pro.label}/mo
+              </button>
+            ) : (
+              <a
+                href={buildNotifyMeMailto("pro")}
+                data-dialog-initial-focus
+                className="inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
+                style={{ background: BRAND.cta }}
+              >
+                Notify me
+              </a>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">

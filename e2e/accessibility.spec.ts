@@ -50,11 +50,11 @@ test.describe("Accessibility and responsive UX", () => {
     await expect(reset).toBeFocused()
   })
 
-  test("opening the export paywall does not mark Export complete", async ({ page }) => {
+  test("opening the export gate does not mark Export complete", async ({ page }) => {
     await page.goto(`${BASE}/app`)
     await page.waitForLoadState("networkidle")
     await page.getByRole("button", { name: "Export" }).click()
-    await expect(page.getByRole("heading", { name: "Unlock export" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: /Unlock export|Export checkout coming soon/ })).toBeVisible()
     const done = await page.evaluate(() => {
       const raw = localStorage.getItem("pallet-preview:onboarding-v1")
       if (!raw) return [] as string[]

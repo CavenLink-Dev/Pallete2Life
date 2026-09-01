@@ -1,5 +1,6 @@
 import { useEffect } from "react"
 import { isKnownRoute, replaceRoute, useRoute } from "./lib/router"
+import { usePageMeta } from "./lib/pageMeta"
 import { ToastProvider } from "./components/Toast"
 import ErrorBoundary from "./components/ErrorBoundary"
 import NotFound from "./pages/NotFound"
@@ -25,6 +26,8 @@ export default function App() {
 
   // Detect unknown paths directly from the URL (useRoute coerces them to "/")
   const rawPath = typeof window !== "undefined" ? window.location.pathname : "/"
+  const metaRoute = !isKnownRoute(rawPath) ? "/404" as const : route
+  usePageMeta(metaRoute, rawPath)
 
   let page: React.ReactNode
 

@@ -15,7 +15,7 @@ import PaletteRail from "../components/PaletteRail"
 import PaywallOverlay from "../components/PaywallOverlay"
 import SecondOpinionPanel from "../components/SecondOpinionPanel"
 import { useToast } from "../components/Toast"
-import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, PAYMENTS_ENABLED, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, mergeHashPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { createHistoryState, type WorkspaceSnapshot } from "../lib/workspaceHistory"
@@ -527,10 +527,6 @@ export default function Builder() {
   }
 
   const handleExport = () => {
-    if (needsPro(entitlement)) {
-      setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
-      return
-    }
     if (needsExportPaywall(entitlement)) {
       setExportPaywallOpen(true)
       return
@@ -543,7 +539,11 @@ export default function Builder() {
       setExportOpen(true)
       return
     }
-    setPaywall({ open: true, reason: "Export is available for your first design or with a Pro subscription." })
+    if (needsPro(entitlement)) {
+      setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
+      return
+    }
+    setExportPaywallOpen(true)
   }
 
   return (
@@ -845,7 +845,12 @@ export default function Builder() {
       <PaywallOverlay
         open={paywall.open}
         reason={paywall.reason}
-        onUnlock={() => { setEntitlement((e) => mockSubscribePro(e)); setPaywall({ open: false }); toast.push("Pro unlocked", "success") }}
+        onUnlock={() => {
+          if (!PAYMENTS_ENABLED) return
+          setEntitlement((e) => mockSubscribePro(e))
+          setPaywall({ open: false })
+          toast.push("Pro unlocked", "success")
+        }}
         onLater={() => setPaywall({ open: false })}
       />
     </div>

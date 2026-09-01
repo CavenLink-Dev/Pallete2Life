@@ -26,7 +26,7 @@ import BrandUpload from "../components/BrandUpload"
 import ConfirmDialog from "../components/ConfirmDialog"
 import type { Brand } from "../components/PreviewCtx"
 import { useToast } from "../components/Toast"
-import { loadEntitlement, mockSubscribePro, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { loadEntitlement, mockSubscribePro, needsPro, PAYMENTS_ENABLED, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import {
   LiveChangePreview,
   type LiveRoleColors,
@@ -451,7 +451,12 @@ export default function QuickDesign() {
       <PaywallOverlay
         open={paywallOpen}
         reason="Quick Design requires a Pro subscription after your first design flow."
-        onUnlock={() => { setEntitlement((e) => mockSubscribePro(e)); setPaywallOpen(false); toast.push("Pro unlocked", "success") }}
+        onUnlock={() => {
+          if (!PAYMENTS_ENABLED) return
+          setEntitlement((e) => mockSubscribePro(e))
+          setPaywallOpen(false)
+          toast.push("Pro unlocked", "success")
+        }}
         onLater={() => setPaywallOpen(false)}
       />
     </div>

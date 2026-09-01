@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { BRAND } from "../lib/color"
+import { PAYMENTS_ENABLED } from "../lib/entitlement"
 import { useNav } from "../lib/router"
 import PublicHeader from "../components/PublicHeader"
 import PublicFooter from "../components/PublicFooter"
@@ -15,7 +16,7 @@ export default function Help() {
         <div>
           <h1 className="text-[32px] font-bold sm:text-[42px]" style={{ fontFamily: "var(--font-display)" }}>Help & guide</h1>
           <p className="mt-3 text-[15px] text-charcoal/65">
-            Everything you need to know about HueSet, in plain language.
+            Everything you need to know about HueSet, in plain language. Labels match the current interface.
           </p>
           <button
             type="button"
@@ -30,50 +31,62 @@ export default function Help() {
         <Section title="How HueSet works">
           <p>HueSet keeps your colours, templates and export tools together in one workspace so you can decide on a visual direction before moving into Figma or development.</p>
           <ol className="mt-3 flex flex-col gap-2 pl-5" style={{ listStyle: "decimal" }}>
-            <li><b>Create your colours.</b> Open Palette, choose a swatch and edit its HEX, RGB or HSL values. Lock colours you want Randomise to keep.</li>
-            <li><b>Try a template.</b> Use <b>Change template</b> in the toolbar to see the palette on a real interface.</li>
-            <li><b>Export your work.</b> Copy or download palette values and design tokens from <b>Export</b>.</li>
+            <li><b>Create your colours.</b> Open the palette panel, choose a swatch and edit its HEX, RGB or HSL values. Lock colours you want Randomise to keep.</li>
+            <li><b>Try a template.</b> In the design workspace (<b>/app</b>), use <b>Change template</b> in the toolbar to see the palette on a real interface.</li>
+            <li><b>Customise elements.</b> Click anything in the preview to open the <b>Customise</b> panel and adjust typography, button styles, and colour roles.</li>
+            <li><b>Export your work.</b> Use <b>Export</b> to copy or download palette values and design tokens when checkout is available. See <a href="/pricing" onClick={nav("/pricing")} className="font-semibold underline" style={{ color: BRAND.cta }}>Pricing</a> for current availability.</li>
           </ol>
+        </Section>
+
+        <Section title="Design workspace (/app)">
+          <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
+            <li><b>Undo</b> and <b>Redo</b> walk through palette and workspace history. Keyboard shortcuts are shown on those toolbar buttons where supported.</li>
+            <li><b>Randomise</b> generates new colours for anything not locked.</li>
+            <li><b>Reset</b> replaces your palette with defaults and asks for confirmation first.</li>
+            <li><b>Change template</b>, <b>Export</b>, and <b>Second Opinion</b> are toolbar actions. Second Opinion is a Pro feature.</li>
+            <li><b>Brand assets</b> and <b>Full screen</b> are in the toolbar on wide screens, or under <b>More tools</b> on smaller screens.</li>
+            <li><b>Customise</b> opens the right-side panel for element-level edits.</li>
+          </ul>
+        </Section>
+
+        <Section title="Quick Design (/quick-design)">
+          <p>Quick Design is a lighter workspace for testing colours on three basic previews (Basic Website, Basic App, Basic Components). It includes palette editing, Undo/Redo, Reset, and a <b>Brand</b> section for logo uploads. It does not include Change template, Export, Full screen, Customise, or Second Opinion.</p>
         </Section>
 
         <Section title="Palette tools">
           <ul className="flex flex-col gap-2 pl-5" style={{ listStyle: "disc" }}>
             <li><b>Click a colour</b> to open its HEX, RGB and HSL editor.</li>
             <li><b>Lock a colour</b> so Randomise keeps it while the others change.</li>
-            <li><b>Randomise</b> generates new colours for anything not locked.</li>
-            <li><b>Add colour</b> adds another column. Remove a colour from inside its editor.</li>
-            <li><b>Export</b> copies or downloads your real colour values and available design tokens.</li>
+            <li><b>Add colour</b> adds another column.</li>
+            <li><b>Remove</b> on a swatch row deletes that colour (with confirmation when needed).</li>
           </ul>
         </Section>
 
-        <Section title="Edit Mode">
-          <p>Edit Mode is how you tell a specific element ("this button", "that heading") to use a specific colour from your palette. Turn it on with the Edit button in the header, then click anything in the preview. A small dialog appears with your palette — pick a colour and it applies. Turn Edit off when you're done exploring.</p>
-        </Section>
-
-        <Section title="Full Screen preview">
-          <p>Click the Full screen button to fill the whole browser with just the preview and a compact palette bar. Press <kbd className="rounded border border-softgrey bg-white px-1.5 py-0.5 text-[11px] font-mono">Esc</kbd> or the Exit button to return to normal.</p>
+        <Section title="Full screen">
+          <p>Click <b>Full screen</b> to fill the browser with the preview and a compact palette bar. In full screen you can open the palette panel and press <b>Exit Full Screen</b> to return. Press <kbd className="rounded border border-softgrey bg-white px-1.5 py-0.5 text-[11px] font-mono">Esc</kbd> when your browser supports exiting full-screen mode.</p>
         </Section>
 
         <Section title="Brand assets">
-          <p>Click Brand to upload your own logo and app icon. Supported: SVG, PNG, JPG/JPEG, WebP · up to 5 MB. Transparent PNGs and SVGs work best. If your upload is refused, the reason (file type or size) is shown right there.</p>
-        </Section>
-
-        <Section title="Undo, Redo and Reset">
-          <p>HueSet keeps a history of your palette changes. Use <b>Undo</b> and <b>Redo</b> to walk back and forth. <b>Reset palette</b> starts over — it asks for confirmation because your work would be lost.</p>
+          <p>In the design workspace, open <b>Brand assets</b> to upload your logo and app icon. In Quick Design, use the <b>Brand</b> section. Supported formats: SVG, PNG, JPG/JPEG, WebP · up to 5 MB. If your upload is refused, the reason (file type or size) is shown in the dialog.</p>
         </Section>
 
         <Section title="Accessibility">
-          <p>Every important action has a text label. Tab through the interface, Enter to activate, and Escape to close dialogs. Primary buttons use a darker brand fill so white text meets WCAG 2.2 AA contrast. Palette colours you choose are checked in the colour editor and Second Opinion.</p>
+          <p>Important controls have text labels. Tab through the interface, Enter to activate, and Escape to close dialogs. Primary buttons use a darker brand fill so white text meets WCAG 2.2 AA contrast.</p>
+          <p className="mt-2">Palette contrast is <b>not</b> checked automatically in the colour editor. Use <b>Second Opinion</b> (Pro) for WCAG contrast analysis when Pro checkout is available.</p>
         </Section>
 
         <Section title="Where your work is saved">
-          <p>Your palette, brand assets and preview choices live in your browser (localStorage). Nothing is uploaded to a server. If you clear your browser data or switch device you'll start fresh. Accounts and cross-device sync are on the roadmap.</p>
+          <p>Your palette, brand assets, template choices, and workspace preferences are stored in your browser (<code>localStorage</code> under keys such as <code>hueframe:v1</code>). Nothing is uploaded to a HueSet server.</p>
+          <p className="mt-2">Data persists across refreshes on the same browser and device. Clearing browser data or switching devices starts fresh. Cross-device sync is not available yet.</p>
+          {!PAYMENTS_ENABLED && (
+            <p className="mt-2">Export checkout is not live during early access. See <a href="/pricing" onClick={nav("/pricing")} className="font-semibold underline" style={{ color: BRAND.cta }}>Pricing</a> for planned export and Pro tiers.</p>
+          )}
         </Section>
 
         <Section title="Still stuck?">
           <p>
-            The homepage has short instructions. If something's not working the way this page says it should,{" "}
-            <a href="/contact" onClick={nav("/contact")} className="font-semibold underline" style={{ color: BRAND.cta }}>let us know</a>.
+            If something is not working the way this page describes,{" "}
+            <a href="/contact" onClick={nav("/contact")} className="font-semibold underline" style={{ color: BRAND.cta }}>send us a bug report</a>.
           </p>
         </Section>
       </main>

@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { BRAND } from "../lib/color"
+import { PAYMENTS_ENABLED } from "../lib/entitlement"
 import DialogShell from "./DialogShell"
 
 type Props = {
@@ -78,7 +79,9 @@ export default function AccountSetupOverlay({ open, onComplete, onLater }: Props
           Create account
         </button>
       </div>
-      <p className="mt-3 text-center text-[11px] text-charcoal/40">Powered by Stripe &middot; coming soon</p>
+      {PAYMENTS_ENABLED && (
+        <p className="mt-3 text-center text-[11px] text-charcoal/40">Powered by Stripe</p>
+      )}
     </DialogShell>
   )
 }
