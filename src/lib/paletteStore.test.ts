@@ -5,7 +5,7 @@ import {
   mergeHashPalette,
   createDefaultPalette,
 } from "./paletteStore"
-import type { Swatch } from "./color"
+import { type Swatch } from "./color"
 
 const STORE_KEY = "hueframe:v1"
 

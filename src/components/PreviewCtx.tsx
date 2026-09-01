@@ -90,6 +90,7 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
     <Tag
       className={className}
       data-token={inferredKind === "card" ? "component.card.default" : undefined}
+      data-hue-element={fullId}
       style={{ [prop]: resolved, ...style, ...tokenStyle, ...editStyle } as CSSProperties}
       onClick={(e: React.MouseEvent) => {
         if (edit && ctx) {

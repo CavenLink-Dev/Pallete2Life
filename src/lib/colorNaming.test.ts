@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { colorName, createSwatch, refreshPaletteAutoNames, updateSwatchHex } from "./color"
+import { colorName, createSwatch, randomiseUnlockedHex, refreshPaletteAutoNames, updateSwatchHex } from "./color"
 
 describe("colorName", () => {
   it("names a saturated blue", () => {
@@ -55,6 +55,22 @@ describe("updateSwatchHex", () => {
     const swatch = { id: "s1", hex: "#2060E0", name: "Old Blue" }
     const updated = updateSwatchHex(swatch, "#102A43")
     expect(updated.name).toBe("Deep Sky Blue")
+  })
+})
+
+describe("randomiseUnlockedHex", () => {
+  it("renames unlocked starter colours that were marked as not auto-named", () => {
+    const swatch = { id: "s1", hex: "#D5E4ED", name: "Pale Sky Blue", autoNamed: false as const }
+    const updated = randomiseUnlockedHex(swatch, "#39CA4F")
+    expect(updated.hex).toBe("#39CA4F")
+    expect(updated.name).not.toBe("Pale Sky Blue")
+    expect(updated.autoNamed).not.toBe(false)
+  })
+
+  it("keeps locked colours unchanged", () => {
+    const swatch = { id: "s1", hex: "#D5E4ED", name: "Pale Sky Blue", locked: true, autoNamed: false as const }
+    const updated = randomiseUnlockedHex(swatch, "#39CA4F")
+    expect(updated).toEqual(swatch)
   })
 })
 

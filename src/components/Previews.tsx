@@ -644,6 +644,7 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
   const startPan = (event: ReactPointerEvent<HTMLDivElement>) => {
     const viewport = viewportRef.current
     if (!viewport || event.button !== 0) return
+    if ((event.target as Element | null)?.closest?.("[data-hue-element]")) return
     dragRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop }
     viewport.setPointerCapture(event.pointerId)
     setDragging(true)

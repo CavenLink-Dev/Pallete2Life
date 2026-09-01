@@ -8,6 +8,7 @@ import {
   refreshPaletteAutoNames,
   readableOn,
   updateSwatchHex,
+  randomiseUnlockedHex,
   type Swatch,
 } from "../lib/color"
 import { createDefaultPalette, writeHashPalette } from "../lib/paletteStore"
@@ -202,9 +203,7 @@ export default function QuickDesign() {
     }
     commit((snapshot) => ({
       ...snapshot,
-      palette: refreshPaletteAutoNames(snapshot.palette.map((swatch) => (
-        swatch.locked ? swatch : updateSwatchHex(swatch, randomHex())
-      ))),
+      palette: refreshPaletteAutoNames(snapshot.palette.map((swatch) => randomiseUnlockedHex(swatch, randomHex()))),
     }))
   }
 

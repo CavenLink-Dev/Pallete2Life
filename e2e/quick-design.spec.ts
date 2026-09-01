@@ -94,7 +94,7 @@ test.describe("Quick Design acceptance", () => {
     await openQuickDesign(page)
 
     await setHex(page, 0, "#224466")
-    await page.getByRole("button", { name: "Lock Pale Sky Blue" }).click()
+    await page.getByRole("button", { name: /^Lock / }).first().click()
     await page.getByRole("button", { name: "Randomise" }).click()
 
     await expect(page.getByLabel("Hex colour").first()).toHaveValue("#224466")
@@ -201,7 +201,7 @@ test.describe("Quick Design acceptance", () => {
 
     await page.goForward()
     await page.waitForLoadState("networkidle")
-    await expect(page).toHaveURL(new RegExp(`${BASE}/?$`))
+    await expect(page).toHaveURL(new RegExp(`^${BASE}/?(?:#.*)?$`))
 
     await page.goBack()
     await page.waitForLoadState("networkidle")

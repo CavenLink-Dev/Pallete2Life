@@ -104,6 +104,7 @@ export function StyledButton({
       type="button"
       disabled={disabled}
       data-token={tokenTag}
+      data-hue-element={onEditClick ? "preview-button" : undefined}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setPressed(false) }}
       onMouseDown={() => setPressed(true)}

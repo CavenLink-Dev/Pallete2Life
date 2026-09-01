@@ -155,6 +155,18 @@ export function updateSwatchHex(swatch: Swatch, newHex: string): Swatch {
   return { ...swatch, hex, name: colorName(hex) }
 }
 
+/** Drop a manual-name lock so Randomise can assign a matching colour name. */
+export function releaseAutoName(swatch: Swatch): Swatch {
+  if (swatch.autoNamed !== false) return swatch
+  const { autoNamed: _omit, ...rest } = swatch
+  return rest
+}
+
+export function randomiseUnlockedHex(swatch: Swatch, hex: string): Swatch {
+  if (swatch.locked) return swatch
+  return updateSwatchHex(releaseAutoName(swatch), hex)
+}
+
 export function refreshPaletteAutoNames(palette: Swatch[]): Swatch[] {
   const usedNames = new Set<string>()
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { applyRoleChange, createSwatch, deriveTheme, hslToHex, pruneBindingsForSwatch, randomHex, updateSwatchHex, type RoleBindings, type Swatch } from "../lib/color"
+import { applyRoleChange, createSwatch, deriveTheme, hslToHex, pruneBindingsForSwatch, randomHex, randomiseUnlockedHex, refreshPaletteAutoNames, updateSwatchHex, type RoleBindings, type Swatch } from "../lib/color"
 import { DEFAULT_BUTTON_PROPS, paletteToTrio } from "../components/ButtonPreview"
 import { GROUPS, PreviewRenderer, type GroupKey, type PreviewRendererHandle } from "../components/Previews"
 import { PreviewProvider, ScopeProvider, type Brand, type PreviewCtxValue } from "../components/PreviewCtx"
@@ -446,7 +446,7 @@ export default function Builder() {
       { s: dark ? 5 : 12, l: dark ? 92 : 15 },
       { s: dark ? 10 : 8, l: dark ? 65 : 42 },
     ]
-    return current.map((swatch, index) => swatch.locked ? swatch : updateSwatchHex(
+    return current.map((swatch, index) => randomiseUnlockedHex(
       swatch,
       hslToHex((hue + Math.max(0, index - roles.length + 1) * 43) % 360, roles[index]?.s ?? 55, roles[index]?.l ?? 55),
     ))
@@ -466,14 +466,14 @@ export default function Builder() {
         recentCurated.current = [curated.index, ...recentCurated.current].slice(0, 20)
         commit((snap) => ({
           ...snap,
-          palette: snap.palette.map((swatch, index) => swatch.locked ? swatch : updateSwatchHex(swatch, curated.palette[index] ?? randomHex())),
+          palette: refreshPaletteAutoNames(snap.palette.map((swatch, index) => randomiseUnlockedHex(swatch, curated.palette[index] ?? randomHex()))),
         }))
         return
       }
     }
     commit((snap) => ({
       ...snap,
-      palette: smartRandomise(snap.palette),
+      palette: refreshPaletteAutoNames(smartRandomise(snap.palette)),
       elementOverrides: coherentElementOverrides(snap.elementOverrides),
     }))
   }
