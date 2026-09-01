@@ -2,7 +2,8 @@ import { readableOn, shade, withAlpha, type Theme } from "../lib/color"
 import { BrandLogo, BrandSymbol, Editable, PreviewButton, usePreview } from "./PreviewCtx"
 import { forwardRef, lazy, Suspense, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 import TemplatePreview, { type TemplatePreviewHandle } from "./TemplatePreview"
-import { templateAssetById, templateGroups, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
+import { templateAssetById, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
+import { fullTemplateGroups } from "../lib/templateCatalog"
 import { clampPreviewZoom, computeFitZoom, PREVIEW_FIT_INSET, PREVIEW_FIT_MAX_ZOOM, PREVIEW_FIT_MIN_ZOOM } from "../lib/previewFit"
 
 /**
@@ -558,7 +559,7 @@ export type GroupKey = TemplateGroupKey
 export type Sub = { key: string; label: string; templates: { key: string; label: string; layout: TemplateLayout; thumbnail: string; source: string | null }[] }
 export type Group = { key: GroupKey; label: string; subs: Sub[] }
 
-export const GROUPS: Group[] = templateGroups
+export const GROUPS: Group[] = fullTemplateGroups
 
 export type PreviewRendererHandle = { fitToScreen: () => void }
 

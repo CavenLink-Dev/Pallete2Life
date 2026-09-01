@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react"
 /* Change Template — collapsed by default so it does not steal vertical
  * space. Renders as a small pill showing the current selection; click
  * opens a floating popover with the three tiers (Template / Layout /
- * Variant). Click outside or Escape closes. */
+ * Variant). Draft changes require explicit Apply; Cancel discards them. */
 
 type Props = {
   open: boolean
@@ -24,6 +24,10 @@ type Props = {
 
   compact?: boolean
   triggerLabel?: string
+
+  onApply: () => void
+  onCancel: () => void
+  canApply: boolean
 }
 
 const UI_FONT = { fontFamily: `Geist, "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif` } as const
@@ -34,9 +38,9 @@ export default function ChangeTemplatePanel(p: Props) {
 
   useEffect(() => {
     if (!p.open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") p.onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") p.onCancel() }
     const onDown = (e: MouseEvent) => {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) p.onClose()
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) p.onCancel()
     }
     window.addEventListener("keydown", onKey)
     const t = setTimeout(() => document.addEventListener("mousedown", onDown), 0)
@@ -97,7 +101,7 @@ export default function ChangeTemplatePanel(p: Props) {
             <p className="text-[13px] font-extrabold tracking-tight text-[#111827]" style={DISPLAY_FONT}>CHANGE TEMPLATE</p>
             <button
               type="button"
-              onClick={p.onClose}
+              onClick={p.onCancel}
               className="grid h-6 w-6 place-items-center rounded-md text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
               aria-label="Close"
             >
@@ -105,10 +109,14 @@ export default function ChangeTemplatePanel(p: Props) {
             </button>
           </div>
 
-          <SegmentedGroup label="Template" value={p.template} options={p.templates} onChange={p.onTemplate} />
+          <p className="text-[11px] leading-relaxed text-[#6b7280]">
+            Browse layouts and variants here. Your palette and brand settings stay intact. Use Apply to update the canvas — you can undo afterwards.
+          </p>
+
+          <SegmentedGroup label="Category" value={p.template} options={p.templates} onChange={p.onTemplate} />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]">Design Layout</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.24px] text-[#9ca3af]">Layout</span>
             <div className="grid grid-cols-3 gap-1.5">
               {p.layouts.map((l) => {
                 const active = l === p.layout
@@ -129,7 +137,25 @@ export default function ChangeTemplatePanel(p: Props) {
             </div>
           </div>
 
-          <SegmentedGroup label="Design Variant" value={p.variant} options={p.variants} onChange={p.onVariant} />
+          <SegmentedGroup label="Variant" value={p.variant} options={p.variants} onChange={p.onVariant} />
+
+          <div className="flex items-center justify-end gap-2 border-t border-[#e5e7eb] pt-2">
+            <button
+              type="button"
+              onClick={p.onCancel}
+              className="rounded-[7px] px-3 py-1.5 text-[12px] font-semibold text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={p.onApply}
+              disabled={!p.canApply}
+              className="rounded-[7px] bg-[#1f9eff] px-3 py-1.5 text-[12px] font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Apply template
+            </button>
+          </div>
         </div>
       )}
     </div>

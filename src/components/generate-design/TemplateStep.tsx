@@ -1,32 +1,33 @@
 import { useMemo, useState } from "react"
-import { templateAssets, type TemplateAsset, type TemplateCategory } from "../../lib/templateAssets"
+import { publicAssetsForCategory } from "../../lib/templateCatalog"
+import type { TemplateAsset, TemplateCategory } from "../../lib/templateAssets"
 import FlowShell, { FlowButton } from "./FlowShell"
 
 type Props = {
   category: TemplateCategory
-  onContinue: (asset: TemplateAsset) => void
+  onApply: (asset: TemplateAsset) => void
   onBack: () => void
   onChangeCategory: () => void
 }
 
-export default function TemplateStep({ category, onContinue, onBack, onChangeCategory }: Props) {
+export default function TemplateStep({ category, onApply, onBack, onChangeCategory }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const grouped = useMemo(() => {
-    const assets = templateAssets.filter((a) => a.category === category)
-    const types = Array.from(new Set(assets.map((a) => a.type)))
-    return types.map((type) => ({ type, assets: assets.filter((a) => a.type === type) }))
+    const assets = publicAssetsForCategory(category)
+    const types = Array.from(new Set(assets.map((asset) => asset.type)))
+    return types.map((type) => ({ type, assets: assets.filter((asset) => asset.type === type) }))
   }, [category])
 
-  const selectedAsset = selectedId ? templateAssets.find((a) => a.id === selectedId) ?? null : null
+  const selectedAsset = selectedId ? grouped.flatMap((group) => group.assets).find((asset) => asset.id === selectedId) ?? null : null
 
   return (
     <FlowShell labelId="template-title" onClose={onBack} wide>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Step 2</p>
-          <h2 id="template-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>Choose a template</h2>
-          <p className="mt-1 text-[13px] text-charcoal/60">Start with a design that is already structured, then customise the visual style.</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Choose a template</p>
+          <h2 id="template-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>Pick a starting layout</h2>
+          <p className="mt-1 text-[13px] text-charcoal/60">Browse and select a template. Nothing changes until you apply it.</p>
         </div>
         <button type="button" onClick={onChangeCategory} className="shrink-0 text-[12px] font-semibold text-[#20B9FA] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
           Change category
@@ -48,9 +49,9 @@ export default function TemplateStep({ category, onContinue, onBack, onChangeCat
                     aria-pressed={active}
                     className={`flex flex-col items-start gap-1.5 rounded-lg border-2 p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 ${active ? "border-[#20B9FA] bg-[#20B9FA]/5" : "border-softgrey hover:border-charcoal/25"}`}
                   >
-                    <TemplateThumbSmall asset={asset} />
+                    <LiveTemplateThumb asset={asset} />
                     <span className="text-[12px] font-semibold leading-tight">{asset.name}</span>
-                    <span className="text-[10px] text-charcoal/50">{asset.type}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#16A34A]">Live preview</span>
                   </button>
                 )
               })}
@@ -59,22 +60,50 @@ export default function TemplateStep({ category, onContinue, onBack, onChangeCat
         ))}
       </div>
 
+      {selectedAsset && (
+        <p className="mt-3 rounded-lg bg-offwhite px-3 py-2 text-[12px] leading-relaxed text-charcoal/65">
+          Applying this template keeps your palette and brand settings. You can undo template changes in the editor.
+        </p>
+      )}
+
       <div className="mt-5 flex items-center justify-between">
-        <FlowButton onClick={onBack}>Back</FlowButton>
-        <FlowButton primary disabled={!selectedAsset} onClick={() => selectedAsset && onContinue(selectedAsset)}>Continue</FlowButton>
+        <FlowButton onClick={onBack}>Cancel</FlowButton>
+        <FlowButton primary disabled={!selectedAsset} onClick={() => selectedAsset && onApply(selectedAsset)}>Apply template</FlowButton>
       </div>
     </FlowShell>
   )
 }
 
-function TemplateThumbSmall({ asset }: { asset: TemplateAsset }) {
-  if (asset.renderer === "svg" && asset.thumbnail && !asset.thumbnail.startsWith("builtin://")) {
-    return <img src={asset.thumbnail} alt="" className="h-16 w-full rounded object-cover object-top" loading="lazy" />
-  }
+function LiveTemplateThumb({ asset }: { asset: TemplateAsset }) {
   const isApp = asset.category === "Application"
+  const isComponent = asset.category === "Components"
+  const accent = "#20B9FA"
+  const surface = isApp ? "#111827" : "#FFFFFF"
+  const paper = isApp ? "#1F2937" : "#F3F4F6"
+
   return (
-    <div className={`flex h-16 w-full items-center justify-center rounded bg-offwhite ${isApp ? "" : ""}`}>
-      <span className="text-[10px] font-semibold text-charcoal/35">{asset.variant}</span>
+    <div
+      className="flex h-16 w-full flex-col overflow-hidden rounded border border-softgrey/80"
+      style={{ background: paper }}
+      aria-hidden
+    >
+      <div className="flex items-center gap-1 px-1.5 py-1" style={{ background: surface }}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: accent }} />
+        <span className="h-1 flex-1 rounded-full bg-charcoal/10" />
+      </div>
+      <div className="flex flex-1 flex-col gap-1 p-1.5">
+        <span className="h-1.5 w-2/3 rounded-full bg-charcoal/15" />
+        <span className="h-1 w-1/2 rounded-full bg-charcoal/10" />
+        {!isComponent && (
+          <span className="mt-auto h-3 w-10 rounded" style={{ background: accent, opacity: 0.85 }} />
+        )}
+        {isComponent && (
+          <div className="mt-auto flex gap-1">
+            <span className="h-3 flex-1 rounded" style={{ background: accent, opacity: 0.85 }} />
+            <span className="h-3 flex-1 rounded border border-charcoal/15 bg-white" />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

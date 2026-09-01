@@ -110,6 +110,7 @@
   line-height: 1.6;
 }
 .home-hero-cta { display: flex; flex-wrap: wrap; gap: var(--sp-3); }
+.home-hero-timing { margin: calc(var(--sp-4) * -1) 0 0; font-size: var(--home-text-small); }
 .home-hero a:focus-visible { outline-color: var(--home-bg); }
 
 /* -------------------------------------------------- */

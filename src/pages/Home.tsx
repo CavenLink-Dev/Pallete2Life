@@ -36,8 +36,8 @@ export default function Home() {
           <a href="#top" className="home-brand"><img src="/logo-64.png" alt="" /><span><b>Hue</b>Set</span></a>
           <nav className="home-nav-links" aria-label="Primary">
             <a href="/help" onClick={nav("/help")}>Help</a>
-            <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary home-nav-btn">Quick Design</a>
-            <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary home-nav-btn">Generate Design</a>
+            <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-primary home-nav-btn">Quick Design</a>
+            <a href="/generate" onClick={openGenerate} className="home-btn home-btn-secondary home-nav-btn">Full Design System</a>
           </nav>
         </div>
       </header>
@@ -51,9 +51,10 @@ export default function Home() {
               </h1>
               <p className="home-lead">Generate variables, preview, test, edit and create tokens. Then output to any design project.</p>
               <div className="home-hero-cta">
-                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design <span aria-hidden>→</span></a>
-                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary">Quick Design</a>
+                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-primary">Preview My Palette <span aria-hidden>→</span></a>
+                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-secondary">Build a Full Design System</a>
               </div>
+              <p className="home-lead home-hero-timing">Quick preview · about 30 seconds. Full system · about 3–5 minutes · Beta.</p>
             </div>
 
             <div className="home-promo" aria-hidden="true">
@@ -151,16 +152,16 @@ export default function Home() {
             </div>
             <div className="home-paths">
               <div className="home-path main">
-                <h3>Generate Design</h3>
-                <p>Build a full design with saved colours you can reuse. More control, still simple.</p>
-                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-primary">Generate Design</a>
-                <details><summary>What are tokens and variables?</summary><p>Just saved colours. Change one and it updates everywhere you used it, so your design stays in sync.</p></details>
+                <h3>Preview My Palette</h3>
+                <p>Pick colours and see them on live previews in about 30 seconds.</p>
+                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-primary">Quick Design</a>
+                <details><summary>What&apos;s this for?</summary><p>Best if you want to play with colours quickly and get an instant live preview.</p></details>
               </div>
               <div className="home-path">
-                <h3>Quick Design</h3>
-                <p>Pick colours and see them on a ready-made template right away. Fast and simple.</p>
-                <a href="/quick-design" onClick={openQuickDesign} className="home-btn home-btn-secondary">Quick Design</a>
-                <details><summary>What's this for?</summary><p>Best if you want to play with colours quickly and get an instant live preview.</p></details>
+                <h3>Build a Full Design System</h3>
+                <p>Choose a template, customise typography and components, then export tokens. About 3–5 minutes · Beta.</p>
+                <a href="/generate" onClick={openGenerate} className="home-btn home-btn-secondary">Full Design System</a>
+                <details><summary>What are tokens and variables?</summary><p>Just saved colours. Change one and it updates everywhere you used it, so your design stays in sync.</p></details>
               </div>
             </div>
           </div>

@@ -26,8 +26,12 @@ import { pickCuratedPalette } from "../lib/curatedPalettes"
 import { ELEMENT_DEFAULTS, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
 import { templateAssetById } from "../lib/templateAssets"
+import { publicTemplateGroups } from "../lib/templateCatalog"
 import { readGenerateResult } from "../lib/generateFlowStore"
 type Selection = { group: GroupKey; sub: string }
+type TemplateDraft = { group: GroupKey; sub: string; templateId: string }
+
+const PICKER_GROUPS = publicTemplateGroups
 
 const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
@@ -75,6 +79,7 @@ export default function Builder() {
   const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => initial.project.roleBindings)
   const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => initial.project.unassignedRoleSwatchIds)
   const [templateOpen, setTemplateOpen] = useState(false)
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraft | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(() => initial.project.preferences.paletteOpen)
@@ -198,6 +203,7 @@ export default function Builder() {
         setPaletteOpen(false)
         setCustomiseOpen(false)
         setTemplateOpen(false)
+        setTemplateDraft(null)
         setMoreOpen(false)
         return
       }
@@ -241,6 +247,7 @@ export default function Builder() {
   const selectElement = useCallback((el: InspectorSelection) => {
     setSelectedElement(el)
     if (!customiseOpen) setCustomiseOpen(true)
+    markOnboardingStep("edit")
   }, [customiseOpen])
 
   const clearSelection = useCallback(() => setSelectedElement(null), [])
@@ -310,30 +317,49 @@ export default function Builder() {
     selectElement,
   }), [brand, elementOverrides, palette, roleBindings, selectedElement, selectElement, theme.accent, tokenSystem, trio])
 
-  const trySelect = useCallback((next: Selection) => {
-    const group = GROUPS.find((item) => item.key === next.group)
-    const type = group?.subs.find((item) => item.key === next.sub) ?? group?.subs[0]
-    if (!group || !type) return false
-    if (!canUseWorkspace(entitlement)) {
-      setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
-      return false
-    }
-    commit((snap) => ({ ...snap, selection: { group: group.key, sub: type.key } }))
-    return true
-  }, [commit, entitlement])
+  const openTemplatePanel = useCallback(() => {
+    setTemplateDraft({
+      group: selection.group,
+      sub: currentType.key,
+      templateId,
+    })
+    setTemplateOpen(true)
+    setMoreOpen(false)
+  }, [selection.group, currentType.key, templateId])
 
-  const chooseTemplate = (id: string, label: string) => {
+  const cancelTemplateDraft = useCallback(() => {
+    setTemplateDraft(null)
+    setTemplateOpen(false)
+  }, [])
+
+  const draftState = templateDraft ?? { group: selection.group, sub: currentType.key, templateId }
+  const draftGroup = PICKER_GROUPS.find((group) => group.key === draftState.group) ?? PICKER_GROUPS[0]
+  const draftType = draftGroup.subs.find((type) => type.key === draftState.sub) ?? draftGroup.subs[0]
+  const draftTemplateId = draftState.templateId || draftType.templates[0]?.key || ""
+  const draftVariantLabel = draftType.templates.find((item) => item.key === draftTemplateId)?.label ?? draftType.templates[0]?.label ?? "Default"
+  const templateDraftDirty = templateDraft !== null && (
+    templateDraft.group !== selection.group
+    || templateDraft.sub !== currentType.key
+    || templateDraft.templateId !== templateId
+  )
+
+  const applyTemplateDraft = useCallback(() => {
+    if (!templateDraft) return
     if (!canUseWorkspace(entitlement)) {
       setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
       return
     }
+    const pickerGroup = PICKER_GROUPS.find((group) => group.key === templateDraft.group)
+    const pickerType = pickerGroup?.subs.find((type) => type.key === templateDraft.sub)
+    const nextTemplateId = templateDraft.templateId || pickerType?.templates[0]?.key || templateId
     commit((snap) => ({
       ...snap,
-      templateByType: { ...snap.templateByType, [selectionKey]: id },
+      selection: { group: templateDraft.group, sub: templateDraft.sub },
+      templateByType: { ...snap.templateByType, [`${templateDraft.group}/${templateDraft.sub}`]: nextTemplateId },
     }))
     markOnboardingStep("template")
-    toast.push(`Template: ${label}`, "success")
-  }
+    cancelTemplateDraft()
+  }, [cancelTemplateDraft, commit, entitlement, templateDraft, templateId])
 
   const changeColour = (id: string, hex: string) => {
     commit((snap) => ({
@@ -527,27 +553,48 @@ export default function Builder() {
               compact
               triggerLabel="Change template"
               open={templateOpen}
-              onToggle={() => { setTemplateOpen((open) => !open); setMoreOpen(false) }}
-              onClose={() => setTemplateOpen(false)}
-              template={currentGroup.label}
-              templates={GROUPS.map((group) => group.label)}
+              onToggle={() => {
+                if (templateOpen) cancelTemplateDraft()
+                else openTemplatePanel()
+              }}
+              onClose={cancelTemplateDraft}
+              template={draftGroup.label}
+              templates={PICKER_GROUPS.map((group) => group.label)}
               onTemplate={(label) => {
-                const group = GROUPS.find((item) => item.label === label)
+                const group = PICKER_GROUPS.find((item) => item.label === label)
                 const firstType = group?.subs[0]
-                if (group && firstType && trySelect({ group: group.key, sub: firstType.key })) markOnboardingStep("template")
+                if (!group || !firstType) return
+                setTemplateDraft({
+                  group: group.key,
+                  sub: firstType.key,
+                  templateId: firstType.templates[0]?.key ?? "",
+                })
               }}
-              layout={currentType.label}
-              layouts={currentGroup.subs.map((type) => type.label)}
+              layout={draftType.label}
+              layouts={draftGroup.subs.map((type) => type.label)}
               onLayout={(label) => {
-                const type = currentGroup.subs.find((item) => item.label === label)
-                if (type && trySelect({ group: currentGroup.key, sub: type.key })) markOnboardingStep("template")
+                const type = draftGroup.subs.find((item) => item.label === label)
+                if (!type) return
+                setTemplateDraft((current) => ({
+                  group: (current ?? draftState).group,
+                  sub: type.key,
+                  templateId: type.templates[0]?.key ?? "",
+                }))
               }}
-              variant={currentType.templates.find((template) => template.key === templateId)?.label ?? "Default"}
-              variants={currentType.templates.map((template) => template.label)}
+              variant={draftVariantLabel}
+              variants={draftType.templates.map((template) => template.label)}
               onVariant={(label) => {
-                const template = currentType.templates.find((item) => item.label === label)
-                if (template) chooseTemplate(template.key, template.label)
+                const template = draftType.templates.find((item) => item.label === label)
+                if (!template) return
+                setTemplateDraft((current) => ({
+                  group: (current ?? draftState).group,
+                  sub: (current ?? draftState).sub,
+                  templateId: template.key,
+                }))
               }}
+              onApply={applyTemplateDraft}
+              onCancel={cancelTemplateDraft}
+              canApply={templateDraftDirty}
             />
             <ToolbarAction label="Export" onClick={handleExport}><ExportIcon /></ToolbarAction>
             <ToolbarAction label="Second Opinion" onClick={() => setSecondOpinionOpen(true)}><SecondOpinionIcon /></ToolbarAction>
@@ -612,10 +659,23 @@ export default function Builder() {
           roleOptions={roleLabels}
           templateSection={
             <div className="grid grid-cols-2 gap-1.5">
-              {currentGroup.subs.map((type) => {
+              {PICKER_GROUPS.find((group) => group.key === selection.group)?.subs.map((type) => {
                 const active = type.key === currentType.key
                 return (
-                  <button key={type.key} type="button" onClick={() => trySelect({ group: currentGroup.key, sub: type.key })} aria-pressed={active} className={`h-8 rounded-[6px] border text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? "border-brand bg-brand/10 text-brand" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}>
+                  <button
+                    key={type.key}
+                    type="button"
+                    onClick={() => {
+                      setTemplateDraft({
+                        group: selection.group,
+                        sub: type.key,
+                        templateId: templateByType[`${selection.group}/${type.key}`] ?? type.templates[0]?.key ?? "",
+                      })
+                      setTemplateOpen(true)
+                    }}
+                    aria-pressed={active}
+                    className={`h-8 rounded-[6px] border text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? "border-brand bg-brand/10 text-brand" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}
+                  >
                     {type.label}
                   </button>
                 )

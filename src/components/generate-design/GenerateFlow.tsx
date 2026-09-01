@@ -1,19 +1,18 @@
 import { useState } from "react"
-import type { TemplateAsset, TemplateCategory } from "../../lib/templateAssets"
-import { markFlowCompleted, setGenerateResult, hasSeenGuide } from "../../lib/generateFlowStore"
 import { replaceRoute } from "../../lib/router"
+import { markFlowCompleted, setGenerateResult } from "../../lib/generateFlowStore"
+import type { TemplateAsset, TemplateCategory } from "../../lib/templateAssets"
 import CategoryStep from "./CategoryStep"
+import PathStep, { type DesignPath } from "./PathStep"
 import TemplateStep from "./TemplateStep"
-import GuideStep from "./GuideStep"
 
-type Step = "category" | "template" | "guide"
+type Step = "path" | "category" | "template"
 
 const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
 
 export default function GenerateFlow({ onCancel }: { onCancel: () => void }) {
-  const [step, setStep] = useState<Step>("category")
+  const [step, setStep] = useState<Step>("path")
   const [category, setCategory] = useState<TemplateCategory | null>(null)
-  const [chosenAsset, setChosenAsset] = useState<TemplateAsset | null>(null)
 
   const goToApp = (asset: TemplateAsset) => {
     const group = asset.category.toLowerCase()
@@ -23,35 +22,33 @@ export default function GenerateFlow({ onCancel }: { onCancel: () => void }) {
   }
 
   switch (step) {
+    case "path":
+      return (
+        <PathStep
+          onContinue={(path: DesignPath) => {
+            if (path === "quick") {
+              replaceRoute("/quick-design")
+              return
+            }
+            setStep("category")
+          }}
+          onCancel={onCancel}
+        />
+      )
     case "category":
       return (
         <CategoryStep
           onContinue={(cat) => { setCategory(cat); setStep("template") }}
-          onBack={onCancel}
+          onBack={() => setStep("path")}
         />
       )
     case "template":
       return (
         <TemplateStep
           category={category!}
-          onContinue={(asset) => {
-            setChosenAsset(asset)
-            if (hasSeenGuide()) {
-              goToApp(asset)
-            } else {
-              setStep("guide")
-            }
-          }}
+          onApply={goToApp}
           onBack={() => setStep("category")}
           onChangeCategory={() => setStep("category")}
-        />
-      )
-    case "guide":
-      return (
-        <GuideStep
-          onStartDesigning={() => goToApp(chosenAsset!)}
-          onBack={() => setStep("template")}
-          onSkip={() => goToApp(chosenAsset!)}
         />
       )
   }

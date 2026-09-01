@@ -1,6 +1,7 @@
 import { createDefaultPalette, loadPalette } from "./paletteStore"
 import { migrateLiveRolesToBindings } from "./quickRoleBridge"
-import { templateGroups, templateAssetById, type TemplateGroupKey } from "./templateAssets"
+import { fullTemplateGroups } from "./templateCatalog"
+import { templateAssetById, type TemplateGroupKey } from "./templateAssets"
 import { isSingletonRole, uid, type RoleBindings, type Swatch } from "./color"
 import type { ElementOverrides } from "./designTokens"
 
@@ -92,7 +93,7 @@ export function dedupeSingletonRoles(roleBindings: RoleBindings, issues: string[
 
 function isValidGroupSub(group: unknown, sub: unknown): boolean {
   if (typeof group !== "string" || typeof sub !== "string") return false
-  const g = templateGroups.find((gr) => gr.key === group)
+  const g = fullTemplateGroups.find((gr) => gr.key === group)
   return g !== undefined && g.subs.some((s) => s.key === sub)
 }
 
@@ -136,7 +137,7 @@ function validateTemplateByType(raw: unknown, selection: WorkspaceSelection, iss
   // Guarantee the active selection key resolves to a valid template
   const activeKey = `${selection.group}/${selection.sub}`
   if (!result[activeKey]) {
-    const g = templateGroups.find((gr) => gr.key === selection.group)
+    const g = fullTemplateGroups.find((gr) => gr.key === selection.group)
     const s = g?.subs.find((sub) => sub.key === selection.sub)
     const first = s?.templates[0]?.key
     if (first) {
@@ -335,7 +336,7 @@ export function resolveTemplateId(
   const key = `${selection.group}/${selection.sub}`
   const stored = templateByType[key]
   if (stored && templateAssetById.has(stored)) return stored
-  const g = templateGroups.find((gr) => gr.key === selection.group)
+  const g = fullTemplateGroups.find((gr) => gr.key === selection.group)
   const s = g?.subs.find((sub) => sub.key === selection.sub) ?? g?.subs[0]
   return s?.templates[0]?.key ?? ""
 }

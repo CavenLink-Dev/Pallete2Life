@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest"
-import { hasCompletedFlow, markFlowCompleted, resetFlow } from "./generateFlowStore"
+import { hasCompletedFlow, hasSeenGuide, markFlowCompleted, markGuideSeen, resetFlow } from "./generateFlowStore"
 
 beforeEach(() => {
   localStorage.clear()
@@ -17,9 +17,7 @@ describe("hasCompletedFlow", () => {
   })
 
   it("returns false on corrupt JSON without throwing", () => {
-    // Write corrupt data directly to the storage key
-    const key = "pallet-preview:generate-flow-v1"
-    localStorage.setItem(key, "not json{{")
+    localStorage.setItem("pallet-preview:generate-flow-v1", "not json{{")
     expect(() => hasCompletedFlow()).not.toThrow()
     expect(hasCompletedFlow()).toBe(false)
   })
@@ -36,5 +34,13 @@ describe("resetFlow", () => {
     expect(hasCompletedFlow()).toBe(true)
     resetFlow()
     expect(hasCompletedFlow()).toBe(false)
+  })
+})
+
+describe("returning user onboarding flags", () => {
+  it("skips guide walkthrough after first view", () => {
+    expect(hasSeenGuide()).toBe(false)
+    markGuideSeen()
+    expect(hasSeenGuide()).toBe(true)
   })
 })

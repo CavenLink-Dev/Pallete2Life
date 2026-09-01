@@ -5,9 +5,9 @@ import FlowShell, { FlowButton } from "./FlowShell"
 type CategoryOption = { label: string; category: TemplateCategory; description: string; icon: React.ReactNode }
 
 const OPTIONS: CategoryOption[] = [
-  { label: "Website", category: "Website", description: "Landing pages, business websites, ecommerce, SaaS and more.", icon: <WebIcon /> },
-  { label: "App", category: "Application", description: "Mobile and application interface designs.", icon: <AppIcon /> },
-  { label: "Other", category: "Components", description: "Dashboards, marketing layouts and other design formats.", icon: <OtherIcon /> },
+  { label: "Website", category: "Website", description: "Landing pages, pricing, authentication, and marketing layouts.", icon: <WebIcon /> },
+  { label: "App", category: "Application", description: "Mobile screens such as dashboards, messaging, and settings.", icon: <AppIcon /> },
+  { label: "Components", category: "Components", description: "Buttons, cards, forms, and other UI building blocks.", icon: <OtherIcon /> },
 ]
 
 type Props = {
@@ -20,9 +20,9 @@ export default function CategoryStep({ onContinue, onBack }: Props) {
 
   return (
     <FlowShell labelId="category-title" onClose={onBack}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Step 1</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Full design system</p>
       <h2 id="category-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>What do you want to design?</h2>
-      <p className="mt-2 text-[14px] text-charcoal/65">Choose what you want to preview and customise.</p>
+      <p className="mt-2 text-[14px] text-charcoal/65">Filter templates by format. This only narrows the list — it won&apos;t change your current work.</p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-3">
         {OPTIONS.map((option) => {
