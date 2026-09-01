@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { replaceRoute, useRoute } from "./lib/router"
 import { ToastProvider } from "./components/Toast"
+import ErrorBoundary from "./components/ErrorBoundary"
 import Home from "./pages/Home"
 import Builder from "./pages/Builder"
 import Pricing from "./pages/Pricing"
@@ -8,6 +9,7 @@ import Help from "./pages/Help"
 import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
+import NotFound from "./pages/NotFound"
 import QuickDesign from "./pages/QuickDesign"
 import GenerateDesign from "./pages/GenerateDesign"
 
@@ -38,9 +40,15 @@ export default function App() {
     case "/privacy":  page = <Privacy />;  break
     case "/terms":    page = <Terms />;    break
     case "/contact":  page = <Contact />;  break
-    case "/":
-    default:          page = <Home />;     break
+    case "/":         page = <Home />;     break
+    // Unknown paths resolve to the "/404" sentinel in the router.
+    case "/404":
+    default:          page = <NotFound />; break
   }
 
-  return <ToastProvider>{page}</ToastProvider>
+  return (
+    <ErrorBoundary>
+      <ToastProvider>{page}</ToastProvider>
+    </ErrorBoundary>
+  )
 }

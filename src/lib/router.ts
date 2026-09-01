@@ -13,6 +13,7 @@ export type Route =
   | "/privacy"
   | "/terms"
   | "/contact"
+  | "/404"
 
 const KNOWN: Route[] = ["/", "/app", "/generate", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
@@ -24,10 +25,15 @@ export function replaceRoute(r: Route) {
   window.dispatchEvent(new Event(NAV_EVENT))
 }
 
+/**
+ * Unknown paths resolve to the "/404" sentinel rather than silently collapsing
+ * to "/". The address bar is deliberately left showing the path the user asked
+ * for, so a mistyped or dead link is visible instead of masquerading as Home.
+ */
 function currentPath(): Route {
   if (typeof window === "undefined") return "/"
   const p = window.location.pathname as Route
-  return (KNOWN as string[]).includes(p) ? p : "/"
+  return (KNOWN as string[]).includes(p) ? p : "/404"
 }
 
 /**

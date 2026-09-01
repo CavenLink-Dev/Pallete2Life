@@ -9,6 +9,7 @@ import {
   type Swatch,
 } from "../lib/color"
 import { loadPalette, savePalette, writeHashPalette } from "../lib/paletteStore"
+import { isBrandLike, isStringMap } from "../lib/storedShape"
 import PublicFooter from "../components/PublicFooter"
 import PublicHeader from "../components/PublicHeader"
 import PaywallOverlay from "../components/PaywallOverlay"
@@ -44,11 +45,14 @@ const PREVIEW_OPTIONS: { key: LivePreviewKind; label: string }[] = [
   { key: "components", label: "Basic Components" },
 ]
 
-function loadStored<T>(key: string, fallback: T): T {
+function loadStored<T>(key: string, fallback: T, isValid?: (value: unknown) => value is T): T {
   try {
     const raw = localStorage.getItem(STORE_KEY)
     if (!raw) return fallback
-    return JSON.parse(raw)?.[key] ?? fallback
+    const value = JSON.parse(raw)?.[key]
+    if (value === undefined || value === null) return fallback
+    if (isValid && !isValid(value)) return fallback
+    return value as T
   } catch {
     return fallback
   }
@@ -66,7 +70,7 @@ function saveStored(key: string, value: unknown) {
 }
 
 function loadBrand(): Brand {
-  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null })
+  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null }, isBrandLike as (v: unknown) => v is Brand)
   return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
 }
 
@@ -84,7 +88,7 @@ function defaultRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
 
 function loadRoleBindings(palette: Swatch[]): Record<LiveRole, string> {
   const defaults = defaultRoleBindings(palette)
-  const stored = loadStored<Partial<Record<LiveRole, string>>>("liveRoles", {})
+  const stored = loadStored<Partial<Record<LiveRole, string>>>("liveRoles", {}, isStringMap as (v: unknown) => v is Partial<Record<LiveRole, string>>)
   const ids = new Set(palette.map((swatch) => swatch.id))
   return Object.fromEntries(ROLE_OPTIONS.map(({ key }) => [key, ids.has(stored[key] ?? "") ? stored[key] : defaults[key]])) as Record<LiveRole, string>
 }

@@ -60,9 +60,12 @@ export function loadPalette(): Swatch[] {
     const raw = localStorage.getItem(STORE_KEY)
     const palette = raw ? JSON.parse(raw)?.palette : null
     if (!Array.isArray(palette) || palette.length === 0) return createDefaultPalette()
-    return palette
+    const cleaned = palette
       .filter((item) => item && typeof item.id === "string" && typeof item.name === "string" && typeof item.hex === "string")
       .map((item) => ({ id: item.id, name: item.name, hex: item.hex, locked: !!item.locked }))
+    // Filtering can empty a non-empty array if every entry was malformed.
+    // Downstream code indexes palette[0..4] freely, so never hand back [].
+    return cleaned.length ? cleaned : createDefaultPalette()
   } catch {
     return createDefaultPalette()
   }

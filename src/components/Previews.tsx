@@ -5,7 +5,44 @@ import TemplatePreview, { type TemplatePreviewHandle } from "./TemplatePreview"
 import { templateAssetById, templateGroups, type TemplateGroupKey, type TemplateLayout } from "../lib/templateAssets"
 import { clampPreviewZoom, computeFitZoom, PREVIEW_FIT_INSET, PREVIEW_FIT_MAX_ZOOM, PREVIEW_FIT_MIN_ZOOM } from "../lib/previewFit"
 
-const BuiltInTemplatePreview = lazy(() => import("./BuiltInTemplatePreview"))
+/**
+ * A failed dynamic import rejects inside Suspense, which React re-throws during
+ * render. With no boundary that blanked the entire app, and this is the only
+ * chunk /app loads — which is why "/app is blank" was reproducible on a stale
+ * deploy while every other route still worked.
+ *
+ * One retry covers the transient network case. If it still fails (usually a
+ * genuinely missing chunk after a redeploy), we resolve to an inline notice
+ * rather than rejecting, so the workspace around the canvas stays usable.
+ */
+const BuiltInTemplatePreview = lazy(() =>
+  import("./BuiltInTemplatePreview").catch(() =>
+    new Promise((resolve) => setTimeout(resolve, 400))
+      .then(() => import("./BuiltInTemplatePreview"))
+      .catch((error) => {
+        console.error("[HueSet] Template preview chunk failed to load:", error)
+        return {
+          default: () => (
+            <div className="grid h-full min-h-96 place-items-center bg-white px-6 text-center">
+              <div>
+                <p className="text-sm font-semibold text-charcoal/70">This preview couldn't be loaded</p>
+                <p className="mt-1 text-[12px] text-charcoal/45">
+                  The app may have been updated. Reload the page to get the latest version.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="mt-4 rounded-lg bg-charcoal px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                >
+                  Reload
+                </button>
+              </div>
+            </div>
+          ),
+        }
+      }),
+  ),
+)
 
 /* ------------------------------------------------------------------ */
 /* shared primitives                                                   */

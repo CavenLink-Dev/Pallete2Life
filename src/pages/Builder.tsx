@@ -24,6 +24,7 @@ import { ELEMENT_DEFAULTS, elementTokens, randomTypographyTokens, randomButtonTo
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
 import { templateAssetById } from "../lib/templateAssets"
 import { readGenerateResult } from "../lib/generateFlowStore"
+import { isBrandLike, isString, isStringArray, isStringMap, isPlainObject } from "../lib/storedShape"
 
 type Selection = { group: GroupKey; sub: string }
 
@@ -34,18 +35,28 @@ const DEFAULT_SELECTION: Selection = { group: "website", sub: "landing-page" }
 const WEBSITE_ROLE_LABELS = ["Page Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 const APPLICATION_ROLE_LABELS = ["App Background", "Secondary Background", "Brand Primary", "Secondary", "Tertiary", "Accent", "Heading Text", "Body Text", "Surface", "Border"]
 
-function loadStored<T>(key: string, fallback: T): T {
+/**
+ * Reads one key out of the shared project blob.
+ *
+ * `isValid` is optional but should be supplied whenever the caller feeds the
+ * result somewhere that assumes a shape (iteration, spread, Object.entries).
+ * Without it a corrupted value reaches render and throws.
+ */
+function loadStored<T>(key: string, fallback: T, isValid?: (value: unknown) => value is T): T {
   try {
     const raw = localStorage.getItem(STORE_KEY)
     if (!raw) return fallback
-    return JSON.parse(raw)?.[key] ?? fallback
+    const value = JSON.parse(raw)?.[key]
+    if (value === undefined || value === null) return fallback
+    if (isValid && !isValid(value)) return fallback
+    return value as T
   } catch {
     return fallback
   }
 }
 
 function loadBrand(): Brand {
-  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null })
+  const brand = loadStored<Brand>("brand", { name: "HueSet", logo: null, symbol: null }, isBrandLike as (v: unknown) => v is Brand)
   return brand.name === "Palette Preview" ? { ...brand, name: "HueSet" } : brand
 }
 
@@ -75,14 +86,14 @@ export default function Builder() {
 
   const [palette, setPalette] = useState<Swatch[]>(loadPalette)
   const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
-  const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => loadStored("templateByType", {}))
+  const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => loadStored("templateByType", {}, isStringMap))
   const [brand, setBrand] = useState<Brand>(loadBrand)
-  const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}))
-  const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle))
+  const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}, isStringMap))
+  const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle, isString as (v: unknown) => v is ButtonStyle))
   const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
-  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}))
-  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => loadStored("roleBindings", {}))
-  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => loadStored("unassignedRoleSwatchIds", []))
+  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}, isPlainObject as (v: unknown) => v is ElementOverrides))
+  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => loadStored("roleBindings", {}, isStringMap as (v: unknown) => v is RoleBindings))
+  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => loadStored("unassignedRoleSwatchIds", [], isStringArray))
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -98,7 +109,7 @@ export default function Builder() {
   const [confirmReset, setConfirmReset] = useState(false)
   const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
-  const [designId] = useState<string>(() => loadStored("designId", "") || uid())
+  const [designId] = useState<string>(() => loadStored("designId", "", isString) || uid())
 
   useStored("palette", palette)
   useStored("templateByType", templateByType)
