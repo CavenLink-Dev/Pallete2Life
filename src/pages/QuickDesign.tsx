@@ -27,7 +27,8 @@ import BrandUpload from "../components/BrandUpload"
 import ConfirmDialog from "../components/ConfirmDialog"
 import type { Brand } from "../components/PreviewCtx"
 import { useToast } from "../components/Toast"
-import { loadEntitlement, mockSubscribePro, needsPro, PAYMENTS_ENABLED, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { useEntitlement } from "../context/EntitlementContext"
+import { PAYMENTS_ENABLED } from "../lib/entitlement"
 import {
   LiveChangePreview,
   type LiveRoleColors,
@@ -78,8 +79,12 @@ export default function QuickDesign() {
   const [preview, setPreview] = useState<QuickPreviewKind>(() => historyRef.current.snapshot.preview)
   const [confirmReset, setConfirmReset] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Swatch | null>(null)
-  const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
-  const [paywallOpen, setPaywallOpen] = useState(() => needsPro(loadEntitlement()))
+  const {
+    needsPro: needsProGate,
+    subscribePro,
+    canUseFeature: canUseEntitlementFeature,
+  } = useEntitlement()
+  const [paywallOpen, setPaywallOpen] = useState(false)
   const roleSelectRefs = useRef<Partial<Record<QuickRole, HTMLSelectElement | null>>>({})
 
   const applySnapshot = useCallback((snapshot: QuickDesignSnapshot) => {
@@ -102,7 +107,9 @@ export default function QuickDesign() {
     [roleBindings, palette],
   )
 
-  useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
+  useEffect(() => {
+    if (needsProGate()) setPaywallOpen(true)
+  }, [needsProGate])
 
   useEffect(() => {
     const current = loadWorkspace().project
@@ -379,7 +386,7 @@ export default function QuickDesign() {
                     <p className="truncate text-sm font-semibold">{brand.name || "Company name"}</p>
                     <p className="text-xs text-charcoal/45">Logo and app icon</p>
                   </div>
-                  <button type="button" onClick={() => setBrandOpen(true)} className="inline-flex h-11 items-center rounded-lg border border-softgrey bg-white px-3 text-xs font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
+                  <button type="button" onClick={() => { if (canUseEntitlementFeature("brandAssets")) setBrandOpen(true) }} className="inline-flex h-11 items-center rounded-lg border border-softgrey bg-white px-3 text-xs font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
                     Edit
                   </button>
                 </div>
@@ -452,7 +459,7 @@ export default function QuickDesign() {
         reason="Quick Design requires a Pro subscription after your first design flow."
         onUnlock={() => {
           if (!PAYMENTS_ENABLED) return
-          setEntitlement((e) => mockSubscribePro(e))
+          subscribePro()
           setPaywallOpen(false)
           toast.push("Pro unlocked", "success")
         }}

@@ -8,11 +8,11 @@ type Props = {
   open: boolean
   onClose: () => void
   checks: AccessibilityCheck[]
-  isPro: boolean
+  unlocked: boolean
   onUpgrade: () => void
 }
 
-export default function SecondOpinionPanel({ open, onClose, checks, isPro, onUpgrade }: Props) {
+export default function SecondOpinionPanel({ open, onClose, checks, unlocked, onUpgrade }: Props) {
   const poor = checks.filter((c) => c.status === "poor")
   const review = checks.filter((c) => c.status === "review")
   const good = checks.filter((c) => c.status === "good")
@@ -31,7 +31,7 @@ export default function SecondOpinionPanel({ open, onClose, checks, isPro, onUpg
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        {!isPro ? (
+        {!unlocked ? (
           <div className="flex flex-col items-center gap-4 py-6 text-center">
             <div className="grid h-14 w-14 place-items-center rounded-full bg-offwhite">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={BRAND.cta} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>

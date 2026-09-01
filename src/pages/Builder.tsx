@@ -15,7 +15,8 @@ import PaletteRail from "../components/PaletteRail"
 import PaywallOverlay from "../components/PaywallOverlay"
 import SecondOpinionPanel from "../components/SecondOpinionPanel"
 import { useToast } from "../components/Toast"
-import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, PAYMENTS_ENABLED, saveEntitlement, type Entitlement } from "../lib/entitlement"
+import { useEntitlement } from "../context/EntitlementContext"
+import { PAYMENTS_ENABLED } from "../lib/entitlement"
 import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, mergeHashPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
 import { createHistoryState, type WorkspaceSnapshot } from "../lib/workspaceHistory"
@@ -95,7 +96,18 @@ export default function Builder() {
   const [accountSetupOpen, setAccountSetupOpen] = useState(false)
   const [secondOpinionOpen, setSecondOpinionOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
-  const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
+  const {
+    payFirstExport,
+    createAccount,
+    subscribePro,
+    canUseFeature: canUseEntitlementFeature,
+    canExportDesign,
+    needsExportPaywall: needsExportPaywallGate,
+    needsAccountSetup: needsAccountSetupGate,
+    needsPro: needsProGate,
+    needsExportEarlyAccess,
+    canUseWorkspace,
+  } = useEntitlement()
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
   const [designId] = useState<string>(() => initial.project.designId)
 
@@ -127,7 +139,10 @@ export default function Builder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
+  useEffect(() => {
+    if (needsProGate()) setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
+  }, [needsProGate])
+
   useEffect(() => { writeHashPalette(palette) }, [palette])
 
   useEffect(() => {
@@ -144,10 +159,6 @@ export default function Builder() {
       preferences: { paletteOpen, customiseOpen, quickPreview: quickPreviewRef.current },
     })
   }, [palette, selection, templateByType, brand, designId, elementOverrides, roleBindings, unassignedRoleSwatchIds, paletteOpen, customiseOpen])
-
-  useEffect(() => {
-    if (needsPro(entitlement)) setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
-  }, [])
 
   useEffect(() => {
     const result = readGenerateResult()
@@ -373,7 +384,7 @@ export default function Builder() {
 
   const applyTemplateDraft = useCallback(() => {
     if (!templateDraft) return
-    if (!canUseWorkspace(entitlement)) {
+    if (!canUseWorkspace()) {
       setPaywall({ open: true, reason: "Your free first design is complete. Subscribe to Pro for unlimited access." })
       return
     }
@@ -387,7 +398,21 @@ export default function Builder() {
     }))
     markOnboardingStep("template")
     cancelTemplateDraft()
-  }, [cancelTemplateDraft, commit, entitlement, templateDraft, templateId])
+  }, [cancelTemplateDraft, commit, canUseWorkspace, templateDraft, templateId])
+
+  const openBrandAssets = useCallback(() => {
+    if (!canUseEntitlementFeature("brandAssets")) {
+      setPaywall({ open: true, reason: "Brand assets require a Pro subscription." })
+      return
+    }
+    setBrandOpen(true)
+    setMoreOpen(false)
+  }, [canUseEntitlementFeature])
+
+  const openSecondOpinion = useCallback(() => {
+    setSecondOpinionOpen(true)
+    setMoreOpen(false)
+  }, [])
 
   const changeColour = (id: string, hex: string) => {
     commit((snap) => ({
@@ -491,6 +516,10 @@ export default function Builder() {
   }
 
   const toggleFullscreen = async () => {
+    if (!canUseEntitlementFeature("fullScreen")) {
+      setPaywall({ open: true, reason: "Full screen preview requires a Pro subscription." })
+      return
+    }
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen()
@@ -504,6 +533,30 @@ export default function Builder() {
       fullscreenRestoreRef.current = null
       toast.push("Full screen is not available in this browser", "error")
     }
+  }
+
+  const handleExport = () => {
+    if (needsExportPaywallGate()) {
+      setExportPaywallOpen(true)
+      return
+    }
+    if (needsAccountSetupGate()) {
+      setAccountSetupOpen(true)
+      return
+    }
+    if (canExportDesign(designId)) {
+      setExportOpen(true)
+      return
+    }
+    if (needsProGate()) {
+      setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
+      return
+    }
+    if (needsExportEarlyAccess(designId)) {
+      setExportPaywallOpen(true)
+      return
+    }
+    setExportPaywallOpen(true)
   }
 
   const reopenProject = (project: ImportedProject) => {
@@ -524,26 +577,6 @@ export default function Builder() {
       }
       return next
     })
-  }
-
-  const handleExport = () => {
-    if (needsExportPaywall(entitlement)) {
-      setExportPaywallOpen(true)
-      return
-    }
-    if (needsAccountSetup(entitlement)) {
-      setAccountSetupOpen(true)
-      return
-    }
-    if (canExport(entitlement, designId)) {
-      setExportOpen(true)
-      return
-    }
-    if (needsPro(entitlement)) {
-      setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
-      return
-    }
-    setExportPaywallOpen(true)
   }
 
   return (
@@ -631,19 +664,19 @@ export default function Builder() {
               canApply={templateDraftDirty}
             />
             <ToolbarAction label="Export" onClick={handleExport}><ExportIcon /></ToolbarAction>
-            <ToolbarAction label="Second Opinion" onClick={() => setSecondOpinionOpen(true)}><SecondOpinionIcon /></ToolbarAction>
+            <ToolbarAction label="Second Opinion" onClick={openSecondOpinion}><SecondOpinionIcon /></ToolbarAction>
             <div ref={moreMenuRef} className="relative min-[1600px]:hidden">
               <ToolbarButton label="More tools" pressed={moreOpen} onClick={() => { setMoreOpen((open) => !open); setTemplateOpen(false) }}><MoreIcon /></ToolbarButton>
               {moreOpen && (
                 <div className="absolute right-0 top-full z-50 mt-1 w-[190px] rounded-[8px] border border-softgrey bg-white p-1.5 shadow-xl" role="menu" aria-label="More workspace tools">
-                  <MenuAction label="Brand assets" onClick={() => { setBrandOpen(true); setMoreOpen(false) }}><BrandIcon /></MenuAction>
+                  <MenuAction label="Brand assets" onClick={openBrandAssets}><BrandIcon /></MenuAction>
                   <MenuAction label="Center template" onClick={() => { previewRef.current?.fitToScreen(); setMoreOpen(false) }}><CenterIcon /></MenuAction>
                   <MenuAction label="Full screen" onClick={() => { void toggleFullscreen(); setMoreOpen(false) }}><FullscreenIcon /></MenuAction>
                   <MenuAction className="lg:hidden" label={customiseOpen ? "Hide customise" : "Show customise"} onClick={() => { setCustomiseOpen((open) => !open); setPaletteSheetOpen(false); setMoreOpen(false) }}><CustomiseIcon /></MenuAction>
                 </div>
               )}
             </div>
-            <ToolbarButton className="hidden min-[1600px]:grid" label="Brand assets" onClick={() => setBrandOpen(true)}><BrandIcon /></ToolbarButton>
+            <ToolbarButton className="hidden min-[1600px]:grid" label="Brand assets" onClick={openBrandAssets}><BrandIcon /></ToolbarButton>
             <ToolbarButton className="hidden min-[1600px]:grid" label="Center template" onClick={() => previewRef.current?.fitToScreen()}><CenterIcon /></ToolbarButton>
             <ToolbarButton className="hidden min-[1600px]:grid" label="Full screen" onClick={toggleFullscreen}><FullscreenIcon /></ToolbarButton>
             <ToolbarButton className="hidden lg:grid" label={customiseOpen ? "Hide customise" : "Show customise"} pressed={customiseOpen} onClick={() => { setCustomiseOpen((open) => !open); setPaletteSheetOpen(false) }}><CustomiseIcon /></ToolbarButton>
@@ -796,12 +829,13 @@ export default function Builder() {
         onImportProject={reopenProject}
         onToast={(message, kind) => toast.push(message, kind)}
         onSuccessfulExport={() => markOnboardingStep("export")}
+        locked={!canUseEntitlementFeature("exportCode", designId)}
       />
 
       <ExportPaywallOverlay
         open={exportPaywallOpen}
         onPay={() => {
-          setEntitlement((e) => mockPayFirstExport(e, designId))
+          payFirstExport(designId)
           setExportPaywallOpen(false)
           setAccountSetupOpen(true)
         }}
@@ -811,12 +845,12 @@ export default function Builder() {
       <AccountSetupOverlay
         open={accountSetupOpen}
         onComplete={(profile) => {
-          setEntitlement((e) => mockCreateAccount(e, profile))
+          createAccount(profile)
           setAccountSetupOpen(false)
           setExportOpen(true)
         }}
         onLater={() => {
-          setEntitlement((e) => mockCreateAccount(e, { name: "", email: "" }))
+          createAccount({ name: "", email: "" })
           setAccountSetupOpen(false)
           setExportOpen(true)
         }}
@@ -826,7 +860,7 @@ export default function Builder() {
         open={secondOpinionOpen}
         onClose={() => setSecondOpinionOpen(false)}
         checks={accessibilityChecks}
-        isPro={entitlement.isPro}
+        unlocked={canUseEntitlementFeature("secondOpinion")}
         onUpgrade={() => { setSecondOpinionOpen(false); setPaywall({ open: true, reason: "Second Opinion is a Pro feature. Subscribe for full accessibility analysis." }) }}
       />
 
@@ -847,7 +881,7 @@ export default function Builder() {
         reason={paywall.reason}
         onUnlock={() => {
           if (!PAYMENTS_ENABLED) return
-          setEntitlement((e) => mockSubscribePro(e))
+          subscribePro()
           setPaywall({ open: false })
           toast.push("Pro unlocked", "success")
         }}

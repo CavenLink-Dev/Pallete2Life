@@ -3,6 +3,7 @@ import { isKnownRoute, replaceRoute, useRoute } from "./lib/router"
 import { usePageMeta } from "./lib/pageMeta"
 import { ToastProvider } from "./components/Toast"
 import ErrorBoundary from "./components/ErrorBoundary"
+import { EntitlementProvider } from "./context/EntitlementContext"
 import NotFound from "./pages/NotFound"
 import Home from "./pages/Home"
 import Builder from "./pages/Builder"
@@ -62,12 +63,14 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <ErrorBoundary
-        label="route"
-        fallback={(error, reset) => <RouteErrorFallback error={error} reset={reset} />}
-      >
-        {page}
-      </ErrorBoundary>
+      <EntitlementProvider>
+        <ErrorBoundary
+          label="route"
+          fallback={(error, reset) => <RouteErrorFallback error={error} reset={reset} />}
+        >
+          {page}
+        </ErrorBoundary>
+      </EntitlementProvider>
     </ToastProvider>
   )
 }

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { replaceRoute } from "../../lib/router"
-import { markFlowCompleted, setGenerateResult } from "../../lib/generateFlowStore"
+import { completeFirstFlowInStore } from "../../lib/entitlement"
+import { setGenerateResult } from "../../lib/generateFlowStore"
 import type { TemplateAsset, TemplateCategory } from "../../lib/templateAssets"
 import CategoryStep from "./CategoryStep"
 import PathStep, { type DesignPath } from "./PathStep"
@@ -17,7 +18,7 @@ export default function GenerateFlow({ onCancel }: { onCancel: () => void }) {
   const goToApp = (asset: TemplateAsset) => {
     const group = asset.category.toLowerCase()
     setGenerateResult({ group, sub: slug(asset.type), templateId: asset.id })
-    markFlowCompleted()
+    completeFirstFlowInStore()
     replaceRoute("/app")
   }
 

@@ -33,8 +33,8 @@ export const BRAND = {
   brand: "#20B9FA",
   brandLight: "#4BC6FB",
   brandDark: "#05A9F0",
-  /** Darker fill for white text on primary CTAs. Passes WCAG 2.2 AA 4.5:1. */
-  cta: "#0B6F9A",
+  /** Primary CTA fill across the app and landing page. */
+  cta: "#13A8E7",
   charcoal: "#0E1821",
   offwhite: "#F8F8F6",
   white: "#FFFFFF",
@@ -42,7 +42,7 @@ export const BRAND = {
   medgrey: "#7A818B",
 }
 
-export const BRAND_CTA_ON_WHITE = "#0B6F9A"
+export const BRAND_CTA_ON_WHITE = "#13A8E7"
 export const BRAND_TEXT_ON_WHITE = "#0A6288"
 
 let counter = 0

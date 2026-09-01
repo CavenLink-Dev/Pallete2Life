@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { hasCompletedFlow } from "../lib/generateFlowStore"
+import { isFirstFlowComplete, loadEntitlement } from "../lib/entitlement"
 import { replaceRoute } from "../lib/router"
 import GenerateFlow from "../components/generate-design/GenerateFlow"
 
@@ -7,7 +7,7 @@ export default function GenerateDesign() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    if (hasCompletedFlow()) {
+    if (isFirstFlowComplete(loadEntitlement())) {
       replaceRoute("/app")
     } else {
       setReady(true)

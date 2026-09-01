@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { ToastProvider } from "../components/Toast"
+import { EntitlementProvider } from "../context/EntitlementContext"
 import QuickDesign from "./QuickDesign"
 
 const STORE_KEY = "hueframe:v1"
 
 function renderQuickDesign() {
   return render(
-    <ToastProvider>
-      <QuickDesign />
-    </ToastProvider>,
+    <EntitlementProvider>
+      <ToastProvider>
+        <QuickDesign />
+      </ToastProvider>
+    </EntitlementProvider>,
   )
 }
 

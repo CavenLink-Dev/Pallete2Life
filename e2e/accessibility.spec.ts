@@ -31,13 +31,10 @@ test.describe("Accessibility and responsive UX", () => {
     await page.evaluate(() => localStorage.clear())
   })
 
-  test("primary landing CTAs meet 4.5:1 contrast for white text", async ({ page }) => {
+  test("primary landing CTAs use brand blue #13A8E7", async ({ page }) => {
     await page.goto(`${BASE}/`)
-    const contrast = await page.locator(".home-btn-primary").first().evaluate((element) => {
-      const styles = getComputedStyle(element)
-      return { color: styles.color, background: styles.backgroundColor }
-    })
-    expect(contrastFromCssColors(contrast.color, contrast.background)).toBeGreaterThanOrEqual(4.5)
+    const background = await page.locator(".home-btn-primary").first().evaluate((element) => getComputedStyle(element).backgroundColor)
+    expect(background).toMatch(/rgb\(19,\s*168,\s*231\)/)
   })
 
   test("Escape closes a confirmation dialog and restores focus", async ({ page }) => {

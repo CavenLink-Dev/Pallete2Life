@@ -9,7 +9,12 @@
  *
  * When payments are disabled (default), purchase CTAs show Early Access /
  * Notify Me instead of mock checkout. See PAYMENTS_ENABLED.
+ *
+ * Stripe: swap mockPayFirstExport / mockCreateAccount / mockSubscribePro for
+ * API calls inside this module only; overlays stay presentational.
  */
+
+import { hasCompletedFlow, markFlowCompleted } from "./generateFlowStore"
 
 const KEY = "pallet-preview:ent:v3"
 const OLD_KEY = "pallet-preview:ent:v2"
@@ -17,18 +22,24 @@ const OLD_KEY = "pallet-preview:ent:v2"
 /** Set VITE_PAYMENTS_ENABLED=true when Stripe checkout is live. */
 export const PAYMENTS_ENABLED = import.meta.env.VITE_PAYMENTS_ENABLED === "true"
 
+function formatUsd(cents: number) {
+  return `$${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`
+}
+
 export const PRICING = {
+  FIRST_EXPORT_CENTS: 99,
+  PRO_MONTHLY_CENTS: 1499,
   firstExport: {
     amountUsd: 0.99,
-    label: "$0.99",
+    label: formatUsd(99),
     cadence: "one-time" as const,
-    summary: "$0.99 USD · one-time",
+    summary: `${formatUsd(99)} USD · one-time`,
   },
   pro: {
     amountUsd: 14.99,
-    label: "$14.99",
+    label: formatUsd(1499),
     cadence: "monthly" as const,
-    summary: "$14.99 USD / month · recurring",
+    summary: `${formatUsd(1499)} USD / month · recurring`,
   },
 } as const
 
@@ -43,6 +54,7 @@ export type FeatureId =
   | "fullScreen"
   | "quickDesign"
   | "exportFirstDesign"
+  | "exportCode"
   | "unlimitedGenerateQuickDesign"
   | "unlimitedExports"
   | "typographyExport"
@@ -60,6 +72,7 @@ export const FEATURE_MIN_PLAN: Record<FeatureId, PlanId> = {
   fullScreen: "free",
   quickDesign: "free",
   exportFirstDesign: "firstExport",
+  exportCode: "pro",
   unlimitedGenerateQuickDesign: "pro",
   unlimitedExports: "pro",
   typographyExport: "pro",
@@ -78,6 +91,7 @@ export const FEATURE_LABELS: Record<FeatureId, string> = {
   fullScreen: "Full screen preview",
   quickDesign: "Quick Design access",
   exportFirstDesign: "Export your first design (palette, swatches, project file)",
+  exportCode: "Export code formats (CSS, JSON, design tokens, Tailwind)",
   unlimitedGenerateQuickDesign: "Unlimited Generate Design and Quick Design",
   unlimitedExports: "Unlimited exports (CSS, JSON, design tokens, project files)",
   typographyExport: "Typography export",
@@ -137,20 +151,41 @@ function migrateV2(): Entitlement {
   }
 }
 
+/** Generate-flow completion and entitlement.firstFlowComplete stay in sync. */
+export function isFirstFlowComplete(e: Entitlement): boolean {
+  return e.firstFlowComplete || hasCompletedFlow()
+}
+
+/** Mark the onboarding generate flow complete in both stores. */
+export function completeFirstFlowInStore(e?: Entitlement): Entitlement {
+  markFlowCompleted()
+  const current = e ?? loadEntitlement()
+  const next = { ...current, firstFlowComplete: true }
+  saveEntitlement(next)
+  return next
+}
+
 export function loadEntitlement(): Entitlement {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return migrateV2()
-    const p = JSON.parse(raw) as Partial<Entitlement>
-    return {
-      isPro: !!p.isPro,
-      firstExportPaid: !!p.firstExportPaid,
-      firstExportDesignId: typeof p.firstExportDesignId === "string" ? p.firstExportDesignId : null,
-      firstFlowComplete: !!p.firstFlowComplete,
-      account: p.account && typeof p.account.name === "string" && typeof p.account.email === "string" ? p.account : null,
+    const base = !raw
+      ? migrateV2()
+      : (() => {
+          const p = JSON.parse(raw) as Partial<Entitlement>
+          return {
+            isPro: !!p.isPro,
+            firstExportPaid: !!p.firstExportPaid,
+            firstExportDesignId: typeof p.firstExportDesignId === "string" ? p.firstExportDesignId : null,
+            firstFlowComplete: !!p.firstFlowComplete,
+            account: p.account && typeof p.account.name === "string" && typeof p.account.email === "string" ? p.account : null,
+          } satisfies Entitlement
+        })()
+    if (hasCompletedFlow() && !base.firstFlowComplete) {
+      return { ...base, firstFlowComplete: true }
     }
+    return base
   } catch {
-    return DEFAULT
+    return hasCompletedFlow() ? { ...DEFAULT, firstFlowComplete: true } : DEFAULT
   }
 }
 
@@ -164,7 +199,7 @@ export function saveEntitlement(e: Entitlement) {
 
 /** True when the user can open the Builder or Quick Design workspace. */
 export function canUseWorkspace(e: Entitlement): boolean {
-  return e.isPro || !e.firstFlowComplete
+  return e.isPro || !isFirstFlowComplete(e)
 }
 
 /** True when the user can export a given design. */
@@ -176,7 +211,7 @@ export function canExport(e: Entitlement, designId: string): boolean {
 /** True when the first Export click should show the $0.99 paywall. */
 export function needsExportPaywall(e: Entitlement): boolean {
   if (!PAYMENTS_ENABLED) return false
-  return !e.isPro && !e.firstExportPaid && !e.firstFlowComplete
+  return !e.isPro && !e.firstExportPaid && !isFirstFlowComplete(e)
 }
 
 /** True when account setup should be shown (after $0.99, before export). */
@@ -188,7 +223,7 @@ export function needsAccountSetup(e: Entitlement): boolean {
 /** True when the user has exhausted the free tier and must subscribe. */
 export function needsPro(e: Entitlement): boolean {
   if (!PAYMENTS_ENABLED) return false
-  return e.firstFlowComplete && !e.isPro
+  return isFirstFlowComplete(e) && !e.isPro
 }
 
 /** True when export is blocked because checkout is not live yet. */
@@ -201,7 +236,7 @@ export function needsExportEarlyAccess(e: Entitlement, designId: string): boolea
 /** True when Pro upsell applies but checkout is not live yet. */
 export function needsProEarlyAccess(e: Entitlement): boolean {
   if (PAYMENTS_ENABLED) return false
-  return e.firstFlowComplete && !e.isPro
+  return isFirstFlowComplete(e) && !e.isPro
 }
 
 /** Runtime feature access — mirrors actual product behaviour. */
@@ -217,6 +252,10 @@ export function canUseFeature(e: Entitlement, feature: FeatureId, designId?: str
       return true
     case "exportFirstDesign":
       return designId ? canExport(e, designId) : e.isPro || e.firstExportPaid
+    case "exportCode":
+      if (!PAYMENTS_ENABLED) return false
+      if (e.isPro) return true
+      return designId ? canExport(e, designId) : e.firstExportPaid
     case "unlimitedGenerateQuickDesign":
       return canUseWorkspace(e)
     case "unlimitedExports":
@@ -238,6 +277,7 @@ export function mockPayFirstExport(e: Entitlement, designId: string): Entitlemen
 
 export function mockCreateAccount(e: Entitlement, profile: Account): Entitlement {
   if (!PAYMENTS_ENABLED) return e
+  markFlowCompleted()
   return { ...e, account: profile, firstFlowComplete: true }
 }
 
