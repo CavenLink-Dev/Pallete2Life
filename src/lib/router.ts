@@ -18,6 +18,11 @@ export type Route =
 const KNOWN: Route[] = ["/", "/app", "/generate", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
 const NAV_EVENT = "pallet-preview:navigate"
 
+/** Returns true for any pathname the router knows about (including legacy aliases). */
+export function isKnownRoute(p: string): p is Route {
+  return (KNOWN as string[]).includes(p)
+}
+
 export function replaceRoute(r: Route) {
   if (typeof window === "undefined") return
   const suffix = window.location.search + window.location.hash

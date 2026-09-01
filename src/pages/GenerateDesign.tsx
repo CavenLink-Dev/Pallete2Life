@@ -14,7 +14,13 @@ export default function GenerateDesign() {
     }
   }, [])
 
-  if (!ready) return null
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-offwhite">
+        <p className="text-[14px] text-charcoal/40">Loading…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 bg-charcoal/10">

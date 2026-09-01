@@ -18,7 +18,9 @@ import { useToast } from "../components/Toast"
 import { canExport, canUseWorkspace, loadEntitlement, mockCreateAccount, mockPayFirstExport, mockSubscribePro, needsAccountSetup, needsExportPaywall, needsPro, saveEntitlement, type Entitlement } from "../lib/entitlement"
 import { evaluateAccessibility } from "../lib/accessibility"
 import { createDefaultPalette, loadPalette, readHashPalette, writeHashPalette } from "../lib/paletteStore"
+import { loadWorkspace } from "../lib/workspaceStore"
 import { useNav, useRoute } from "../lib/router"
+import ErrorBoundary from "../components/ErrorBoundary"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
 import { ELEMENT_DEFAULTS, elementTokens, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
 import { createTokenSystem, semanticColour, semanticKeyForRole } from "../lib/tokenSystem"
@@ -84,16 +86,18 @@ export default function Builder() {
   const randomiseCount = useRef(0)
   const recentCurated = useRef<number[]>([])
 
-  const [palette, setPalette] = useState<Swatch[]>(loadPalette)
-  const [selection, setSelection] = useState<Selection>(DEFAULT_SELECTION)
-  const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => loadStored("templateByType", {}, isStringMap))
-  const [brand, setBrand] = useState<Brand>(loadBrand)
-  const [assignments] = useState<Record<string, string>>(() => loadStored("assignments", {}, isStringMap))
-  const [buttonStyle] = useState<ButtonStyle>(() => loadStored("buttonStyle", "flat" as ButtonStyle, isString as (v: unknown) => v is ButtonStyle))
+  const [initial] = useState(() => loadWorkspace())
+
+  const [palette, setPalette] = useState<Swatch[]>(() => initial.project.palette)
+  const [selection, setSelection] = useState<Selection>(() => initial.project.selection)
+  const [templateByType, setTemplateByType] = useState<Record<string, string>>(() => initial.project.templateByType)
+  const [brand, setBrand] = useState<Brand>(() => initial.project.brand)
+  const [assignments] = useState<Record<string, string>>(() => initial.project.assignments)
+  const [buttonStyle] = useState<ButtonStyle>(() => initial.project.buttonStyle)
   const [selectedElement, setSelectedElement] = useState<InspectorSelection | null>(null)
-  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => loadStored("elementOverrides", {}, isPlainObject as (v: unknown) => v is ElementOverrides))
-  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => loadStored("roleBindings", {}, isStringMap as (v: unknown) => v is RoleBindings))
-  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => loadStored("unassignedRoleSwatchIds", [], isStringArray))
+  const [elementOverrides, setElementOverrides] = useState<ElementOverrides>(() => initial.project.elementOverrides)
+  const [roleBindings, setRoleBindings] = useState<RoleBindings>(() => initial.project.roleBindings)
+  const [unassignedRoleSwatchIds, setUnassignedRoleSwatchIds] = useState<string[]>(() => initial.project.unassignedRoleSwatchIds)
   const [undoStack, setUndoStack] = useState<Swatch[][]>([])
   const [redoStack, setRedoStack] = useState<Swatch[][]>([])
   const [templateOpen, setTemplateOpen] = useState(false)
@@ -109,7 +113,7 @@ export default function Builder() {
   const [confirmReset, setConfirmReset] = useState(false)
   const [entitlement, setEntitlement] = useState<Entitlement>(loadEntitlement)
   const [paywall, setPaywall] = useState<{ open: boolean; reason?: string }>({ open: false })
-  const [designId] = useState<string>(() => loadStored("designId", "", isString) || uid())
+  const [designId] = useState<string>(() => initial.project.designId)
 
   useStored("palette", palette)
   useStored("templateByType", templateByType)
@@ -118,6 +122,16 @@ export default function Builder() {
   useStored("elementOverrides", elementOverrides)
   useStored("roleBindings", roleBindings)
   useStored("unassignedRoleSwatchIds", unassignedRoleSwatchIds)
+  useStored("selection", selection)
+  useStored("buttonStyle", buttonStyle)
+  useStored("assignments", assignments)
+
+  useEffect(() => {
+    if (import.meta.env.DEV && initial.recovered) {
+      console.info("[HueSet] Workspace recovered from invalid data:", initial.issues)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => { saveEntitlement(entitlement) }, [entitlement])
   useEffect(() => { writeHashPalette(palette) }, [palette])
@@ -539,13 +553,34 @@ export default function Builder() {
         </header>
 
         <main ref={canvasRef} className="relative min-h-0 flex-1 overflow-hidden bg-softgrey p-2 sm:p-3" aria-label="Preview canvas">
-          <div className="h-full w-full overflow-hidden rounded-[8px] border border-charcoal/10 bg-white">
-            <PreviewProvider value={previewContext}>
-              <ScopeProvider value={`${selection.group}/${selection.sub}/${templateId}`}>
-                <PreviewRenderer ref={previewRef} group={selection.group} sub={selection.sub} templateId={templateId} theme={theme} />
-              </ScopeProvider>
-            </PreviewProvider>
-          </div>
+          <ErrorBoundary
+            label="editor-preview"
+            fallback={(error) => (
+              <div className="grid h-full place-items-center rounded-[8px] bg-white text-center">
+                <div className="flex flex-col items-center gap-3 px-6">
+                  <p className="text-[14px] font-semibold text-charcoal/60">Preview failed to render</p>
+                  {import.meta.env.DEV && (
+                    <p className="max-w-xs text-[11px] text-charcoal/40">{error.message}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="rounded-lg border border-softgrey bg-white px-4 py-2 text-[12px] font-semibold text-charcoal hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  >
+                    Reload
+                  </button>
+                </div>
+              </div>
+            )}
+          >
+            <div className="h-full w-full overflow-hidden rounded-[8px] border border-charcoal/10 bg-white">
+              <PreviewProvider value={previewContext}>
+                <ScopeProvider value={`${selection.group}/${selection.sub}/${templateId}`}>
+                  <PreviewRenderer ref={previewRef} group={selection.group} sub={selection.sub} templateId={templateId} theme={theme} />
+                </ScopeProvider>
+              </PreviewProvider>
+            </div>
+          </ErrorBoundary>
         </main>
       </div>
 

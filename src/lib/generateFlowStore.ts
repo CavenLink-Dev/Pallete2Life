@@ -18,6 +18,11 @@ export function markFlowCompleted() {
   localStorage.setItem(FLOW_KEY, JSON.stringify({ completed: true }))
 }
 
+export function resetFlow() {
+  localStorage.removeItem(FLOW_KEY)
+  sessionStorage.removeItem(RESULT_KEY)
+}
+
 export function setGenerateResult(result: GenerateResult) {
   sessionStorage.setItem(RESULT_KEY, JSON.stringify(result))
 }
