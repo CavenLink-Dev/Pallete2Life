@@ -19,7 +19,7 @@ export default function CustomisePanel({ onClose, className = "", selectedElemen
     <aside className={`flex min-h-0 flex-col bg-white ${className}`} aria-label="Customise panel">
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-softgrey px-3">
         <h2 className="text-[13px] font-bold">Customise</h2>
-        <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Collapse customise panel" title="Collapse customise panel">
+        <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" aria-label="Collapse customise panel" title="Collapse customise panel">
           <CollapseIcon />
         </button>
       </header>
@@ -33,7 +33,7 @@ export default function CustomisePanel({ onClose, className = "", selectedElemen
                   <p className="text-[10px] font-bold uppercase text-charcoal/50">{capitalize(selectedElement.kind)}</p>
                   <p className="truncate text-[13px] font-semibold">{selectedElement.label}</p>
                 </div>
-                <button type="button" onClick={onClearSelection} className="grid h-8 w-8 shrink-0 place-items-center rounded-[6px] text-charcoal/50 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Clear selection" title="Clear selection">
+                <button type="button" onClick={onClearSelection} className="grid h-8 w-8 shrink-0 place-items-center rounded-[6px] text-charcoal/50 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" aria-label="Clear selection" title="Clear selection">
                   <CloseIcon />
                 </button>
               </div>
@@ -117,7 +117,7 @@ export default function CustomisePanel({ onClose, className = "", selectedElemen
 function Section({ title, defaultOpen = false, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
   return (
     <details className="group rounded-[7px] border border-softgrey" open={defaultOpen || undefined}>
-      <summary className="flex h-9 cursor-pointer list-none items-center justify-between rounded-[7px] px-2.5 text-[11px] font-bold uppercase text-charcoal/55 hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+      <summary className="flex h-9 cursor-pointer list-none items-center justify-between rounded-[7px] px-2.5 text-[11px] font-bold uppercase text-charcoal/55 hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
         {title}
         <ChevronIcon />
       </summary>
@@ -130,7 +130,7 @@ function CompactSelect({ label, value, options, onChange }: { label: string; val
   return (
     <label className="grid gap-0.5">
       <span className="text-[10px] font-semibold text-charcoal/50">{label}</span>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-8 rounded-[6px] border border-softgrey bg-offwhite px-2 text-[11px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className="h-8 rounded-[6px] border border-softgrey bg-offwhite px-2 text-[11px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
         {options.map((o) => <option key={o} value={o}>{humanize(o)}</option>)}
       </select>
     </label>
@@ -141,14 +141,14 @@ function CompactInput({ label, value, onChange, placeholder }: { label: string; 
   return (
     <label className="grid gap-0.5">
       <span className="text-[10px] font-semibold text-charcoal/50">{label}</span>
-      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-8 rounded-[6px] border border-softgrey bg-offwhite px-2 text-[11px] text-charcoal outline-none focus-visible:ring-2 focus-visible:ring-brand" />
+      <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="h-8 rounded-[6px] border border-softgrey bg-offwhite px-2 text-[11px] text-charcoal outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" />
     </label>
   )
 }
 
 function ToggleBtn({ active, label, onClick, children }: { active: boolean; label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={active} aria-label={label} title={label} className={`grid h-8 w-8 place-items-center rounded-[6px] border text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? "border-brand bg-brand/10 text-brand" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}>
+    <button type="button" onClick={onClick} aria-pressed={active} aria-label={label} title={label} className={`grid h-11 w-11 place-items-center rounded-[6px] border text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${active ? "border-brand-cta bg-brand-cta/10 text-brand-ink" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}>
       {children}
     </button>
   )

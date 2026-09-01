@@ -119,14 +119,14 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
               {templateStats.builtInTemplates} built-in <span aria-hidden>·</span> {templateStats.websiteTemplates} Website <span aria-hidden>·</span> {templateStats.applicationTemplates} Application <span aria-hidden>·</span> {templateStats.componentTemplates} Components
             </p>
           </div>
-          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] border border-softgrey text-charcoal/55 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close library" title="Close">
+          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] border border-softgrey text-charcoal/55 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2" aria-label="Close library" title="Close">
             <CloseIcon />
           </button>
         </header>
 
         <nav className="flex gap-1 overflow-x-auto border-b border-softgrey px-4 pt-2 sm:px-5" aria-label="Library sections">
           {(["Built-In", "Imported", "Recent", "Favorites"] as LibrarySection[]).map((item) => (
-            <button key={item} type="button" onClick={() => chooseSection(item)} className={`min-h-11 shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset ${section === item ? "border-brand text-charcoal" : "border-transparent text-charcoal/50 hover:text-charcoal"}`} aria-current={section === item ? "page" : undefined}>
+            <button key={item} type="button" onClick={() => chooseSection(item)} className={`min-h-11 shrink-0 border-b-2 px-3 py-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-inset ${section === item ? "border-brand text-charcoal" : "border-transparent text-charcoal/50 hover:text-charcoal"}`} aria-current={section === item ? "page" : undefined}>
               {item}
             </button>
           ))}
@@ -170,7 +170,7 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
                   const favorite = favoriteIds.includes(template.id)
                   return (
                     <div key={template.id} className="group relative min-w-0 overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-charcoal/25 hover:shadow-md" style={{ borderColor: active ? "#20b9fa" : undefined, boxShadow: active ? "0 0 0 2px rgba(32,185,250,0.18)" : undefined }}>
-                      <button type="button" onClick={() => chooseTemplate(template)} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand" aria-pressed={active}>
+                      <button type="button" onClick={() => chooseTemplate(template)} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-cta" aria-pressed={active}>
                         <span className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden border-b border-softgrey bg-[#eef0f2] p-2">
                           <TemplateThumbnail template={template} />
                         </span>
@@ -179,7 +179,7 @@ export default function TemplateLibrary({ selectedId, onSelect, onClose, initial
                           <span className="mt-0.5 block truncate text-[11px] text-charcoal/65">{template.category} / {template.type} / {template.variant}</span>
                         </span>
                       </button>
-                      <button type="button" onClick={() => toggleFavorite(template.id)} className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-[7px] border border-black/10 bg-white/90 text-charcoal/50 shadow-sm backdrop-blur hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label={favorite ? `Remove ${template.name} from favorites` : `Add ${template.name} to favorites`} title={favorite ? "Remove favorite" : "Add favorite"}>
+                      <button type="button" onClick={() => toggleFavorite(template.id)} className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-[7px] border border-black/10 bg-white/90 text-charcoal/50 shadow-sm backdrop-blur hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2" aria-label={favorite ? `Remove ${template.name} from favorites` : `Add ${template.name} to favorites`} title={favorite ? "Remove favorite" : "Add favorite"}>
                         <StarIcon filled={favorite} />
                       </button>
                     </div>

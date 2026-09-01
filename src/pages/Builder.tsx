@@ -21,6 +21,7 @@ import { createDefaultPalette, mergeHashPalette, readHashPalette, writeHashPalet
 import { createHistoryState, type WorkspaceSnapshot } from "../lib/workspaceHistory"
 import { loadWorkspace, saveWorkspaceProject } from "../lib/workspaceStore"
 import { useNav, useRoute } from "../lib/router"
+import { useDialogFocus } from "../lib/useDialogFocus"
 import ErrorBoundary from "../components/ErrorBoundary"
 import { pickCuratedPalette } from "../lib/curatedPalettes"
 import { ELEMENT_DEFAULTS, randomTypographyTokens, randomButtonTokens, type ElementOverrides, type InspectorSelection } from "../lib/designTokens"
@@ -85,6 +86,9 @@ export default function Builder() {
   const [paletteSheetOpen, setPaletteSheetOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(() => initial.project.preferences.paletteOpen)
   const [customiseOpen, setCustomiseOpen] = useState(() => initial.project.preferences.customiseOpen)
+  const [fullscreen, setFullscreen] = useState(false)
+  const fullscreenRestoreRef = useRef<{ paletteOpen: boolean; customiseOpen: boolean; zoom: number } | null>(null)
+  const restoreZoomRef = useRef<number | null>(null)
   const [brandOpen, setBrandOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [exportPaywallOpen, setExportPaywallOpen] = useState(false)
@@ -198,11 +202,27 @@ export default function Builder() {
   const canRedo = useMemo(() => historyRef.current.canRedo, [forceHistory])
 
   useEffect(() => {
+    const onFullscreenChange = () => {
+      const active = document.fullscreenElement === canvasRef.current
+      setFullscreen(active)
+      if (!active && fullscreenRestoreRef.current) {
+        restoreZoomRef.current = fullscreenRestoreRef.current.zoom
+        setPaletteOpen(fullscreenRestoreRef.current.paletteOpen)
+        setCustomiseOpen(fullscreenRestoreRef.current.customiseOpen)
+        const zoom = fullscreenRestoreRef.current.zoom
+        fullscreenRestoreRef.current = null
+        requestAnimationFrame(() => previewRef.current?.setZoom(zoom))
+      }
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange)
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange)
+  }, [])
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (document.fullscreenElement) return
         setPaletteSheetOpen(false)
-        setPaletteOpen(false)
-        setCustomiseOpen(false)
         setTemplateOpen(false)
         setTemplateDraft(null)
         setMoreOpen(false)
@@ -231,7 +251,14 @@ export default function Builder() {
   const templateName = templateAsset?.name ?? `${currentType.templates.find((item) => item.key === templateId)?.label ?? "Default"} ${currentType.label}`
 
   useEffect(() => {
-    const frame = requestAnimationFrame(() => previewRef.current?.fitToScreen())
+    const frame = requestAnimationFrame(() => {
+      if (restoreZoomRef.current != null) {
+        previewRef.current?.setZoom(restoreZoomRef.current)
+        restoreZoomRef.current = null
+        return
+      }
+      previewRef.current?.fitToScreen()
+    })
     return () => cancelAnimationFrame(frame)
   }, [templateId, selectionKey, paletteOpen, customiseOpen])
   const roleLabels = selection.group === "application" ? APPLICATION_ROLE_LABELS : WEBSITE_ROLE_LABELS
@@ -465,9 +492,16 @@ export default function Builder() {
 
   const toggleFullscreen = async () => {
     try {
-      if (document.fullscreenElement) await document.exitFullscreen()
-      else await canvasRef.current?.requestFullscreen()
+      if (document.fullscreenElement) {
+        await document.exitFullscreen()
+        return
+      }
+      fullscreenRestoreRef.current = { paletteOpen, customiseOpen, zoom: previewRef.current?.getZoom() ?? 1 }
+      setPaletteOpen(false)
+      setCustomiseOpen(false)
+      await canvasRef.current?.requestFullscreen()
     } catch {
+      fullscreenRestoreRef.current = null
       toast.push("Full screen is not available in this browser", "error")
     }
   }
@@ -493,7 +527,6 @@ export default function Builder() {
   }
 
   const handleExport = () => {
-    markOnboardingStep("export")
     if (needsPro(entitlement)) {
       setPaywall({ open: true, reason: "Export requires a Pro subscription after your first design." })
       return
@@ -535,9 +568,9 @@ export default function Builder() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-softgrey bg-white px-2 sm:px-3">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 overflow-x-auto border-b border-softgrey bg-white px-2 sm:px-3">
           <div className="flex min-w-0 flex-1 items-center gap-1">
-            <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="HueSet home" title="HueSet home">
+            <a href="/" onClick={nav("/")} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" aria-label="HueSet home" title="HueSet home">
               <img src="/app-icon-64.png" alt="" width={24} height={24} className="h-6 w-6 rounded-[6px]" />
             </a>
             <ToolbarButton className="lg:hidden" label="Open palette" onClick={() => { setPaletteSheetOpen(true); setCustomiseOpen(false) }}><PaletteIcon /></ToolbarButton>
@@ -546,8 +579,8 @@ export default function Builder() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <ToolbarButton className="hidden sm:grid" label="Undo" onClick={undo} disabled={!canUndo}><UndoIcon /></ToolbarButton>
-            <ToolbarButton className="hidden sm:grid" label="Redo" onClick={redo} disabled={!canRedo}><RedoIcon /></ToolbarButton>
+            <ToolbarButton className="sm:grid" label="Undo" shortcuts="Meta+Z Control+Z" onClick={undo} disabled={!canUndo}><UndoIcon /></ToolbarButton>
+            <ToolbarButton className="sm:grid" label="Redo" shortcuts="Meta+Shift+Z Control+Shift+Z Control+Y" onClick={redo} disabled={!canRedo}><RedoIcon /></ToolbarButton>
             <ToolbarAction label="Randomise" onClick={randomise}><DiceIcon /></ToolbarAction>
             <ToolbarAction label="Reset" onClick={() => setConfirmReset(true)}><ResetIcon /></ToolbarAction>
             <ChangeTemplatePanel
@@ -618,6 +651,51 @@ export default function Builder() {
         </header>
 
         <main ref={canvasRef} className="relative min-h-0 flex-1 overflow-hidden bg-softgrey p-2 sm:p-3" aria-label="Preview canvas">
+          {fullscreen && (
+            <div className="absolute left-2 right-2 top-2 z-30 flex items-center justify-between gap-2 rounded-[8px] border border-softgrey bg-white/95 px-2 py-1.5 shadow-sm backdrop-blur">
+              <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+                {palette.slice(0, 8).map((swatch) => (
+                  <button
+                    key={swatch.id}
+                    type="button"
+                    className="h-11 w-11 shrink-0 rounded-[7px] border border-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+                    style={{ background: swatch.hex }}
+                    aria-label={`${swatch.name} ${swatch.hex}`}
+                    title={`${swatch.name} ${swatch.hex}`}
+                    onClick={() => { setPaletteSheetOpen(true) }}
+                  />
+                ))}
+                <ToolbarButton label="Open palette" onClick={() => setPaletteSheetOpen(true)}><PaletteIcon /></ToolbarButton>
+              </div>
+              <button
+                type="button"
+                onClick={() => { void toggleFullscreen() }}
+                className="inline-flex h-11 shrink-0 items-center gap-2 rounded-[7px] border border-softgrey bg-white px-3 text-[12px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+              >
+                Exit Full Screen
+              </button>
+            </div>
+          )}
+          {fullscreen && paletteSheetOpen && (
+            <div className="absolute inset-x-2 bottom-2 top-16 z-40 overflow-hidden rounded-[8px] border border-softgrey bg-white shadow-xl">
+              <PaletteRail
+                className="h-full w-full"
+                palette={palette}
+                onAdd={addColour}
+                onChange={changeColour}
+                onRename={renameColour}
+                onRemove={removeColour}
+                onToggleLock={toggleLock}
+                onReorder={reorderPalette}
+                roleBindings={roleBindings}
+                roleOptions={paletteRoleOptions}
+                defaultRoleByIndex={paletteRoleOptions}
+                unassignedRoleSwatchIds={unassignedRoleSwatchIds}
+                onRoleChange={handleRoleChange}
+                onClose={() => setPaletteSheetOpen(false)}
+              />
+            </div>
+          )}
           <ErrorBoundary
             label="editor-preview"
             fallback={(error) => (
@@ -630,7 +708,7 @@ export default function Builder() {
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
-                    className="rounded-lg border border-softgrey bg-white px-4 py-2 text-[12px] font-semibold text-charcoal hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    className="rounded-lg border border-softgrey bg-white px-4 py-2 text-[12px] font-semibold text-charcoal hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
                   >
                     Reload
                   </button>
@@ -652,7 +730,7 @@ export default function Builder() {
       {customiseOpen && (
         <CustomisePanel
           onClose={() => setCustomiseOpen(false)}
-          className="fixed bottom-0 right-0 top-12 z-30 flex w-[280px] shrink-0 flex-col border-l border-softgrey bg-white shadow-xl lg:static lg:z-auto lg:shadow-none"
+          className="fixed bottom-0 right-0 top-12 z-30 flex w-[min(280px,100vw)] shrink-0 flex-col border-l border-softgrey bg-white shadow-xl lg:static lg:z-auto lg:shadow-none"
           selectedElement={selectedElement}
           elementValues={currentElementValues}
           onElementChange={handleElementChange}
@@ -675,7 +753,7 @@ export default function Builder() {
                       setTemplateOpen(true)
                     }}
                     aria-pressed={active}
-                    className={`h-8 rounded-[6px] border text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? "border-brand bg-brand/10 text-brand" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}
+                    className={`min-h-11 rounded-[6px] border text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${active ? "border-brand-cta bg-brand-cta/10 text-brand-ink" : "border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal"}`}
                   >
                     {type.label}
                   </button>
@@ -686,7 +764,7 @@ export default function Builder() {
         />
       )}
 
-      {paletteSheetOpen && (
+      {paletteSheetOpen && !fullscreen && (
         <SheetBackdrop className="lg:hidden" onClose={() => setPaletteSheetOpen(false)}>
           <PaletteRail
             className="h-[min(72dvh,680px)] w-full rounded-t-[8px] border-t border-softgrey"
@@ -717,6 +795,7 @@ export default function Builder() {
         accessibilityChecks={accessibilityChecks}
         onImportProject={reopenProject}
         onToast={(message, kind) => toast.push(message, kind)}
+        onSuccessfulExport={() => markOnboardingStep("export")}
       />
 
       <ExportPaywallOverlay
@@ -773,9 +852,9 @@ export default function Builder() {
   )
 }
 
-function ToolbarButton({ label, onClick, children, disabled = false, pressed, className = "" }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; pressed?: boolean; className?: string }) {
+function ToolbarButton({ label, onClick, children, disabled = false, pressed, className = "", shortcuts }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; pressed?: boolean; className?: string; shortcuts?: string }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed} title={label} className={`grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:cursor-not-allowed disabled:opacity-30 ${pressed ? "bg-offwhite text-charcoal" : ""} ${className}`}>
+    <button type="button" onClick={onClick} disabled={disabled} aria-label={label} aria-pressed={pressed} aria-keyshortcuts={shortcuts} title={label} className={`grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta disabled:cursor-not-allowed disabled:opacity-30 ${pressed ? "bg-offwhite text-charcoal" : ""} ${className}`}>
       {children}
     </button>
   )
@@ -783,18 +862,23 @@ function ToolbarButton({ label, onClick, children, disabled = false, pressed, cl
 
 function ToolbarAction({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[7px] px-0 text-[12px] font-semibold text-charcoal/65 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand min-[1400px]:w-auto min-[1400px]:px-3">
+    <button type="button" onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 shrink-0 items-center justify-center gap-2 rounded-[7px] px-0 text-[12px] font-semibold text-charcoal/65 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta min-[1400px]:w-auto min-[1400px]:px-3">
       {children}<span className="hidden min-[1400px]:inline">{label}</span>
     </button>
   )
 }
 
 function MenuAction({ label, onClick, children, className = "" }: { label: string; onClick: () => void; children: ReactNode; className?: string }) {
-  return <button type="button" role="menuitem" onClick={onClick} className={`flex h-11 w-full items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-semibold text-charcoal/70 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}><span className="grid w-5 place-items-center">{children}</span>{label}</button>
+  return <button type="button" role="menuitem" onClick={onClick} className={`flex h-11 w-full items-center gap-3 rounded-[7px] px-3 text-left text-[12px] font-semibold text-charcoal/70 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${className}`}><span className="grid w-5 place-items-center">{children}</span>{label}</button>
 }
 
 function SheetBackdrop({ children, onClose, className = "" }: { children: ReactNode; onClose: () => void; className?: string }) {
-  return <div className={`fixed inset-0 z-50 flex items-end bg-charcoal/30 ${className}`} onMouseDown={onClose} role="dialog" aria-modal="true"><div className="w-full" onMouseDown={(event) => event.stopPropagation()}>{children}</div></div>
+  const dialogRef = useDialogFocus<HTMLDivElement>(true, onClose)
+  return (
+    <div className={`fixed inset-0 z-50 flex items-end bg-charcoal/30 ${className}`} onMouseDown={onClose} role="dialog" aria-modal="true" aria-label="Palette">
+      <div ref={dialogRef} className="w-full" onMouseDown={(event) => event.stopPropagation()}>{children}</div>
+    </div>
+  )
 }
 
 const PaletteIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 5h16M4 12h16M4 19h10" /><circle cx="7" cy="5" r="2" fill="currentColor" stroke="none" /><circle cx="14" cy="12" r="2" fill="currentColor" stroke="none" /><circle cx="9" cy="19" r="2" fill="currentColor" stroke="none" /></svg>

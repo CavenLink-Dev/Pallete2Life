@@ -29,7 +29,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
       <a
         href="/"
         onClick={nav("/")}
-        className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+        className="flex shrink-0 items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
         aria-label="HueSet home"
       >
         <img
@@ -40,7 +40,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
           className={compact ? "h-[30px] w-[30px] object-contain" : "h-[38px] w-[38px] object-contain sm:h-[42px] sm:w-[42px]"}
         />
         <span className={compact ? "text-[15px] font-bold" : "text-[20px] font-bold sm:text-[24px]"} style={{ fontFamily: "var(--font-display)" }}>
-          Hue<span style={{ color: BRAND.brand }}>Set</span>
+          Hue<span style={{ color: BRAND.cta }}>Set</span>
         </span>
       </a>
 
@@ -54,8 +54,8 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                 key={n.to}
                 href={n.to}
                 onClick={nav(n.to)}
-                className="rounded-lg px-2.5 py-2 text-[12.5px] font-semibold outline-none transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2 xl:px-3"
-                style={on ? { color: BRAND.brandDark, background: "rgba(32,185,250,0.10)" } : { color: BRAND.medgrey }}
+                className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-2 text-[12.5px] font-semibold outline-none transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 xl:px-3"
+                style={on ? { color: BRAND.cta, background: "rgba(11,111,154,0.10)" } : { color: BRAND.medgrey }}
                 aria-current={on ? "page" : undefined}
               >
                 {n.label}
@@ -78,15 +78,15 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-              className="rounded-lg border border-softgrey bg-white px-2.5 py-2 text-[12px] font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] lg:hidden"
+              className="min-h-11 rounded-lg border border-softgrey bg-white px-3 py-2 text-[12px] font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta lg:hidden"
             >
               Menu
             </button>
             <a
               href="/pricing"
               onClick={nav("/pricing")}
-              className="hidden items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12.5px] font-bold text-white shadow-md transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#20B9FA] sm:flex"
-              style={{ background: BRAND.brandDark, boxShadow: `0 6px 18px ${BRAND.brand}30` }}
+              className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12.5px] font-bold text-white shadow-md transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-cta sm:flex"
+              style={{ background: BRAND.cta, boxShadow: `0 6px 18px ${BRAND.cta}30` }}
             >
               Go Pro +
             </a>
@@ -109,7 +109,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                   nav(n.to)(e)
                   setMenuOpen(false)
                 }}
-                className="rounded-md px-3 py-2 text-sm font-semibold text-charcoal/80 hover:bg-offwhite"
+                className="flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-charcoal/80 hover:bg-offwhite"
               >
                 {n.label}
               </a>
@@ -120,8 +120,8 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                 nav("/pricing")(e)
                 setMenuOpen(false)
               }}
-              className="mt-1 rounded-md px-3 py-2 text-sm font-bold text-white"
-              style={{ background: BRAND.brandDark }}
+              className="mt-1 min-h-11 rounded-md px-3 py-2 text-sm font-bold text-white"
+              style={{ background: BRAND.cta }}
             >
               Go Pro +
             </a>

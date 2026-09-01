@@ -30,9 +30,9 @@ function BasicWebsite({ colours, brand }: { colours: LiveRoleColors; brand: Bran
           <p className="mt-5 max-w-lg text-sm leading-7 opacity-65 sm:text-base">
             Build a focused experience with a palette that stays consistent from the first screen to the final action.
           </p>
-          <button type="button" className="mt-7 rounded-lg px-5 py-3 text-sm font-bold" style={{ background: colours.button, color: buttonText }}>
+          <div className="mt-7 inline-flex rounded-lg px-5 py-3 text-sm font-bold" style={{ background: colours.button, color: buttonText }} aria-hidden>
             Start a project
-          </button>
+          </div>
         </div>
         <div className="grid min-h-64 grid-cols-2 gap-3 rounded-lg border p-3" style={{ background: colours.surface, borderColor: colours.border }}>
           <div className="rounded-md" style={{ background: colours.accent }} />
@@ -92,10 +92,10 @@ function BasicComponents({ colours, brand }: { colours: LiveRoleColors; brand: B
           <section className="rounded-lg border p-5" style={{ background: colours.surface, borderColor: colours.border }}>
             <h3 className="text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>Create project</h3>
             <label className="mt-5 block text-xs font-semibold opacity-60">Project name</label>
-            <input readOnly value="New direction" className="mt-2 w-full rounded-md border bg-transparent px-3 py-2.5 text-sm outline-none" style={{ borderColor: colours.border, color: colours.text }} />
+            <div className="mt-2 w-full rounded-md border bg-transparent px-3 py-2.5 text-sm" style={{ borderColor: colours.border, color: colours.text }}>New direction</div>
             <label className="mt-4 block text-xs font-semibold opacity-60">Workspace</label>
             <div className="mt-2 flex items-center justify-between rounded-md border px-3 py-2.5 text-sm" style={{ borderColor: colours.border }}><span>Design team</span><span className="opacity-45">⌄</span></div>
-            <button type="button" className="mt-5 w-full rounded-md px-4 py-3 text-sm font-bold" style={{ background: colours.button, color: buttonText }}>Create project</button>
+            <div className="mt-5 w-full rounded-md px-4 py-3 text-center text-sm font-bold" style={{ background: colours.button, color: buttonText }} aria-hidden>Create project</div>
           </section>
           <div className="space-y-4">
             <section className="rounded-lg border p-5" style={{ background: colours.surface, borderColor: colours.border }}>
@@ -113,8 +113,8 @@ function BasicComponents({ colours, brand }: { colours: LiveRoleColors; brand: B
                 {["Active", "Review", "Draft"].map((label, index) => <span key={label} className="rounded-full border px-3 py-1 text-xs font-semibold" style={index === 0 ? { background: colours.accent, borderColor: colours.accent, color: readableOn(colours.accent) } : { borderColor: colours.border }}>{label}</span>)}
               </div>
               <div className="mt-5 flex gap-2">
-                <button type="button" className="rounded-md px-4 py-2.5 text-sm font-bold" style={{ background: colours.button, color: buttonText }}>Primary</button>
-                <button type="button" className="rounded-md border px-4 py-2.5 text-sm font-bold" style={{ borderColor: colours.border }}>Secondary</button>
+                <div className="rounded-md px-4 py-2.5 text-sm font-bold" style={{ background: colours.button, color: buttonText }} aria-hidden>Primary</div>
+                <div className="rounded-md border px-4 py-2.5 text-sm font-bold" style={{ borderColor: colours.border }} aria-hidden>Secondary</div>
               </div>
             </section>
           </div>

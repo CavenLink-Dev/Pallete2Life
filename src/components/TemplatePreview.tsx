@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
-import { withAlpha } from "../lib/color"
+import { BRAND, withAlpha } from "../lib/color"
 import { ELEMENT_DEFAULTS } from "../lib/designTokens"
 import { svgElementsForCategory } from "../lib/svgTemplateElements"
 import { templateAssetById } from "../lib/templateAssets"
@@ -54,7 +54,7 @@ function loadSvg(source: string): Promise<LoadedSvg> {
   return request
 }
 
-export type TemplatePreviewHandle = { fitToScreen: () => void }
+export type TemplatePreviewHandle = { fitToScreen: () => void; getZoom: () => number; setZoom: (zoom: number) => void }
 
 const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }>(function TemplatePreview({ templateId }, ref) {
   const template = templateAssetById.get(templateId)
@@ -89,11 +89,19 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
     setZoom((current) => clampPreviewZoom(Math.round((current + direction * ZOOM_STEP) * 100) / 100))
   }
 
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const preserveZoomRef = useRef<number | null>(null)
+
   const fitToScreen = useCallback(() => {
     const viewport = viewportRef.current
     if (!viewport || !svg || !template) return
     const baseWidth = template.category === "Application" ? 390 : 1440
     const aspectHeight = svg.height * (baseWidth / svg.width)
+    if (preserveZoomRef.current != null) {
+      setZoom(preserveZoomRef.current)
+      return
+    }
     const nextZoom = computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth, aspectHeight)
     setZoom(nextZoom)
     requestAnimationFrame(() => {
@@ -101,7 +109,19 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
     })
   }, [svg, template])
 
-  useImperativeHandle(ref, () => ({ fitToScreen }), [fitToScreen])
+  useImperativeHandle(ref, () => ({
+    fitToScreen: () => {
+      preserveZoomRef.current = null
+      fitToScreen()
+    },
+    getZoom: () => zoomRef.current,
+    setZoom: (next) => {
+      const clamped = clampPreviewZoom(next)
+      preserveZoomRef.current = clamped
+      setZoom(clamped)
+      window.setTimeout(() => { if (preserveZoomRef.current === clamped) preserveZoomRef.current = null }, 400)
+    },
+  }), [fitToScreen])
 
   useLayoutEffect(() => {
     fitToScreen()
@@ -191,7 +211,7 @@ const TemplatePreview = forwardRef<TemplatePreviewHandle, { templateId: string }
                         top: `${element.y}%`,
                         width: `${element.w}%`,
                         height: `${element.h}%`,
-                        outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha("#20B9FA", selected ? 0.95 : 0.7)}`,
+                        outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha(BRAND.cta, selected ? 0.95 : 0.7)}`,
                         outlineOffset: 2,
                         cursor: "pointer",
                       }}
@@ -239,7 +259,7 @@ function ZoomButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30"
+      className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30"
     >
       {icon}
     </button>

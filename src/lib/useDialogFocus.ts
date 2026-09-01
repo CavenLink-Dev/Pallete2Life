@@ -33,7 +33,9 @@ export function useDialogFocus<T extends HTMLElement>(open: boolean, onEscape?: 
       if (event.key !== "Tab") return
       const controls = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((control) => {
         if (control.hasAttribute("disabled") || control.getAttribute("aria-hidden") === "true") return false
-        return control.getClientRects().length > 0
+        if (control.getClientRects().length > 0) return true
+        const style = window.getComputedStyle(control)
+        return style.display !== "none" && style.visibility !== "hidden"
       })
       if (!controls.length) return
       const first = controls[0]

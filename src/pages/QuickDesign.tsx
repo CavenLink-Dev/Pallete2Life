@@ -305,7 +305,7 @@ export default function QuickDesign() {
                   aria-label="Undo"
                   aria-keyshortcuts="Meta+Z Control+Z"
                   title="Undo"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-softgrey bg-white text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-softgrey bg-white text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
                 >
                   <UndoIcon />
                 </button>
@@ -316,17 +316,17 @@ export default function QuickDesign() {
                   aria-label="Redo"
                   aria-keyshortcuts="Meta+Shift+Z Control+Shift+Z Control+Y"
                   title="Redo"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-softgrey bg-white text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-softgrey bg-white text-charcoal/70 hover:border-charcoal/30 hover:text-charcoal disabled:cursor-not-allowed disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
                 >
                   <RedoIcon />
                 </button>
-                <button type="button" onClick={randomise} className="inline-flex h-10 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-sm font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
+                <button type="button" onClick={randomise} className="inline-flex h-11 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-sm font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
                   <ShuffleIcon /> Randomise
                 </button>
-                <button type="button" onClick={() => setConfirmReset(true)} className="inline-flex h-10 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-sm font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
+                <button type="button" onClick={() => setConfirmReset(true)} className="inline-flex h-11 items-center gap-2 rounded-lg border border-softgrey bg-white px-3.5 text-sm font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
                   <ResetIcon /> Reset
                 </button>
-                <button type="button" onClick={addColour} disabled={palette.length >= MAX_COLOURS} className="inline-flex h-10 items-center gap-2 rounded-lg bg-charcoal px-3.5 text-sm font-semibold text-white hover:bg-[#263542] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
+                <button type="button" onClick={addColour} disabled={palette.length >= MAX_COLOURS} className="inline-flex h-11 items-center gap-2 rounded-lg bg-charcoal px-3.5 text-sm font-semibold text-white hover:bg-[#263542] disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
                   <PlusIcon /> Add colour
                 </button>
               </div>
@@ -380,7 +380,7 @@ export default function QuickDesign() {
                     <p className="truncate text-sm font-semibold">{brand.name || "Company name"}</p>
                     <p className="text-xs text-charcoal/45">Logo and app icon</p>
                   </div>
-                  <button type="button" onClick={() => setBrandOpen(true)} className="rounded-lg border border-softgrey bg-white px-3 py-2 text-xs font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
+                  <button type="button" onClick={() => setBrandOpen(true)} className="inline-flex h-11 items-center rounded-lg border border-softgrey bg-white px-3 text-xs font-semibold hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
                     Edit
                   </button>
                 </div>
@@ -407,7 +407,7 @@ export default function QuickDesign() {
                       role="tab"
                       aria-selected={active}
                       onClick={() => setPreviewKind(option.key)}
-                      className="min-h-10 border-l border-softgrey px-3 py-2 text-xs font-semibold first:border-l-0 sm:px-4 sm:text-sm"
+                      className="min-h-11 border-l border-softgrey px-3 py-2 text-xs font-semibold first:border-l-0 sm:px-4 sm:text-sm"
                       style={active ? { background: BRAND.charcoal, color: BRAND.white } : { color: BRAND.medgrey }}
                     >
                       {option.label}
@@ -516,7 +516,7 @@ function LiveAccessibilitySummary({
                     type="button"
                     onClick={() => onAdjustRole(role)}
                     aria-label={`Adjust role for ${roleLabel}`}
-                    className="rounded-md border border-softgrey bg-white px-2.5 py-1 text-[11px] font-semibold text-charcoal hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+                    className="min-h-11 rounded-md border border-softgrey bg-white px-2.5 py-1 text-[11px] font-semibold text-charcoal hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
                   >
                     Adjust role
                   </button>

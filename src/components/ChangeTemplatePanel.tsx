@@ -60,7 +60,7 @@ export default function ChangeTemplatePanel(p: Props) {
           aria-label={p.triggerLabel ?? "Change template"}
           aria-expanded={p.open}
           aria-haspopup="dialog"
-          className="flex h-11 max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-2.5 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] min-[1400px]:px-3"
+          className="flex h-11 max-w-full items-center gap-1.5 rounded-[8px] border border-[#e5e7eb] bg-white px-2.5 text-[12px] font-semibold text-[#111827] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta min-[1400px]:px-3"
           title="Change template, layout and variant"
         >
           <LayersIcon />
@@ -73,7 +73,7 @@ export default function ChangeTemplatePanel(p: Props) {
           onClick={p.onToggle}
           aria-expanded={p.open}
           aria-haspopup="dialog"
-          className="flex h-[113px] w-[240px] flex-col justify-between rounded-[12px] border border-[#e5e7eb] bg-white p-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex h-[113px] w-[240px] flex-col justify-between rounded-[12px] border border-[#e5e7eb] bg-white p-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-colors hover:border-[#cecfd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           title="Change template, layout and variant"
         >
           <div className="flex items-center justify-between">
@@ -95,14 +95,14 @@ export default function ChangeTemplatePanel(p: Props) {
           ref={popoverRef}
           role="dialog"
           aria-label="Change Template"
-          className="absolute right-0 top-full z-40 mt-2 flex w-[320px] flex-col gap-3 rounded-[12px] border border-[#e5e7eb] bg-white p-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]"
+          className="absolute right-0 top-full z-40 mt-2 flex w-[320px] max-w-[calc(100vw-1rem)] flex-col gap-3 rounded-[12px] border border-[#e5e7eb] bg-white p-3 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]"
         >
           <div className="flex items-center justify-between">
             <p className="text-[13px] font-extrabold tracking-tight text-[#111827]" style={DISPLAY_FONT}>CHANGE TEMPLATE</p>
             <button
               type="button"
               onClick={p.onCancel}
-              className="grid h-6 w-6 place-items-center rounded-md text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+              className="grid h-11 w-11 place-items-center rounded-md text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
               aria-label="Close"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -125,7 +125,7 @@ export default function ChangeTemplatePanel(p: Props) {
                     key={l}
                     type="button"
                     onClick={() => p.onLayout(l)}
-                    className={`flex h-[30px] items-center justify-center rounded-[7px] border text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
+                    className={`flex min-h-11 items-center justify-center rounded-[7px] border px-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${
                       active
                         ? "border-[#cecfd0] bg-white text-[#111827]"
                         : "border-[#e5e7eb] bg-[#f3f4f6] text-[#7b7b7b] hover:text-[#111827]"
@@ -143,7 +143,7 @@ export default function ChangeTemplatePanel(p: Props) {
             <button
               type="button"
               onClick={p.onCancel}
-              className="rounded-[7px] px-3 py-1.5 text-[12px] font-semibold text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+              className="inline-flex min-h-11 items-center rounded-[7px] px-3 text-[12px] font-semibold text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
             >
               Cancel
             </button>
@@ -151,7 +151,7 @@ export default function ChangeTemplatePanel(p: Props) {
               type="button"
               onClick={p.onApply}
               disabled={!p.canApply}
-              className="rounded-[7px] bg-[#1f9eff] px-3 py-1.5 text-[12px] font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex min-h-11 items-center rounded-[7px] bg-brand-cta px-3 text-[12px] font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta disabled:cursor-not-allowed disabled:opacity-40"
             >
               Apply template
             </button>
@@ -181,7 +181,7 @@ function SegmentedGroup({
               key={v}
               type="button"
               onClick={() => onChange(v)}
-              className={`flex flex-1 items-center justify-center rounded-[7px] text-[12px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
+              className={`flex flex-1 items-center justify-center rounded-[7px] text-[12px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${
                 active
                   ? "border border-[#cecfd0] bg-white font-bold text-[#111827] shadow-[0_1px_1px_rgba(0,0,0,0.05)]"
                   : "font-semibold text-[#7b7b7b] hover:text-[#111827]"

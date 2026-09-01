@@ -156,12 +156,12 @@ export default function Generator() {
         <a
           href="/"
           onClick={nav("/")}
-          className="mr-1 flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+          className="mr-1 flex shrink-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
           aria-label="HueSet home"
         >
           <img src="/app-icon-64.png" alt="" width={30} height={30} className="h-[30px] w-[30px] rounded-md" />
           <span className="hidden text-[14px] font-bold sm:block" style={{ fontFamily: "var(--font-display)" }}>
-            Palette <span style={{ color: BRAND.brand }}>Preview</span>
+            Palette <span style={{ color: BRAND.cta }}>Preview</span>
           </span>
         </a>
 
@@ -179,7 +179,7 @@ export default function Generator() {
           <button
             type="button"
             onClick={() => setExportOpen(true)}
-            className="flex h-9 items-center gap-2 rounded-md border border-softgrey bg-white px-3.5 text-[12.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+            className="flex h-9 items-center gap-2 rounded-md border border-softgrey bg-white px-3.5 text-[12.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
           >
             <ExportIcon /> Export
           </button>
@@ -329,7 +329,7 @@ function ColourEditor({ swatch, canRemove, onChange, onToggleLock, onRemove, onC
 
       <div className="mt-4 grid grid-cols-3 border-b border-softgrey" role="tablist" aria-label="Colour format">
         {(["hex", "rgb", "hsl"] as const).map((item) => (
-          <button key={item} type="button" onClick={() => setMode(item)} className="border-b-2 px-2 py-2 text-[11px] font-bold uppercase" style={{ borderColor: mode === item ? BRAND.brand : "transparent", color: mode === item ? BRAND.brandDark : BRAND.medgrey }} role="tab" aria-selected={mode === item}>{item}</button>
+          <button key={item} type="button" onClick={() => setMode(item)} className="min-h-11 border-b-2 px-2 py-2 text-[11px] font-bold uppercase" style={{ borderColor: mode === item ? BRAND.cta : "transparent", color: mode === item ? BRAND.cta : BRAND.charcoal }} role="tab" aria-selected={mode === item}>{item}</button>
         ))}
       </div>
 
@@ -337,7 +337,7 @@ function ColourEditor({ swatch, canRemove, onChange, onToggleLock, onRemove, onC
         {mode === "hex" && (
           <label className="block">
             <span className="sr-only">HEX value</span>
-            <input value={hexDraft} onChange={(event) => setHexDraft(event.target.value)} onBlur={() => onChange(hexDraft)} onKeyDown={(event) => { if (event.key === "Enter") onChange(hexDraft) }} className="h-10 w-full rounded-md border border-softgrey px-3 text-[13px] outline-none focus:border-[#20B9FA]" style={{ fontFamily: "var(--font-mono)" }} />
+            <input value={hexDraft} onChange={(event) => setHexDraft(event.target.value)} onBlur={() => onChange(hexDraft)} onKeyDown={(event) => { if (event.key === "Enter") onChange(hexDraft) }} className="h-10 w-full rounded-md border border-softgrey px-3 text-[13px] outline-none focus:border-brand-cta" style={{ fontFamily: "var(--font-mono)" }} />
           </label>
         )}
         {mode === "rgb" && (
@@ -374,17 +374,17 @@ function NumberField({ label, value, max, onChange, onCommit }: { label: string;
   return (
     <label>
       <span className="mb-1 block text-[9.5px] font-bold uppercase text-charcoal/45">{label}</span>
-      <input type="number" min={0} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} onBlur={onCommit} onKeyDown={(event) => { if (event.key === "Enter") onCommit() }} className="h-10 w-full rounded-md border border-softgrey px-2 text-[13px] outline-none focus:border-[#20B9FA]" style={{ fontFamily: "var(--font-mono)" }} />
+      <input type="number" min={0} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} onBlur={onCommit} onKeyDown={(event) => { if (event.key === "Enter") onCommit() }} className="h-10 w-full rounded-md border border-softgrey px-2 text-[13px] outline-none focus:border-brand-cta" style={{ fontFamily: "var(--font-mono)" }} />
     </label>
   )
 }
 
 function ToolbarButton({ icon, children, onClick, disabled }: { icon: React.ReactNode; children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
-  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-[12.5px] font-semibold text-charcoal/75 transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] disabled:cursor-not-allowed disabled:opacity-35">{icon}{children}</button>
+  return <button type="button" onClick={onClick} disabled={disabled} className="flex h-9 shrink-0 items-center gap-2 rounded-md px-2.5 text-[12.5px] font-semibold text-charcoal/75 transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta disabled:cursor-not-allowed disabled:opacity-35">{icon}{children}</button>
 }
 
 function IconButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-charcoal/55 transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] disabled:cursor-not-allowed disabled:opacity-30">{children}</button>
+  return <button type="button" onClick={onClick} disabled={disabled} title={label} aria-label={label} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-charcoal/55 transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta disabled:cursor-not-allowed disabled:opacity-30">{children}</button>
 }
 
 function ColumnAction({ label, onClick, foreground, active, children }: { label: string; onClick: () => void; foreground: string; active?: boolean; children: React.ReactNode }) {

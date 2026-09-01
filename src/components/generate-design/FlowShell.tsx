@@ -1,4 +1,6 @@
-import { useEffect, type ReactNode } from "react"
+import { type ReactNode } from "react"
+import DialogShell from "../DialogShell"
+import { BRAND } from "../../lib/color"
 
 type Props = {
   children: ReactNode
@@ -8,24 +10,16 @@ type Props = {
 }
 
 export default function FlowShell({ children, onClose, wide, labelId }: Props) {
-  useEffect(() => {
-    if (!onClose) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [onClose])
-
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-charcoal/55 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={labelId}
+    <DialogShell
+      open
+      onClose={onClose ?? (() => {})}
+      labelledBy={labelId ?? "flow-title"}
+      panelClassName={wide ? "max-w-[680px]" : "max-w-[520px]"}
+      zClassName="z-[60]"
     >
-      <div className={`animate-pop-in w-full rounded-2xl bg-white p-6 shadow-2xl ${wide ? "max-w-[680px]" : "max-w-[520px]"}`}>
-        {children}
-      </div>
-    </div>
+      {children}
+    </DialogShell>
   )
 }
 
@@ -38,7 +32,9 @@ export function FlowButton({ children, onClick, primary, disabled, autoFocus, cl
       onClick={onClick}
       disabled={disabled}
       autoFocus={autoFocus}
-      className={`rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${primary ? "bg-[#20B9FA] text-white hover:opacity-90" : "border border-softgrey bg-white text-charcoal/70 hover:text-charcoal"} ${className}`}
+      data-dialog-initial-focus={autoFocus || undefined}
+      className={`min-h-11 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${primary ? "text-white hover:opacity-90" : "border border-softgrey bg-white text-charcoal/70 hover:text-charcoal"} ${className}`}
+      style={primary ? { background: BRAND.cta } : undefined}
     >
       {children}
     </button>
@@ -51,7 +47,7 @@ export function FlowProgress({ steps, current }: { steps: string[]; current: num
       {steps.map((label, i) => (
         <div key={label} className="flex items-center gap-1">
           {i > 0 && <span className="text-[10px] text-charcoal/25" aria-hidden>→</span>}
-          <span className={`text-[11px] font-semibold ${i === current ? "text-[#20B9FA]" : i < current ? "text-charcoal/50" : "text-charcoal/30"}`}>{label}</span>
+          <span className={`text-[11px] font-semibold ${i === current ? "text-brand-ink" : i < current ? "text-charcoal/50" : "text-charcoal/30"}`}>{label}</span>
         </div>
       ))}
     </div>

@@ -96,7 +96,7 @@ export default function GuideStep({ onStartDesigning, onBack, onSkip }: Props) {
   return (
     <FlowShell labelId="guide-title" onClose={onSkip}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Quick guide</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-ink">Quick guide</p>
         <FlowProgress steps={[...STAGES]} current={stage} />
       </div>
 
@@ -130,7 +130,7 @@ export function GuideWalkthrough({ open, onClose }: { open: boolean; onClose: ()
   return (
     <FlowShell labelId="guide-replay-title" onClose={onClose}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">HueSet Guide</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-ink">HueSet Guide</p>
         <FlowProgress steps={[...STAGES]} current={stage} />
       </div>
 

@@ -38,7 +38,7 @@ export default function Pricing() {
             <a
               href="/app"
               onClick={nav("/app")}
-              className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+              className="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
             >
               Open HueSet
             </a>
@@ -64,7 +64,7 @@ export default function Pricing() {
             <a
               href="/app"
               onClick={nav("/app")}
-              className="mt-auto inline-flex items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
+              className="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg border border-softgrey bg-white px-4 py-2.5 text-[13.5px] font-semibold text-charcoal transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
             >
               Start designing
             </a>
@@ -73,11 +73,11 @@ export default function Pricing() {
           {/* Pro */}
           <div
             className="relative flex flex-col gap-4 rounded-2xl border-2 bg-white p-6"
-            style={{ borderColor: BRAND.brand, boxShadow: `0 12px 34px ${BRAND.brand}25` }}
+            style={{ borderColor: BRAND.cta, boxShadow: `0 12px 34px ${BRAND.cta}25` }}
           >
             <span
               className="absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-              style={{ background: BRAND.brand }}
+              style={{ background: BRAND.cta }}
             >
               Recommended
             </span>
@@ -103,8 +103,8 @@ export default function Pricing() {
             <a
               href="/app"
               onClick={nav("/app")}
-              className="mt-auto inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-              style={{ background: BRAND.brand }}
+              className="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
+              style={{ background: BRAND.cta }}
             >
               Open HueSet
             </a>
@@ -126,7 +126,7 @@ export default function Pricing() {
 function Feat({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-2">
-      <span aria-hidden style={{ color: BRAND.brand }}>&#10003;</span>
+      <span aria-hidden style={{ color: BRAND.cta }}>&#10003;</span>
       <span>{children}</span>
     </li>
   )

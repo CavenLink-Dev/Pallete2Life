@@ -20,8 +20,8 @@ export default function Help() {
           <button
             type="button"
             onClick={() => setGuideOpen(true)}
-            className="mt-4 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2"
-            style={{ background: BRAND.brand }}
+            className="mt-4 min-h-11 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
+            style={{ background: BRAND.cta }}
           >
             Replay the HueSet guide
           </button>
@@ -63,7 +63,7 @@ export default function Help() {
         </Section>
 
         <Section title="Accessibility">
-          <p>Every important action has a text label and a keyboard shortcut. Tab through the interface, Enter to activate, and Escape to close dialogs. Text meets WCAG AA contrast by default. If a chosen palette colour doesn't reach AA contrast against typical text, the colour editor tells you.</p>
+          <p>Every important action has a text label. Tab through the interface, Enter to activate, and Escape to close dialogs. Primary buttons use a darker brand fill so white text meets WCAG 2.2 AA contrast. Palette colours you choose are checked in the colour editor and Second Opinion.</p>
         </Section>
 
         <Section title="Where your work is saved">
@@ -73,7 +73,7 @@ export default function Help() {
         <Section title="Still stuck?">
           <p>
             The homepage has short instructions. If something's not working the way this page says it should,{" "}
-            <a href="/contact" onClick={nav("/contact")} className="font-semibold underline" style={{ color: BRAND.brand }}>let us know</a>.
+            <a href="/contact" onClick={nav("/contact")} className="font-semibold underline" style={{ color: BRAND.cta }}>let us know</a>.
           </p>
         </Section>
       </main>

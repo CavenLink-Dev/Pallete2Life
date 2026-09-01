@@ -65,7 +65,7 @@ export default function OnboardingCard() {
 
   return (
     <div
-      className="fixed bottom-20 right-4 z-40 w-[260px] rounded-[8px] border border-[#e5e7eb] bg-white p-3.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)]"
+      className="fixed bottom-20 right-2 z-40 w-[min(260px,calc(100vw-1rem))] rounded-[8px] border border-[#e5e7eb] bg-white p-3.5 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.2)] sm:right-4"
       role="region"
       aria-label="Getting started"
     >
@@ -76,7 +76,7 @@ export default function OnboardingCard() {
           onClick={dismiss}
           aria-label="Dismiss getting started"
           title="Dismiss (won't appear again)"
-          className="grid h-6 w-6 place-items-center rounded-md text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="grid h-11 w-11 place-items-center rounded-md text-[#6b7280] hover:bg-[#f3f4f6] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>

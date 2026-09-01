@@ -87,7 +87,7 @@ export default function PaletteRail({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
             aria-label="Collapse palette"
             title="Collapse palette"
           >
@@ -188,7 +188,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
     <div className={`group relative flex items-start gap-1.5 rounded-[7px] border p-1.5 ${overlay ? "border-brand bg-white shadow-lg" : open ? "border-brand/30 bg-brand/5" : "border-transparent hover:border-softgrey hover:bg-offwhite"}`}>
       <button
         type="button"
-        className="mt-0.5 h-10 w-10 shrink-0 rounded-[6px] border border-charcoal/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1"
+        className="mt-0.5 h-10 w-10 shrink-0 rounded-[6px] border border-charcoal/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-1"
         style={{ backgroundColor: swatch.hex }}
         onClick={onToggleEditor}
         aria-expanded={open}
@@ -199,7 +199,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
         <input
           value={swatch.name}
           onChange={(e) => onRename?.(swatch.id, e.target.value)}
-          className="h-5 w-full truncate rounded-[3px] bg-transparent px-0.5 text-[11px] font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-brand"
+          className="h-5 w-full truncate rounded-[3px] bg-transparent px-0.5 text-[11px] font-semibold outline-none focus:bg-white focus:ring-2 focus:ring-brand-cta"
           aria-label={`Name for ${swatch.hex}`}
         />
         <span className="block px-0.5 font-mono text-[10px] uppercase text-charcoal/50">{swatch.hex}</span>
@@ -209,7 +209,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
             <select
               value={role}
               onChange={(e) => onRoleChange(e.target.value, swatch.id)}
-              className="h-7 w-full rounded-[5px] border border-softgrey bg-offwhite px-1.5 text-[10px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="h-7 w-full rounded-[5px] border border-softgrey bg-offwhite px-1.5 text-[10px] font-semibold text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
               aria-label={`Role for ${swatch.name}`}
             >
               <option value="">No role</option>
@@ -225,7 +225,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
           <button
             type="button"
             onClick={() => onRemove(swatch.id)}
-            className="grid h-7 w-7 place-items-center rounded-[5px] text-charcoal/40 opacity-0 hover:bg-white hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand group-hover:opacity-100"
+            className="grid h-7 w-7 place-items-center rounded-[5px] text-charcoal/40 opacity-0 hover:bg-white hover:text-red-500 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta group-hover:opacity-100"
             aria-label={`Remove ${swatch.name}`}
             title="Remove colour"
           >
@@ -235,7 +235,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
         <button
           type="button"
           onClick={() => onToggleLock?.(swatch.id)}
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-[5px] text-charcoal/45 hover:bg-white hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-[5px] text-charcoal/45 hover:bg-white hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           aria-pressed={!!swatch.locked}
           aria-label={`${swatch.locked ? "Unlock" : "Lock"} ${swatch.name}`}
           title={`${swatch.locked ? "Unlock" : "Lock"} colour`}
@@ -245,7 +245,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
         <button
           type="button"
           {...dragListeners}
-          className="grid h-7 w-7 shrink-0 cursor-grab place-items-center rounded-[5px] text-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand active:cursor-grabbing"
+          className="grid h-7 w-7 shrink-0 cursor-grab place-items-center rounded-[5px] text-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta active:cursor-grabbing"
           aria-label={`Drag to reorder ${swatch.name}`}
           title="Drag to reorder"
         >
@@ -257,7 +257,7 @@ function SwatchRow({ swatch, open, role, roleOptions, overlay, onRoleChange, onT
 }
 
 function RailAction({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} aria-label={label} title={label} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">{children}</button>
+  return <button type="button" onClick={onClick} aria-label={label} title={label} className="grid h-11 w-11 shrink-0 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">{children}</button>
 }
 
 const PlusIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>

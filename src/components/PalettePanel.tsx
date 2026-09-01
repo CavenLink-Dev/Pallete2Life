@@ -143,7 +143,7 @@ export default function PalettePanel({
                 type="button"
                 onClick={onAdd}
                 aria-label="Add colour"
-                className={`${CARD_SIZE} group flex shrink-0 snap-start flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-charcoal/20 bg-white text-charcoal/55 transition-[border-color,color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-charcoal/40 hover:text-charcoal hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2`}
+                className={`${CARD_SIZE} group flex shrink-0 snap-start flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-charcoal/20 bg-white text-charcoal/55 transition-[border-color,color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-charcoal/40 hover:text-charcoal hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2`}
               >
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-offwhite transition-colors group-hover:bg-softgrey/70"><PlusIcon /></span>
                 <span className="text-xs font-bold uppercase">Add colour</span>
@@ -233,7 +233,7 @@ function SortableCard({
         }}
         aria-label={`${role ?? swatch.name}, ${swatch.hex}. Open colour picker or drag to reorder.`}
         aria-expanded={selected}
-        className="h-full w-full cursor-grab overflow-hidden rounded-lg bg-white text-left active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        className="h-full w-full cursor-grab overflow-hidden rounded-lg bg-white text-left active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
         style={{
           boxShadow: selected
             ? `0 0 0 2px ${brand}, 0 8px 22px ${withAlpha("#0E1821", 0.12)}`
@@ -425,7 +425,7 @@ function ColorEditor({
             <ContrastBadge fg="#0E1821" bg={swatch.hex} label="Dark" />
           </div>
           <div className="mt-4 flex gap-2 border-t border-softgrey pt-3">
-            <button type="button" onClick={onToggleLock} className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${swatch.locked ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/70 hover:border-charcoal/30"}`}>
+            <button type="button" onClick={onToggleLock} className={`flex h-10 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 ${swatch.locked ? "border-charcoal bg-charcoal text-white" : "border-softgrey text-charcoal/70 hover:border-charcoal/30"}`}>
               {swatch.locked ? <LockIcon /> : <UnlockIcon />}{swatch.locked ? "Locked" : "Lock"}
             </button>
             {canRemove && <button type="button" onClick={onRemove} className="h-10 rounded-lg border border-softgrey px-3 text-xs font-semibold text-charcoal/60 hover:border-[#C22F2F]/30 hover:text-[#C22F2F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C22F2F] focus-visible:ring-offset-2">Delete</button>}
@@ -439,7 +439,7 @@ function ColorEditor({
           type="button"
           onClick={() => setDetailsOpen((value) => !value)}
           aria-expanded={detailsOpen}
-          className="flex h-10 items-center gap-2 rounded-lg px-1 text-sm font-semibold hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex h-10 items-center gap-2 rounded-lg px-1 text-sm font-semibold hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
         >
           Picker <ChevronIcon open={detailsOpen} />
         </button>

@@ -33,7 +33,7 @@ const BuiltInTemplatePreview = lazy(() =>
                 <button
                   type="button"
                   onClick={() => window.location.reload()}
-                  className="mt-4 rounded-lg bg-charcoal px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                  className="mt-4 rounded-lg bg-charcoal px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
                 >
                   Reload
                 </button>
@@ -561,13 +561,17 @@ export type Group = { key: GroupKey; label: string; subs: Sub[] }
 
 export const GROUPS: Group[] = fullTemplateGroups
 
-export type PreviewRendererHandle = { fitToScreen: () => void }
+export type PreviewRendererHandle = { fitToScreen: () => void; getZoom: () => number; setZoom: (zoom: number) => void }
 
 export const PreviewRenderer = forwardRef<PreviewRendererHandle, { group: GroupKey; sub: string; templateId: string; theme: Theme }>(function PreviewRenderer({ group, sub, templateId, theme }, ref) {
   const importedRef = useRef<TemplatePreviewHandle | null>(null)
   const builtInRef = useRef<PreviewRendererHandle | null>(null)
   const asset = templateAssetById.get(templateId)
-  useImperativeHandle(ref, () => ({ fitToScreen: () => (asset?.renderer === "built-in" ? builtInRef.current : importedRef.current)?.fitToScreen() }), [asset])
+  useImperativeHandle(ref, () => ({
+    fitToScreen: () => (asset?.renderer === "built-in" ? builtInRef.current : importedRef.current)?.fitToScreen(),
+    getZoom: () => (asset?.renderer === "built-in" ? builtInRef.current : importedRef.current)?.getZoom() ?? 1,
+    setZoom: (zoom: number) => (asset?.renderer === "built-in" ? builtInRef.current : importedRef.current)?.setZoom(zoom),
+  }), [asset])
 
   if (!asset) return <div className="grid h-full min-h-96 place-items-center bg-white text-sm font-semibold text-charcoal/50">Template not found</div>
   if (asset.renderer === "built-in") {
@@ -594,17 +598,37 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
   const [zoom, setZoom] = useState(BUILT_IN_DEFAULT_ZOOM)
   const [contentHeight, setContentHeight] = useState(0)
 
+  const zoomRef = useRef(zoom)
+  zoomRef.current = zoom
+  const preserveZoomRef = useRef<number | null>(null)
+
   const fit = useCallback(() => {
     const viewport = viewportRef.current
     const content = contentRef.current
     if (!viewport || !content) return
     const height = content.scrollHeight
     setContentHeight(height)
+    if (preserveZoomRef.current != null) {
+      setZoom(preserveZoomRef.current)
+      return
+    }
     setZoom(computeFitZoom(viewport.clientWidth, viewport.clientHeight, baseWidth, height))
     viewport.scrollTo({ top: 0, left: 0, behavior: "auto" })
   }, [baseWidth])
 
-  useImperativeHandle(ref, () => ({ fitToScreen: fit }), [fit])
+  useImperativeHandle(ref, () => ({
+    fitToScreen: () => {
+      preserveZoomRef.current = null
+      fit()
+    },
+    getZoom: () => zoomRef.current,
+    setZoom: (next) => {
+      const clamped = clampPreviewZoom(next)
+      preserveZoomRef.current = clamped
+      setZoom(clamped)
+      window.setTimeout(() => { if (preserveZoomRef.current === clamped) preserveZoomRef.current = null }, 400)
+    },
+  }), [fit])
 
   useLayoutEffect(() => { fit() }, [baseWidth, fit])
 
@@ -667,7 +691,7 @@ const BuiltInPreviewFrame = forwardRef<PreviewRendererHandle, { children: ReactN
 })
 
 function PreviewZoomButton({ label, onClick, disabled, children }: { label: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
-  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30">{children}</button>
+  return <button type="button" onClick={onClick} disabled={disabled} aria-label={label} title={label} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/60 transition-colors hover:bg-[#f3f4f6] hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-30">{children}</button>
 }
 
 const ZoomOutIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 4 4M7.5 10.5h6" /></svg>

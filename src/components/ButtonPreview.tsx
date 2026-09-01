@@ -153,7 +153,7 @@ export function ButtonLab({
         <div className="relative z-10 flex flex-col items-center gap-2.5">
           <ContrastBadge fg={colors.text} bg={colors.primary} label="Button text" />
           <label className="flex cursor-pointer items-center gap-1.5 text-xs text-charcoal/50" style={{ fontFamily: "var(--font-mono)" }}>
-            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} className="h-3.5 w-3.5 accent-[#20B9FA]" />
+            <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} className="h-3.5 w-3.5 accent-brand-cta" />
             preview disabled state
           </label>
         </div>
@@ -163,25 +163,25 @@ export function ButtonLab({
       <div className="grid grid-cols-2 gap-4 border-t border-softgrey bg-white p-4 sm:grid-cols-4">
         <div className="col-span-2 sm:col-span-1">
           <Label>Label</Label>
-          <input value={props.text} onChange={(e) => setProps({ ...props, text: e.target.value })} className="w-full rounded-lg border border-softgrey px-3 py-2 text-sm outline-none focus:border-[#20B9FA]" />
+          <input value={props.text} onChange={(e) => setProps({ ...props, text: e.target.value })} className="w-full rounded-lg border border-softgrey px-3 py-2 text-sm outline-none focus:border-brand-cta" />
         </div>
         <div>
           <Label>Size</Label>
           <div className="flex gap-1">
             {(["sm", "md", "lg"] as const).map((s) => (
-              <button key={s} type="button" onClick={() => setProps({ ...props, size: s })} className="flex-1 rounded-lg py-2 text-xs font-semibold uppercase" style={props.size === s ? { background: "#20B9FA", color: "#fff" } : { background: "#F1F2F4", color: "#7A818B" }}>{s}</button>
+              <button key={s} type="button" onClick={() => setProps({ ...props, size: s })} className="min-h-11 flex-1 rounded-lg py-2 text-xs font-semibold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" style={props.size === s ? { background: BRAND.cta, color: "#fff" } : { background: "#F1F2F4", color: "#0E1821" }}>{s}</button>
             ))}
           </div>
         </div>
         <div>
           <Label>Radius · {props.radius}px</Label>
-          <input type="range" min={0} max={28} value={props.radius} onChange={(e) => setProps({ ...props, radius: +e.target.value })} className="w-full accent-[#20B9FA]" />
+          <input type="range" min={0} max={28} value={props.radius} onChange={(e) => setProps({ ...props, radius: +e.target.value })} className="w-full accent-brand-cta" />
         </div>
         <div>
           <Label>Outline · {props.outline}px</Label>
-          <input type="range" min={0} max={4} step={0.5} value={props.outline} onChange={(e) => setProps({ ...props, outline: +e.target.value })} className="w-full accent-[#20B9FA]" />
+          <input type="range" min={0} max={4} step={0.5} value={props.outline} onChange={(e) => setProps({ ...props, outline: +e.target.value })} className="w-full accent-brand-cta" />
           <label className="mt-1.5 flex cursor-pointer items-center gap-1.5 text-[11px] text-charcoal/55">
-            <input type="checkbox" checked={props.shadow} onChange={(e) => setProps({ ...props, shadow: e.target.checked })} className="h-3 w-3 accent-[#20B9FA]" /> shadow
+            <input type="checkbox" checked={props.shadow} onChange={(e) => setProps({ ...props, shadow: e.target.checked })} className="h-3 w-3 accent-brand-cta" /> shadow
           </label>
         </div>
       </div>

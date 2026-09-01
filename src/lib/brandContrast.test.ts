@@ -16,6 +16,10 @@ describe("brand contrast for WCAG 2.2 AA", () => {
     expect(contrastRatio(BRAND_TEXT_ON_WHITE, "#FFFFFF")).toBeGreaterThanOrEqual(4.5)
   })
 
+  it("meets non-text contrast for CTA fills and focus rings on white", () => {
+    expect(contrastRatio(BRAND.cta, "#FFFFFF")).toBeGreaterThanOrEqual(3)
+  })
+
   it("keeps charcoal body text well above AA on off-white", () => {
     expect(contrastRatio(BRAND.charcoal, BRAND.offwhite)).toBeGreaterThanOrEqual(4.5)
   })

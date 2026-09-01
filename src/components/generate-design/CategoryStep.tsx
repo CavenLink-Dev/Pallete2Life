@@ -20,7 +20,7 @@ export default function CategoryStep({ onContinue, onBack }: Props) {
 
   return (
     <FlowShell labelId="category-title" onClose={onBack}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Full design system</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-ink">Full design system</p>
       <h2 id="category-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>What do you want to design?</h2>
       <p className="mt-2 text-[14px] text-charcoal/65">Filter templates by format. This only narrows the list — it won&apos;t change your current work.</p>
 
@@ -33,7 +33,7 @@ export default function CategoryStep({ onContinue, onBack }: Props) {
               type="button"
               onClick={() => setSelected(option.category)}
               aria-pressed={active}
-              className={`flex flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2 ${active ? "border-[#20B9FA] bg-[#20B9FA]/5" : "border-softgrey hover:border-charcoal/25"}`}
+              className={`flex min-h-11 flex-col items-start gap-2 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 ${active ? "border-brand-cta bg-brand-cta/5" : "border-softgrey hover:border-charcoal/25"}`}
             >
               <span className="grid h-10 w-10 place-items-center rounded-lg bg-offwhite text-charcoal/50">{option.icon}</span>
               <span className="text-[14px] font-bold">{option.label}</span>

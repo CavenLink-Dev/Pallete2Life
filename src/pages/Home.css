@@ -255,6 +255,11 @@
   .home-hero-cta .home-btn { width: 100%; }
 }
 
+@media (max-width: 360px) {
+  .home-wrap { padding: 0 12px; }
+  .home-nav-inner { height: auto; min-height: 56px; padding: 8px 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hueset-home * { transition: none !important; scroll-behavior: auto !important; }
 }

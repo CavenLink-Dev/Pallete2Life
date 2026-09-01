@@ -18,7 +18,7 @@ export default function Contact() {
           <a
             href="mailto:cavenlink.dev@gmail.com"
             className="mt-1 block text-[20px] font-bold underline"
-            style={{ color: BRAND.brand, fontFamily: "var(--font-display)" }}
+            style={{ color: BRAND.cta, fontFamily: "var(--font-display)" }}
           >
             cavenlink.dev@gmail.com
           </a>

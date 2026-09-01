@@ -1,5 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from "react"
-import { readableOn, withAlpha } from "../lib/color"
+import { readableOn, withAlpha, BRAND } from "../lib/color"
 import { StyledButton, type ButtonProps, type ButtonStyle, type Trio } from "./ButtonPreview"
 import {
   buttonPadding,
@@ -83,7 +83,7 @@ export function Editable({ id, label, color, prop = "color", as = "div", classNa
     : children
 
   const editStyle: CSSProperties = edit
-    ? { outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha("#20B9FA", selected ? 0.95 : 0.7)}`, outlineOffset: 2, cursor: "pointer", borderRadius: 4 }
+    ? { outline: `${selected ? 2 : 1.5}px ${selected ? "solid" : "dashed"} ${withAlpha(BRAND.cta, selected ? 0.95 : 0.7)}`, outlineOffset: 2, cursor: "pointer", borderRadius: 4 }
     : {}
 
   return (
@@ -171,7 +171,7 @@ export function PreviewButton({ id, label = "Button", text, size }: { id: string
         ["--token-focus-offset" as string]: `${ctx.tokenSystem.state.focusRing.offset}px`,
         ["--token-disabled-opacity" as string]: ctx.tokenSystem.state.disabledOpacity,
         ["--token-hover-opacity" as string]: ctx.tokenSystem.state.hoverOpacity,
-        outline: selected ? "2px solid #20B9FA" : undefined,
+        outline: selected ? `2px solid ${BRAND.cta}` : undefined,
         outlineOffset: selected ? 3 : undefined,
       }}
       onEditClick={ctx.editMode ? () => ctx.selectElement({ id: fullId, kind: "button", label, defaults: { text: text ?? ctx.buttonProps.text } }) : undefined}

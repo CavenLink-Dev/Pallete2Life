@@ -25,11 +25,11 @@ export default function TemplateStep({ category, onApply, onBack, onChangeCatego
     <FlowShell labelId="template-title" onClose={onBack} wide>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Choose a template</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-ink">Choose a template</p>
           <h2 id="template-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>Pick a starting layout</h2>
           <p className="mt-1 text-[13px] text-charcoal/60">Browse and select a template. Nothing changes until you apply it.</p>
         </div>
-        <button type="button" onClick={onChangeCategory} className="shrink-0 text-[12px] font-semibold text-[#20B9FA] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]">
+        <button type="button" onClick={onChangeCategory} className="shrink-0 text-[12px] font-semibold text-brand-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">
           Change category
         </button>
       </div>
@@ -47,7 +47,7 @@ export default function TemplateStep({ category, onApply, onBack, onChangeCatego
                     type="button"
                     onClick={() => setSelectedId(asset.id)}
                     aria-pressed={active}
-                    className={`flex flex-col items-start gap-1.5 rounded-lg border-2 p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-1 ${active ? "border-[#20B9FA] bg-[#20B9FA]/5" : "border-softgrey hover:border-charcoal/25"}`}
+                    className={`flex min-h-11 flex-col items-start gap-1.5 rounded-lg border-2 p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-1 ${active ? "border-brand-cta bg-brand-cta/5" : "border-softgrey hover:border-charcoal/25"}`}
                   >
                     <LiveTemplateThumb asset={asset} />
                     <span className="text-[12px] font-semibold leading-tight">{asset.name}</span>

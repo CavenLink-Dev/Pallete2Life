@@ -62,13 +62,13 @@ export default function TokenSystemPanel({ open, system, palette, theme, onChang
             <h2 id="token-system-title" className="text-[20px] font-bold" style={{ fontFamily: "var(--font-display)" }}>Token system</h2>
             <p className="mt-1 text-[12px] text-charcoal/55">Start with understandable choices. HueSet keeps the technical token names underneath.</p>
           </div>
-          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close token system" title="Close"><CloseIcon /></button>
+          <button type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-softgrey text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2" aria-label="Close token system" title="Close"><CloseIcon /></button>
         </header>
 
         <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           <nav className="flex shrink-0 overflow-x-auto border-b border-softgrey bg-[#fafafa] p-2 md:w-[210px] md:flex-col md:border-b-0 md:border-r" aria-label="Token layers">
             {LAYERS.map((item, index) => (
-              <button key={item.key} type="button" onClick={() => setLayer(item.key)} className={`min-h-11 min-w-[150px] rounded-[7px] px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset md:min-w-0 ${layer === item.key ? "bg-white text-charcoal shadow-sm ring-1 ring-softgrey" : "text-charcoal/55 hover:bg-white/70 hover:text-charcoal"}`} aria-current={layer === item.key ? "step" : undefined}>
+              <button key={item.key} type="button" onClick={() => setLayer(item.key)} className={`min-h-11 min-w-[150px] rounded-[7px] px-3 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-inset md:min-w-0 ${layer === item.key ? "bg-white text-charcoal shadow-sm ring-1 ring-softgrey" : "text-charcoal/55 hover:bg-white/70 hover:text-charcoal"}`} aria-current={layer === item.key ? "step" : undefined}>
                 <span className="flex items-center gap-2 text-[12px] font-bold"><span className="grid h-5 w-5 place-items-center rounded-full bg-charcoal text-[10px] text-white">{index + 1}</span>{item.label}</span>
                 <span className="mt-1 hidden pl-7 text-[10.5px] leading-4 text-charcoal/45 md:block">{item.note}</span>
               </button>
@@ -186,7 +186,7 @@ function NumberControl({ label, note, value, min, max, step = 1, suffix, onChang
 }
 
 function SelectControl({ label, note, value, options, onChange }: { label: string; note?: string; value: string; options: (string | string[])[][] | string[][]; onChange: (value: string) => void }) {
-  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-charcoal/65">{label}{note && <span className="ml-1 font-normal text-charcoal/35">{note}</span>}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-[7px] border border-softgrey bg-white px-3 text-[12px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">{options.map((option) => { const pair = option as string[]; return <option key={pair[0]} value={pair[0]}>{pair[1] ?? pair[0]}</option> })}</select></label>
+  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-charcoal/65">{label}{note && <span className="ml-1 font-normal text-charcoal/35">{note}</span>}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-[7px] border border-softgrey bg-white px-3 text-[12px] font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2">{options.map((option) => { const pair = option as string[]; return <option key={pair[0]} value={pair[0]}>{pair[1] ?? pair[0]}</option> })}</select></label>
 }
 
 function SemanticSelect({ label, value, onChange }: { label: string; value: SemanticColourKey; onChange: (value: SemanticColourKey) => void }) {

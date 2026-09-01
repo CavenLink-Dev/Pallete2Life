@@ -69,7 +69,7 @@ export default function PropertiesPanel(p: Props) {
         <button
           type="button"
           onClick={p.onHelp}
-          className="flex items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-2.5 py-2 text-[13px] font-semibold text-[#6b7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex items-center gap-2 rounded-[10px] border border-[#e5e7eb] bg-white px-2.5 py-2 text-[13px] font-semibold text-[#6b7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
         >
           <HelpCircleIcon /> Help
         </button>
@@ -129,7 +129,7 @@ export default function PropertiesPanel(p: Props) {
           <button
             type="button"
             onClick={p.onHierarchySet}
-            className="rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 py-1.5 text-[11px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+            className="rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 py-1.5 text-[11px] font-semibold text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           >Set</button>
         </div>
       </Section>
@@ -155,7 +155,7 @@ export default function PropertiesPanel(p: Props) {
         <button
           type="button"
           onClick={p.onInsertBrand}
-          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
         >
           <SparklesIcon /> Insert Brand
         </button>
@@ -167,7 +167,7 @@ export default function PropertiesPanel(p: Props) {
         <button
           type="button"
           onClick={p.onFullscreen}
-          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+          className="flex h-[36px] w-[129px] items-center gap-2 rounded-[5px] border border-[#e5e7eb] bg-[#f3f4f6] px-3 text-[13px] font-semibold text-[#7b7b7b] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
         >
           <MaximizeIcon /> Full screen
         </button>
@@ -184,9 +184,9 @@ export default function PropertiesPanel(p: Props) {
         <button
           type="button"
           onClick={p.onTogglePro}
-          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.24px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.24px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${
             p.isPro
-              ? "border-[#1f9eff] bg-[#1f9eff] text-white"
+              ? "border-brand-cta bg-brand-cta text-white"
               : "border-[#e5e7eb] bg-white text-[#9ca3af] hover:text-[#111827]"
           }`}
           title={p.isPro ? "Pro is on — click to switch back to Free" : "Switch to Pro"}
@@ -242,7 +242,7 @@ function InfoDot({ text, label }: { text?: string; label: string }) {
         title={text ?? ""}
         aria-label={`About ${label}`}
         aria-expanded={open}
-        className="grid h-[15px] w-[15px] cursor-help place-items-center rounded-full bg-[#1f9eff] text-[10px] font-bold italic text-white transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+        className="grid h-6 w-6 cursor-help place-items-center rounded-full bg-brand-cta text-[10px] font-bold italic text-white transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
       >
         i
       </button>
@@ -272,7 +272,7 @@ function Chip({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[5px] border px-2.5 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] ${
+      className={`rounded-[5px] border px-2.5 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta ${
         active
           ? "border-[#0e1821] bg-[#0e1821] text-white"
           : disabled
@@ -344,7 +344,7 @@ function ColourPill({ hex, onOpen }: { hex: string; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="flex h-[35px] items-center gap-2 rounded-l-[7.776px] border border-[#d7d9dd] bg-white pl-[5px] pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+      className="flex h-[35px] items-center gap-2 rounded-l-[7.776px] border border-[#d7d9dd] bg-white pl-[5px] pr-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
       aria-label="Edit colour"
       title="Open colour editor"
     >
@@ -370,7 +370,7 @@ function IconMiniBtn({ children, onClick, title }: { children: React.ReactNode; 
       onClick={onClick}
       title={title}
       aria-label={title ?? ""}
-      className="grid h-[28px] w-[28px] place-items-center rounded-[5px] border border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]"
+      className="grid h-[28px] w-[28px] place-items-center rounded-[5px] border border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
     >{children}</button>
   )
 }
@@ -381,7 +381,7 @@ function PillBtn({ label, icon, onClick, disabled }: { label: string; icon: Reac
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex h-[36px] items-center justify-center gap-1.5 rounded-[8px] border border-[#d7d9dd] bg-white px-2 text-[12px] font-semibold text-[#4b5563] transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex h-[36px] items-center justify-center gap-1.5 rounded-[8px] border border-[#d7d9dd] bg-white px-2 text-[12px] font-semibold text-[#4b5563] transition-colors hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta disabled:cursor-not-allowed disabled:opacity-40"
       aria-label={label}
       title={label}
       style={DISPLAY_FONT}

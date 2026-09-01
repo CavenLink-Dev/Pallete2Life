@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import ConfirmDialog from "../components/ConfirmDialog"
 import { useDialogFocus } from "./useDialogFocus"
 
@@ -15,26 +15,27 @@ function TrapExample() {
 }
 
 describe("dialog keyboard behavior", () => {
-  it("moves initial focus into the dialog and restores it on close", () => {
+  it("moves initial focus into the dialog and restores it on close", async () => {
     const opener = document.createElement("button")
     opener.textContent = "Open"
     document.body.append(opener)
     opener.focus()
 
     const { unmount } = render(<TrapExample />)
-    expect(screen.getByRole("button", { name: "First" })).toHaveFocus()
+    await waitFor(() => expect(screen.getByRole("button", { name: "First" })).toHaveFocus())
 
     unmount()
     expect(opener).toHaveFocus()
     opener.remove()
   })
 
-  it("cycles Tab from the last control back to the first", () => {
+  it("cycles Tab from the last control back to the first", async () => {
     render(<TrapExample />)
     const first = screen.getByRole("button", { name: "First" })
     const last = screen.getByRole("button", { name: "Last" })
+    await waitFor(() => expect(first).toHaveFocus())
     last.focus()
-    fireEvent.keyDown(last, { key: "Tab" })
+    fireEvent.keyDown(document, { key: "Tab" })
     expect(first).toHaveFocus()
   })
 
@@ -51,7 +52,7 @@ describe("dialog keyboard behavior", () => {
       />,
     )
 
-    fireEvent.keyDown(window, { key: "Escape" })
+    fireEvent.keyDown(document, { key: "Escape" })
     expect(onCancel).toHaveBeenCalled()
   })
 })

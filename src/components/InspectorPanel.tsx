@@ -54,7 +54,7 @@ export default function InspectorPanel(p: Props) {
 
         <section aria-labelledby="actions-title">
           <h3 id="actions-title" className="mb-2 text-[11px] font-bold uppercase text-[#6b7280]">Actions</h3>
-          <button type="button" onClick={p.onRandomize} className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[8px] bg-[#0e1821] px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2">
+          <button type="button" onClick={p.onRandomize} className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[8px] bg-[#0e1821] px-4 text-[14px] font-semibold text-white shadow-sm hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2">
             <DiceIcon /> Randomise safely
           </button>
           <div className="mt-2 grid grid-cols-3 gap-2">
@@ -152,12 +152,12 @@ function ProjectControls(p: Props & { selectedTarget?: PaletteOption }) {
           <span className="text-[11px] font-semibold text-[#4b5563]">Palette colour</span>
           <span className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 rounded-[4px] border border-black/10" style={{ background: p.selectedTarget?.hex }} />
-            <select value={p.roleTargetId} onChange={(event) => p.onRoleTarget(event.target.value)} className="h-11 w-full rounded-[7px] border border-[#d7d9dd] bg-white pl-10 pr-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2">
+            <select value={p.roleTargetId} onChange={(event) => p.onRoleTarget(event.target.value)} className="h-11 w-full rounded-[7px] border border-[#d7d9dd] bg-white pl-10 pr-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2">
               {p.paletteOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
             </select>
           </span>
         </label>
-        <button type="button" onClick={p.onRoleSet} disabled={p.roleSetDisabled} className="h-11 rounded-[7px] bg-[#111827] px-4 text-[13px] font-bold text-white hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#e5e7eb] disabled:text-[#9ca3af]">Set mapping</button>
+        <button type="button" onClick={p.onRoleSet} disabled={p.roleSetDisabled} className="h-11 rounded-[7px] bg-[#111827] px-4 text-[13px] font-bold text-white hover:bg-[#1f2937] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-[#e5e7eb] disabled:text-[#9ca3af]">Set mapping</button>
         {p.roleMessage && <p role="status" className={`rounded-[7px] px-3 py-2 text-[12px] leading-relaxed ${p.roleMessage.tone === "error" ? "bg-[#fef2f2] text-[#b42318]" : p.roleMessage.tone === "success" ? "bg-[#ecfdf3] text-[#067647]" : "bg-[#f3f4f6] text-[#4b5563]"}`}>{p.roleMessage.text}</p>}
       </div>
     </section>
@@ -181,7 +181,7 @@ function AccessibilitySection({ checks, compact = false }: { checks: Accessibili
 }
 
 function ControlDisclosure({ title, badge, children }: { title: string; badge?: string; children: React.ReactNode }) {
-  return <details className="group rounded-[7px] border border-[#e5e7eb] bg-white"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[7px] px-3 text-[12px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2"><span>{title}</span><span className="flex items-center gap-2">{badge && <span className="text-[10.5px] font-bold text-[#6b7280]">{badge}</span>}<ChevronIcon /></span></summary><div className="grid gap-3 border-t border-[#e5e7eb] p-3">{children}</div></details>
+  return <details className="group rounded-[7px] border border-[#e5e7eb] bg-white"><summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[7px] px-3 text-[12px] font-semibold text-[#4b5563] hover:bg-[#f9fafb] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"><span>{title}</span><span className="flex items-center gap-2">{badge && <span className="text-[10.5px] font-bold text-[#6b7280]">{badge}</span>}<ChevronIcon /></span></summary><div className="grid gap-3 border-t border-[#e5e7eb] p-3">{children}</div></details>
 }
 
 function SummarySection({ title, items }: { title: string; items: string[] }) {
@@ -189,11 +189,11 @@ function SummarySection({ title, items }: { title: string; items: string[] }) {
 }
 
 function TextControl({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string }) {
-  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-[#4b5563]">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-[7px] border border-[#d7d9dd] px-3 text-[13px] text-[#374151] outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2" /></label>
+  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-[#4b5563]">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 rounded-[7px] border border-[#d7d9dd] px-3 text-[13px] text-[#374151] outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2" /></label>
 }
 
 function SelectControl({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
-  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-[#4b5563]">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-[7px] border border-[#d7d9dd] bg-white px-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2">{options.map((option) => <option key={option} value={option}>{humanize(option)}</option>)}</select></label>
+  return <label className="grid gap-1"><span className="text-[11px] font-semibold text-[#4b5563]">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-11 rounded-[7px] border border-[#d7d9dd] bg-white px-3 text-[13px] font-semibold text-[#374151] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2">{options.map((option) => <option key={option} value={option}>{humanize(option)}</option>)}</select></label>
 }
 
 function TokenControl(props: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }) {
@@ -201,15 +201,15 @@ function TokenControl(props: { label: string; value: string; options: readonly s
 }
 
 function ToggleControl({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <label className="flex min-h-11 items-center justify-between rounded-[7px] border border-[#d7d9dd] px-3 py-2.5"><span className="text-[12px] font-semibold text-[#4b5563]">{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-[#20b9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff]" /></label>
+  return <label className="flex min-h-11 items-center justify-between rounded-[7px] border border-[#d7d9dd] px-3 py-2.5"><span className="text-[12px] font-semibold text-[#4b5563]">{label}</span><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="h-5 w-5 accent-[#20b9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" /></label>
 }
 
 function ActionButton({ children, icon, onClick, disabled, strong }: { children: React.ReactNode; icon: React.ReactNode; onClick: () => void; disabled?: boolean; strong?: boolean }) {
-  return <button type="button" onClick={onClick} disabled={disabled} className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-[7px] border px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${strong ? "w-full border-[#d7d9dd] bg-[#f3f4f6] text-[#111827] hover:bg-[#e9eaec]" : "border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827]"}`}>{icon}<span className="truncate">{children}</span></button>
+  return <button type="button" onClick={onClick} disabled={disabled} className={`flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-[7px] border px-2 text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${strong ? "w-full border-[#d7d9dd] bg-[#f3f4f6] text-[#111827] hover:bg-[#e9eaec]" : "border-[#e5e7eb] bg-white text-[#4b5563] hover:text-[#111827]"}`}>{icon}<span className="truncate">{children}</span></button>
 }
 
 function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
-  return <button type="button" onClick={onClick} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f9eff] focus-visible:ring-offset-2" aria-label={label} title={label}>{children}</button>
+  return <button type="button" onClick={onClick} className="grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border border-[#e5e7eb] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2" aria-label={label} title={label}>{children}</button>
 }
 
 const Divider = () => <div className="h-px bg-[#e5e7eb]" />

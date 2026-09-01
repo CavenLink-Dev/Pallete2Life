@@ -8,7 +8,7 @@ export default function InspectorShell({ onClose, className = "" }: Props) {
     <aside className={`flex min-h-0 flex-col bg-white ${className}`} aria-label="Inspector">
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-softgrey px-3">
         <h2 className="text-[13px] font-bold">Inspector</h2>
-        <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" aria-label="Collapse inspector" title="Collapse inspector">
+        <button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-[7px] text-charcoal/55 hover:bg-offwhite hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" aria-label="Collapse inspector" title="Collapse inspector">
           <CollapseIcon />
         </button>
       </header>

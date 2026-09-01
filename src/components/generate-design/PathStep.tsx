@@ -32,7 +32,7 @@ const OPTIONS: {
 export default function PathStep({ onContinue, onCancel }: Props) {
   return (
     <FlowShell labelId="path-title" onClose={onCancel}>
-      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#20B9FA]">Get started</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand-ink">Get started</p>
       <h2 id="path-title" className="mt-1 text-[24px] font-bold leading-tight" style={{ fontFamily: "var(--font-display)" }}>
         How would you like to begin?
       </h2>
@@ -44,14 +44,14 @@ export default function PathStep({ onContinue, onCancel }: Props) {
             key={option.path}
             type="button"
             onClick={() => onContinue(option.path)}
-            className={`flex flex-col items-start gap-1 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA] focus-visible:ring-offset-2 ${
+            className={`flex min-h-11 flex-col items-start gap-1 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 ${
               option.primary
-                ? "border-[#20B9FA] bg-[#20B9FA]/5 hover:bg-[#20B9FA]/10"
+                ? "border-brand-cta bg-brand-cta/5 hover:bg-brand-cta/10"
                 : "border-softgrey hover:border-charcoal/25"
             }`}
           >
             <span className="text-[15px] font-bold">{option.title}</span>
-            <span className="text-[12px] font-semibold text-[#20B9FA]">{option.timing}</span>
+            <span className="text-[12px] font-semibold text-brand-ink">{option.timing}</span>
             <span className="text-[12px] leading-relaxed text-charcoal/60">{option.description}</span>
           </button>
         ))}

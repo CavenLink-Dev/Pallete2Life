@@ -106,7 +106,7 @@ export default function ColorEditor({ hex, alpha, onChange, onClose }: Props) {
         <button
           type="button"
           onClick={onClose}
-          className="grid h-7 w-7 place-items-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          className="grid h-7 w-7 place-items-center rounded-md text-white/70 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           aria-label="Close colour editor"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -138,7 +138,7 @@ export default function ColorEditor({ hex, alpha, onChange, onClose }: Props) {
         <button
           type="button"
           onClick={eyedrop}
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white/80 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-white/80 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           aria-label="Pick colour from screen"
           title="Pick colour from screen"
         >
@@ -197,7 +197,7 @@ export default function ColorEditor({ hex, alpha, onChange, onClose }: Props) {
         <select
           value={format}
           onChange={(e) => setFormat(e.target.value as Format)}
-          className="rounded-md border border-white/15 bg-[#2A2A2A] px-2 py-1.5 text-[11.5px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          className="rounded-md border border-white/15 bg-[#2A2A2A] px-2 py-1.5 text-[11.5px] font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           aria-label="Format"
         >
           <option>Hex</option><option>RGB</option><option>HSL</option>
@@ -207,7 +207,7 @@ export default function ColorEditor({ hex, alpha, onChange, onClose }: Props) {
           onChange={(e) => setValueField(e.target.value.toUpperCase())}
           onBlur={commitValueField}
           onKeyDown={(e) => { if (e.key === "Enter") { commitValueField(); (e.target as HTMLInputElement).blur() } }}
-          className="flex-1 rounded-md border border-white/15 bg-[#2A2A2A] px-2.5 py-1.5 text-[11.5px] font-mono text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#20B9FA]"
+          className="flex-1 rounded-md border border-white/15 bg-[#2A2A2A] px-2.5 py-1.5 text-[11.5px] font-mono text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
           spellCheck={false}
           aria-label="Colour value"
         />
