@@ -13,9 +13,12 @@ export type Route =
   | "/privacy"
   | "/terms"
   | "/contact"
+  | "/learn"
+  | "/examples"
+  | "/about"
   | "/404"
 
-const KNOWN: Route[] = ["/", "/app", "/generate", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]
+const KNOWN: Route[] = ["/", "/app", "/generate", "/builder", "/preview", "/live-changes", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact", "/learn", "/examples", "/about"]
 const NAV_EVENT = "pallet-preview:navigate"
 
 /** Returns true for any pathname the router knows about (including legacy aliases). */

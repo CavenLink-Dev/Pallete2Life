@@ -3,7 +3,7 @@ import { isKnownRoute } from "./router"
 
 describe("isKnownRoute", () => {
   it("returns true for all app routes", () => {
-    for (const route of ["/", "/app", "/generate", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact"]) {
+    for (const route of ["/", "/app", "/generate", "/quick-design", "/pricing", "/help", "/privacy", "/terms", "/contact", "/learn", "/examples", "/about"]) {
       expect(isKnownRoute(route), `Expected ${route} to be known`).toBe(true)
     }
   })

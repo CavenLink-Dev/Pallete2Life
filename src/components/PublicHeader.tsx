@@ -1,8 +1,10 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { BRAND } from "../lib/color"
 import { useNav, useRoute, type Route } from "../lib/router"
 
 const NAV: { to: Route; label: string }[] = [
+  { to: "/learn", label: "Learn" },
+  { to: "/examples", label: "Examples" },
   { to: "/app", label: "Open HueSet" },
   { to: "/quick-design", label: "Quick Design" },
   { to: "/help", label: "Help" },
@@ -23,6 +25,53 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
   const [route] = useRoute()
   const nav = useNav()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuBtnRef = useRef<HTMLButtonElement>(null)
+
+  // Escape to close + click-outside
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false)
+        menuBtnRef.current?.focus()
+      }
+    }
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) && !menuBtnRef.current?.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    window.addEventListener("mousedown", onClick)
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      window.removeEventListener("mousedown", onClick)
+    }
+  }, [menuOpen])
+
+  // Focus trap inside mobile menu
+  useEffect(() => {
+    if (!menuOpen || !menuRef.current) return
+    const menu = menuRef.current
+    const focusable = menu.querySelectorAll<HTMLElement>("a, button, input, [tabindex]")
+    if (focusable.length) focusable[0].focus()
+
+    const onKeydown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab" || !focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    menu.addEventListener("keydown", onKeydown)
+    return () => menu.removeEventListener("keydown", onKeydown)
+  }, [menuOpen])
 
   return (
     <header className="relative flex shrink-0 items-center justify-between gap-3 border-b border-softgrey/70 bg-white/90 px-3 py-2.5 backdrop-blur sm:px-5">
@@ -54,7 +103,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                 key={n.to}
                 href={n.to}
                 onClick={nav(n.to)}
-                className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-2 text-[12.5px] font-semibold outline-none transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 xl:px-3"
+                className="inline-flex min-h-11 items-center rounded-lg px-2.5 py-2 text-[13px] font-semibold outline-none transition-colors hover:bg-offwhite hover:text-charcoal focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 xl:px-3"
                 style={on ? { color: BRAND.cta, background: "rgba(11,111,154,0.10)" } : { color: BRAND.medgrey }}
                 aria-current={on ? "page" : undefined}
               >
@@ -73,20 +122,21 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
           <>
             {/* Mobile menu button */}
             <button
+              ref={menuBtnRef}
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-              className="min-h-11 rounded-lg border border-softgrey bg-white px-3 py-2 text-[12px] font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta lg:hidden"
+              className="min-h-11 rounded-lg border border-softgrey bg-white px-3 py-2 text-[13px] font-semibold text-charcoal/75 transition-colors hover:border-charcoal/30 hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta lg:hidden"
             >
               Menu
             </button>
             <a
               href="/pricing"
               onClick={nav("/pricing")}
-              className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3.5 py-2 text-[12.5px] font-bold text-white shadow-md transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-cta sm:flex"
-              style={{ background: BRAND.cta, boxShadow: `0 6px 18px ${BRAND.cta}30` }}
+              className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-bold text-white shadow-md transition-[opacity,transform] hover:-translate-y-0.5 hover:opacity-95 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-cta sm:flex"
+              style={{ background: "#0A6288", boxShadow: `0 6px 18px ${BRAND.cta}30` }}
             >
               Go Pro +
             </a>
@@ -98,6 +148,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
       {menuOpen && !compact && (
         <div
           id="mobile-menu"
+          ref={menuRef}
           className="absolute left-0 right-0 top-full z-30 border-b border-softgrey bg-white shadow-md lg:hidden"
         >
           <nav className="flex flex-col gap-0.5 p-2" aria-label="Primary mobile">
@@ -109,7 +160,7 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                   nav(n.to)(e)
                   setMenuOpen(false)
                 }}
-                className="flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-charcoal/80 hover:bg-offwhite"
+                className="flex min-h-11 items-center rounded-md px-3 py-2 text-[14px] font-semibold text-charcoal/80 hover:bg-offwhite"
               >
                 {n.label}
               </a>
@@ -120,8 +171,8 @@ export default function PublicHeader({ compact, rightSlot }: Props) {
                 nav("/pricing")(e)
                 setMenuOpen(false)
               }}
-              className="mt-1 min-h-11 rounded-md px-3 py-2 text-sm font-bold text-white"
-              style={{ background: BRAND.cta }}
+              className="mt-1 flex min-h-11 items-center rounded-md px-3 py-2 text-[14px] font-bold text-white"
+              style={{ background: "#0A6288" }}
             >
               Go Pro +
             </a>

@@ -16,7 +16,8 @@ describe("Home", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Disabled/ }))
     expect(screen.getByRole("button", { name: /^Disabled/ }).getAttribute("aria-pressed")).toBe("true")
-    expect(screen.getAllByRole("button", { name: "Example" })[1].hasAttribute("disabled")).toBe(true)
+    // Disabled state renders as a non-interactive element (role="img") so keyboard users aren't trapped
+    expect(screen.getByRole("img", { name: "Disabled button preview" })).toBeTruthy()
   })
 
   it("opens and dismisses the accessible navigation menu", () => {

@@ -60,6 +60,21 @@ export const PAGE_META: Record<string, PageMeta> = {
     description: "Terms for using HueSet. Provided as-is during early access.",
     path: "/terms",
   },
+  "/learn": {
+    title: `Learn — ${SITE_NAME}`,
+    description: "Learn how experienced designers make good decisions about colour, type, layout, accessibility, and design systems.",
+    path: "/learn",
+  },
+  "/examples": {
+    title: `Examples — ${SITE_NAME}`,
+    description: "Browse original HueSet examples for websites, apps, dashboards, pricing, authentication, and components.",
+    path: "/examples",
+  },
+  "/about": {
+    title: `About — ${SITE_NAME}`,
+    description: "About HueSet — a visual design and colour testing tool that sits between a palette generator and a professional design app.",
+    path: "/about",
+  },
   "/404": {
     title: `Page not found — ${SITE_NAME}`,
     description: "The page you requested could not be found on HueSet.",

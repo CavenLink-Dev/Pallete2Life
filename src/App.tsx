@@ -14,6 +14,9 @@ import Terms from "./pages/Terms"
 import Contact from "./pages/Contact"
 import QuickDesign from "./pages/QuickDesign"
 import GenerateDesign from "./pages/GenerateDesign"
+import Learn from "./pages/Learn"
+import Examples from "./pages/Examples"
+import About from "./pages/About"
 import { BRAND } from "./lib/color"
 
 export default function App() {
@@ -56,6 +59,9 @@ export default function App() {
       case "/privacy":  page = <Privacy />;  break
       case "/terms":    page = <Terms />;    break
       case "/contact":  page = <Contact />;  break
+      case "/learn":    page = <Learn />;    break
+      case "/examples": page = <Examples />; break
+      case "/about":    page = <About />;    break
       case "/":
       default:          page = <Home />;     break
     }

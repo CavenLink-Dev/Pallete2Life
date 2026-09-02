@@ -12,6 +12,7 @@ export default function PublicFooter() {
           <a href="/privacy" onClick={nav("/privacy")} className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">Privacy</a>
           <a href="/terms" onClick={nav("/terms")} className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">Terms</a>
           <a href="/contact" onClick={nav("/contact")} className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">Contact</a>
+          <a href="/about" onClick={nav("/about")} className="inline-flex min-h-11 items-center rounded-sm transition-colors hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta">About</a>
         </nav>
       </div>
     </footer>
