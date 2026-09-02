@@ -9,7 +9,7 @@ export default function Terms() {
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-14 sm:py-20">
+      <main id="main-content" className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-14 sm:py-20">
         <h1 className="text-[32px] font-bold sm:text-[40px]" style={{ fontFamily: "var(--font-display)" }}>Terms of Service</h1>
         <p className="text-[13px] text-charcoal/50">Last updated: {LAST_UPDATED}</p>
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] text-amber-950">

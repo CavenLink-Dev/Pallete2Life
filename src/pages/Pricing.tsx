@@ -1,5 +1,5 @@
 import { BRAND } from "../lib/color"
-import { buildNotifyMeMailto } from "../lib/contactSupport"
+import { buildNotifyMeMailto, SUPPORT_EMAIL } from "../lib/contactSupport"
 import { FEATURE_LABELS, PAYMENTS_ENABLED, PLAN_FEATURES, PRICING } from "../lib/entitlement"
 import { useNav } from "../lib/router"
 import PublicHeader from "../components/PublicHeader"
@@ -11,7 +11,7 @@ export default function Pricing() {
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-14 sm:py-20">
+      <main id="main-content" className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-14 sm:py-20">
         <div className="text-center">
           <h1 className="text-[32px] font-bold sm:text-[46px]" style={{ fontFamily: "var(--font-display)" }}>
             Simple pricing
@@ -91,7 +91,7 @@ export default function Pricing() {
           >
             <span
               className="absolute right-5 top-5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
-              style={{ background: BRAND.cta }}
+              style={{ background: "#0A6288" }}
             >
               Recommended
             </span>
@@ -115,7 +115,7 @@ export default function Pricing() {
                 href="/app"
                 onClick={nav("/app")}
                 className="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-                style={{ background: BRAND.cta }}
+                style={{ background: "#0A6288" }}
               >
                 Open HueSet
               </a>
@@ -123,7 +123,7 @@ export default function Pricing() {
               <a
                 href={buildNotifyMeMailto("pro")}
                 className="mt-auto inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-                style={{ background: BRAND.cta }}
+                style={{ background: "#0A6288" }}
               >
                 Notify me
               </a>
@@ -131,9 +131,17 @@ export default function Pricing() {
           </div>
         </div>
 
-        <p className="text-center text-[13px] text-charcoal/55">
-          Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how HueSet works</a>.
-        </p>
+        <div className="flex flex-col items-center gap-2 text-center text-[13px] text-charcoal/55">
+          <p>
+            Not sure yet? <a href="/help" onClick={nav("/help")} className="font-semibold underline">See how HueSet works</a>.
+          </p>
+          {!PAYMENTS_ENABLED && (
+            <p>
+              Notify Me opens your email client. If it does not open, email{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="font-semibold underline">{SUPPORT_EMAIL}</a> directly.
+            </p>
+          )}
+        </div>
       </main>
       <PublicFooter />
     </div>

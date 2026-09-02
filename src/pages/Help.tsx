@@ -12,7 +12,7 @@ export default function Help() {
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-14 sm:py-20">
+      <main id="main-content" className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-14 sm:py-20">
         <div>
           <h1 className="text-[32px] font-bold sm:text-[42px]" style={{ fontFamily: "var(--font-display)" }}>Help & guide</h1>
           <p className="mt-3 text-[15px] text-charcoal/65">
@@ -22,7 +22,7 @@ export default function Help() {
             type="button"
             onClick={() => setGuideOpen(true)}
             className="mt-4 min-h-11 rounded-lg px-4 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-            style={{ background: BRAND.cta }}
+            style={{ background: "#0A6288" }}
           >
             Replay the HueSet guide
           </button>
@@ -81,6 +81,15 @@ export default function Help() {
           {!PAYMENTS_ENABLED && (
             <p className="mt-2">Export checkout is not live during early access. See <a href="/pricing" onClick={nav("/pricing")} className="font-semibold underline" style={{ color: BRAND.cta }}>Pricing</a> for planned export and Pro tiers.</p>
           )}
+        </Section>
+
+        <Section title="Learn more">
+          <p>
+            Want to understand colour theory, typography, layout, and accessibility in more depth?
+            Visit the{" "}
+            <a href="/learn" onClick={nav("/learn")} className="font-semibold underline" style={{ color: BRAND.cta }}>Learn</a>{" "}
+            page for practical design lessons.
+          </p>
         </Section>
 
         <Section title="Still stuck?">

@@ -15,13 +15,23 @@ export default function Contact() {
   const [browser, setBrowser] = useState(() => detectBrowserLabel())
   const [description, setDescription] = useState("")
   const [steps, setSteps] = useState("")
+  const [copied, setCopied] = useState(false)
 
   const canSubmit = description.trim().length > 0
+
+  const copyEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {
+      /* clipboard API not available — the email is visible */
+    })
+  }
 
   return (
     <div className="flex min-h-full flex-col bg-offwhite">
       <PublicHeader />
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-14 sm:py-20">
+      <main id="main-content" className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-14 sm:py-20">
         <div>
           <h1 className="text-[32px] font-bold sm:text-[40px]" style={{ fontFamily: "var(--font-display)" }}>Contact</h1>
           <p className="mt-3 text-[15px] text-charcoal/65">
@@ -29,20 +39,35 @@ export default function Contact() {
           </p>
         </div>
 
+        {/* Email card with copy fallback */}
         <div className="rounded-2xl border border-softgrey bg-white p-6">
           <p className="text-[13px] font-semibold uppercase tracking-wide text-charcoal/45">Email</p>
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className="mt-1 block text-[20px] font-bold underline"
-            style={{ color: BRAND.cta, fontFamily: "var(--font-display)" }}
-          >
-            {SUPPORT_EMAIL}
-          </a>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="text-[20px] font-bold underline"
+              style={{ color: BRAND.cta, fontFamily: "var(--font-display)" }}
+            >
+              {SUPPORT_EMAIL}
+            </a>
+            <button
+              type="button"
+              onClick={copyEmail}
+              className="min-h-9 rounded-lg border border-softgrey bg-offwhite px-3 py-1 text-[12px] font-semibold text-charcoal/70 transition-colors hover:border-charcoal/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
+            >
+              {copied ? "Copied" : "Copy address"}
+            </button>
+          </div>
           <p className="mt-4 text-[13.5px] leading-relaxed text-charcoal/65">
-            Prefer a structured bug report? Use the form below — it opens your email client with the details filled in.
+            For general feedback, questions, or feature requests, send a plain email.
+            For structured bug reports, use the form below — it opens your email client with the details filled in.
+          </p>
+          <p className="mt-2 text-[12px] text-charcoal/50">
+            If your email client does not open, copy the address above and paste it into your preferred email app.
           </p>
         </div>
 
+        {/* Bug report form */}
         <form
           className="rounded-2xl border border-softgrey bg-white p-6"
           onSubmit={(e) => {
@@ -108,7 +133,7 @@ export default function Contact() {
             type="submit"
             disabled={!canSubmit}
             className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-            style={{ background: BRAND.cta }}
+            style={{ background: "#0A6288" }}
           >
             Open email with report
           </button>
