@@ -48,7 +48,7 @@ export default function ConfirmDialog({
             data-dialog-initial-focus
             onClick={onConfirm}
             className="h-11 rounded-[7px] px-4 text-[12.5px] font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand-cta"
-            style={{ background: destructive ? "#C22F2F" : BRAND.cta }}
+            style={{ background: destructive ? "#C22F2F" : "#0A6288" }}
           >
             {confirmLabel}
           </button>

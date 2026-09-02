@@ -74,7 +74,7 @@ export default function AccountSetupOverlay({ open, onComplete, onLater }: Props
           type="button"
           onClick={submit}
           className="min-h-11 rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-          style={{ background: BRAND.cta }}
+          style={{ background: "#0A6288" }}
         >
           Create account
         </button>

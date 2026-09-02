@@ -50,7 +50,7 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
             href={buildNotifyMeMailto("pro")}
             data-dialog-initial-focus
             className="inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-            style={{ background: BRAND.cta }}
+            style={{ background: "#0A6288" }}
           >
             Notify me
           </a>
@@ -101,7 +101,7 @@ export default function PaywallOverlay({ open, onUnlock, onLater, reason }: Prop
           data-dialog-initial-focus
           onClick={onUnlock}
           className="min-h-11 rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-          style={{ background: BRAND.cta }}
+          style={{ background: "#0A6288" }}
         >
           Go Pro &middot; {PRICING.pro.label}/mo
         </button>

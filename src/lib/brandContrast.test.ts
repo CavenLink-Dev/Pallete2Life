@@ -27,4 +27,22 @@ describe("brand contrast for WCAG 2.2 AA", () => {
   it("keeps charcoal body text well above AA on off-white", () => {
     expect(contrastRatio(BRAND.charcoal, BRAND.offwhite)).toBeGreaterThanOrEqual(4.5)
   })
+
+  it("CTA fill #0B7BAA passes 4.5:1 contrast with white text", () => {
+    expect(contrastRatio("#FFFFFF", "#0B7BAA")).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("CTA fill #0C6D96 passes 4.5:1 contrast with white text", () => {
+    expect(contrastRatio("#FFFFFF", "#0C6D96")).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("CTA fill #0A6288 passes 4.5:1 contrast with white text", () => {
+    expect(contrastRatio("#FFFFFF", "#0A6288")).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it("all three CTA fills pass 3:1 non-text contrast on white", () => {
+    expect(contrastRatio("#0B7BAA", "#FFFFFF")).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio("#0C6D96", "#FFFFFF")).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio("#0A6288", "#FFFFFF")).toBeGreaterThanOrEqual(3)
+  })
 })

@@ -48,7 +48,7 @@ export default function SecondOpinionPanel({ open, onClose, checks, unlocked, on
                 data-dialog-initial-focus
                 onClick={onUpgrade}
                 className="min-h-11 rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-                style={{ background: BRAND.cta }}
+                style={{ background: "#0A6288" }}
               >
                 Upgrade to Pro · {PRICING.pro.label}/mo
               </button>
@@ -57,7 +57,7 @@ export default function SecondOpinionPanel({ open, onClose, checks, unlocked, on
                 href={buildNotifyMeMailto("pro")}
                 data-dialog-initial-focus
                 className="inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-                style={{ background: BRAND.cta }}
+                style={{ background: "#0A6288" }}
               >
                 Notify me
               </a>

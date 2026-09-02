@@ -34,7 +34,7 @@ export function FlowButton({ children, onClick, primary, disabled, autoFocus, cl
       autoFocus={autoFocus}
       data-dialog-initial-focus={autoFocus || undefined}
       className={`min-h-11 rounded-lg px-4 py-2.5 text-[13px] font-semibold transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${primary ? "text-white hover:opacity-90" : "border border-softgrey bg-white text-charcoal/70 hover:text-charcoal"} ${className}`}
-      style={primary ? { background: BRAND.cta } : undefined}
+      style={primary ? { background: "#0A6288" } : undefined}
     >
       {children}
     </button>

@@ -170,7 +170,7 @@ export function ButtonLab({
           <Label>Size</Label>
           <div className="flex gap-1">
             {(["sm", "md", "lg"] as const).map((s) => (
-              <button key={s} type="button" onClick={() => setProps({ ...props, size: s })} className="min-h-11 flex-1 rounded-lg py-2 text-xs font-semibold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" style={props.size === s ? { background: BRAND.cta, color: "#fff" } : { background: "#F1F2F4", color: "#0E1821" }}>{s}</button>
+              <button key={s} type="button" onClick={() => setProps({ ...props, size: s })} className="min-h-11 flex-1 rounded-lg py-2 text-xs font-semibold uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta" style={props.size === s ? { background: "#0A6288", color: "#fff" } : { background: "#F1F2F4", color: "#0E1821" }}>{s}</button>
             ))}
           </div>
         </div>

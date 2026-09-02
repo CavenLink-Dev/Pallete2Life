@@ -75,7 +75,7 @@ function DefaultFallback({ error, reset, label }: { error: Error; reset: () => v
         <a
           href="/"
           className="inline-flex min-h-11 items-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-          style={{ background: BRAND.cta }}
+          style={{ background: "#0A6288" }}
         >
           Return Home
         </a>

@@ -31,10 +31,14 @@ test.describe("Accessibility and responsive UX", () => {
     await page.evaluate(() => localStorage.clear())
   })
 
-  test("primary landing CTAs use brand blue #13A8E7", async ({ page }) => {
+  test("primary landing CTAs pass WCAG AA contrast with white text", async ({ page }) => {
     await page.goto(`${BASE}/`)
-    const background = await page.locator(".home-btn-primary").first().evaluate((element) => getComputedStyle(element).backgroundColor)
-    expect(background).toMatch(/rgb\(19,\s*168,\s*231\)/)
+    const background = await page.locator(".home-button-primary").first().evaluate((element) => getComputedStyle(element).backgroundColor)
+    // CTA fill comes from --home-cta-fill (#0B7BAA = rgb(11, 123, 170))
+    expect(background).toMatch(/rgb\(11,\s*123,\s*170\)/)
+    // Verify contrast ratio with white text is >= 4.5:1
+    const ratio = contrastFromCssColors("rgb(255, 255, 255)", background)
+    expect(ratio).toBeGreaterThanOrEqual(4.5)
   })
 
   test("Escape closes a confirmation dialog and restores focus", async ({ page }) => {
@@ -99,7 +103,7 @@ test.describe("Accessibility and responsive UX", () => {
 
       await page.goto(`${BASE}/`)
       expect(await pageOverflowsHorizontally(page)).toBeFalsy()
-      await expect(page.locator(".home-btn-primary").first()).toBeVisible()
+      await expect(page.locator(".home-button-primary").first()).toBeVisible()
     })
   }
 })
