@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { useNav, type Route } from "../lib/router"
-import { shade } from "../lib/color"
+import { BRAND, shade } from "../lib/color"
 import "./Home.css"
 
 type DemoStyle = "simple" | "3d" | "outline"
@@ -39,9 +39,9 @@ export default function Home() {
   const [previewState, setPreviewState] = useState<DemoState>("pressed")
   const [animationRun, setAnimationRun] = useState(0)
   const [colours, setColours] = useState<Record<DemoColour, string>>({
-    primary: "#13A8E7",
-    secondary: "#0C6D96",
-    text: "#FFFFFF",
+    primary: BRAND.cta,
+    secondary: BRAND.secondary,
+    text: BRAND.white,
   })
 
   const stateOptions = deriveStateColours(colours.primary)
@@ -194,8 +194,8 @@ export default function Home() {
                 </div>
                 <div className="home-promo-palette" aria-label="Example palette swatches">
                   <PromoSwatch label="Background" colour="#2E333A" />
-                  <PromoSwatch label="Primary" colour="#13A8E7" />
-                  <PromoSwatch label="Secondary" colour="#0C6D96" />
+                  <PromoSwatch label="Primary" colour={BRAND.cta} />
+                  <PromoSwatch label="Secondary" colour={BRAND.secondary} />
                   <PromoSwatch label="Text" colour="#FFFFFF" />
                   <PromoSwatch label="Muted" colour="#D9D9D9" />
                 </div>
@@ -372,9 +372,9 @@ export default function Home() {
 
         <footer className="home-footer">
           <div className="home-wrap home-footer-inner">
-            <a href="#top" className="home-footer-brand" aria-label="HueSet home">
-              <img src="/hueset-icon.svg" alt="" />
-              <img src="/hueset-wordmark.svg" alt="HueSet" />
+            <a href="#top" className="home-brand home-footer-brand" aria-label="HueSet home">
+              <img className="home-brand-icon" src="/hueset-icon.svg" alt="" />
+              <img className="home-brand-wordmark" src="/hueset-wordmark.svg" alt="HueSet" />
             </a>
             <nav aria-label="Footer navigation">
               <a href="/pricing" onClick={nav("/pricing")}>Pricing</a>

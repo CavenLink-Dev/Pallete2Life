@@ -12,8 +12,13 @@ describe("brand contrast for WCAG 2.2 AA", () => {
     expect(BRAND.cta).toBe(BRAND_CTA_ON_WHITE)
   })
 
+  it("uses the requested secondary action blue", () => {
+    expect(BRAND.secondary).toBe("#178ABA")
+  })
+
   it("documents that white text on brand primary blue is below 4.5:1", () => {
     expect(contrastRatio("#FFFFFF", BRAND.cta)).toBeLessThan(4.5)
+    expect(contrastRatio("#FFFFFF", BRAND.secondary)).toBeLessThan(4.5)
   })
 
   it("uses a brand text colour that meets 4.5:1 on white", () => {
@@ -28,21 +33,12 @@ describe("brand contrast for WCAG 2.2 AA", () => {
     expect(contrastRatio(BRAND.charcoal, BRAND.offwhite)).toBeGreaterThanOrEqual(4.5)
   })
 
-  it("CTA fill #0B7BAA passes 4.5:1 contrast with white text", () => {
-    expect(contrastRatio("#FFFFFF", "#0B7BAA")).toBeGreaterThanOrEqual(4.5)
-  })
-
-  it("CTA fill #0C6D96 passes 4.5:1 contrast with white text", () => {
-    expect(contrastRatio("#FFFFFF", "#0C6D96")).toBeGreaterThanOrEqual(4.5)
-  })
-
   it("CTA fill #0A6288 passes 4.5:1 contrast with white text", () => {
     expect(contrastRatio("#FFFFFF", "#0A6288")).toBeGreaterThanOrEqual(4.5)
   })
 
-  it("all three CTA fills pass 3:1 non-text contrast on white", () => {
-    expect(contrastRatio("#0B7BAA", "#FFFFFF")).toBeGreaterThanOrEqual(3)
-    expect(contrastRatio("#0C6D96", "#FFFFFF")).toBeGreaterThanOrEqual(3)
-    expect(contrastRatio("#0A6288", "#FFFFFF")).toBeGreaterThanOrEqual(3)
+  it("keeps both landing action fills distinct from the dark background", () => {
+    expect(contrastRatio(BRAND.cta, "#1F2329")).toBeGreaterThanOrEqual(3)
+    expect(contrastRatio(BRAND.secondary, "#1F2329")).toBeGreaterThanOrEqual(3)
   })
 })

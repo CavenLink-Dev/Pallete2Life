@@ -35,6 +35,8 @@ export const BRAND = {
   brandDark: "#05A9F0",
   /** Primary CTA fill across the app and landing page. */
   cta: "#13A8E7",
+  /** Secondary action fill across the app and landing page. */
+  secondary: "#178ABA",
   charcoal: "#0E1821",
   offwhite: "#F8F8F6",
   white: "#FFFFFF",
