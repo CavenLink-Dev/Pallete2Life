@@ -28,6 +28,12 @@ function StarIcon({ filled }: { filled: boolean }) {
   )
 }
 
+const DOT: Record<string, string> = {
+  Website: "bg-blue-400",
+  App: "bg-violet-400",
+  Component: "bg-emerald-400",
+}
+
 export default function InspirationDetail({
   item,
   saved,
@@ -82,20 +88,26 @@ export default function InspirationDetail({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm sm:p-6"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
       <div
-        className="relative w-full sm:max-w-3xl max-h-[96svh] sm:max-h-[88vh] bg-neutral-900 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl ring-1 ring-white/10"
+        className="relative w-full sm:max-w-4xl max-h-[96svh] sm:max-h-[92vh] bg-neutral-950 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl ring-1 ring-white/10"
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 flex-shrink-0">
-          <div className="min-w-0">
-            <h2 className="text-white font-semibold text-sm leading-tight truncate">{item.displayName}</h2>
-            <p className="text-neutral-500 text-xs mt-0.5">
-              {item.category} · {item.palette.name}
-            </p>
+        {/* Header — close button only, minimal */}
+        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Category icon */}
+            <span className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold text-white/90 ${DOT[item.category] || "bg-neutral-600"}`}>
+              {item.category[0]}
+            </span>
+            <div className="min-w-0">
+              <h2 className="text-white font-semibold text-sm leading-tight truncate">{item.displayName}</h2>
+              <p className="text-neutral-500 text-xs mt-0.5 truncate">
+                {item.category} · {item.palette.name}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -107,19 +119,20 @@ export default function InspirationDetail({
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1">
-          {/* Design image */}
-          <div className="bg-neutral-800/50 flex items-start justify-center">
-            <img
-              src={item.imagePath}
-              alt={item.displayName}
-              className="w-full max-w-2xl"
-              style={{ display: "block" }}
-            />
+        <div className="overflow-y-auto flex-1 px-5 pb-4">
+          {/* Dark card with inset screenshot — Mobbin style */}
+          <div className="rounded-2xl bg-neutral-800/70 p-4 sm:p-6">
+            <div className="overflow-hidden rounded-xl shadow-lg shadow-black/40">
+              <img
+                src={item.imagePath}
+                alt={item.displayName}
+                className="w-full h-auto block"
+              />
+            </div>
           </div>
 
-          {/* Palette */}
-          <div className="px-5 py-4 border-t border-neutral-800">
+          {/* Palette section */}
+          <div className="mt-5">
             <p className="text-neutral-500 text-[11px] font-medium uppercase tracking-widest mb-3">
               {item.palette.name} — {item.palette.description}
             </p>
@@ -129,7 +142,7 @@ export default function InspirationDetail({
                   key={c.role}
                   onClick={() => copyHex(c.hex)}
                   title={`Copy ${c.hex}`}
-                  className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors"
+                  className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 transition-colors"
                 >
                   <span
                     className="w-4 h-4 rounded-sm flex-shrink-0 border border-white/10"
@@ -148,7 +161,7 @@ export default function InspirationDetail({
         </div>
 
         {/* Action bar */}
-        <div className="flex items-center gap-2 px-5 py-4 border-t border-neutral-800 flex-shrink-0 bg-neutral-900">
+        <div className="flex items-center gap-2 px-5 py-3.5 border-t border-neutral-800 flex-shrink-0 bg-neutral-950">
           <button
             onClick={() => onToggleSave(item.id)}
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${

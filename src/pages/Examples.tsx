@@ -50,36 +50,43 @@ function Card({
   onClick: () => void
 }) {
   return (
-    <div
-      className="group relative cursor-pointer rounded-xl overflow-hidden bg-white border border-neutral-200/60 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
-      onClick={onClick}
-    >
-      {/* Thumbnail — natural aspect ratio so nothing is cropped away */}
-      <div className="overflow-hidden bg-neutral-100">
-        <img
-          src={item.imagePath}
-          alt={item.displayName}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-auto block transition-transform duration-300 group-hover:scale-[1.03]"
-        />
+    <div className="group cursor-pointer" onClick={onClick}>
+      {/* Dark card with inset screenshot */}
+      <div className="rounded-2xl bg-neutral-800/80 p-3 transition-all duration-200 group-hover:bg-neutral-700/80 group-hover:shadow-xl group-hover:shadow-black/30 group-hover:-translate-y-0.5">
+        <div className="overflow-hidden rounded-xl">
+          <img
+            src={item.imagePath}
+            alt={item.displayName}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-auto block transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        </div>
       </div>
 
-      {/* Label */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-white">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[item.category]}`} />
-          <span className="text-[13px] font-medium text-neutral-800 truncate leading-none">
+      {/* Info row below the card — icon + name + save */}
+      <div className="flex items-center gap-2.5 px-1 pt-3 pb-1">
+        {/* Category icon */}
+        <span className={`w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white/90 ${DOT[item.category]}`}>
+          {item.category[0]}
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-medium text-white truncate leading-tight">
             {item.displayName}
-          </span>
+          </p>
+          <p className="text-[11px] text-neutral-500 truncate leading-tight mt-0.5">
+            {item.category} · {item.palette.name}
+          </p>
         </div>
+
         <button
           aria-label={saved ? "Remove from saved" : "Save"}
           onClick={e => { e.stopPropagation(); onSave(item.id) }}
           className={`flex-shrink-0 p-1.5 rounded-lg transition-all ${
             saved
               ? "text-amber-500"
-              : "text-neutral-300 opacity-0 group-hover:opacity-100 hover:text-amber-400"
+              : "text-neutral-600 opacity-0 group-hover:opacity-100 hover:text-amber-400"
           }`}
         >
           <StarIcon filled={saved} />
@@ -146,7 +153,7 @@ export default function Examples() {
     <div className="min-h-screen bg-neutral-950 pb-16">
       {/* ── Sticky header ──────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="max-w-[1400px] mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           {/* Title */}
           <div className="flex-shrink-0">
             <h1 className="text-white font-semibold text-base leading-none">Inspiration</h1>
@@ -171,19 +178,19 @@ export default function Examples() {
           <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
             {FILTERS.map(f => {
               const cnt = counts[f.value as keyof typeof counts]
-              const active = filter === f.value
+              const isActive = filter === f.value
               return (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                    active
+                    isActive
                       ? "bg-white text-neutral-900"
                       : "text-neutral-400 hover:text-white hover:bg-neutral-800"
                   }`}
                 >
                   {f.label}
-                  <span className={active ? "text-neutral-400" : "text-neutral-600"}>
+                  <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>
                     {cnt}
                   </span>
                 </button>
@@ -193,8 +200,8 @@ export default function Examples() {
         </div>
       </div>
 
-      {/* ── Grid ───────────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 pt-6">
+      {/* ── Grid — 3 columns on desktop ────────────────────────────────── */}
+      <div className="max-w-[1400px] mx-auto px-4 pt-6">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-neutral-600">
             <p className="text-base font-medium">No designs found</p>
@@ -203,7 +210,7 @@ export default function Examples() {
             </p>
           </div>
         ) : (
-          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+          <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
             {items.map(item => (
               <div key={item.id} className="break-inside-avoid">
                 <Card

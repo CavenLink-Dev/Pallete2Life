@@ -1,0 +1,101 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  /* Fonts — shipped HueSet values */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Instrument Sans', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Brand palette — from default.tokens.json (dark) */
+  --color-brand: #13a8e7; /* accent, legible on charcoal */
+  --color-brand-light: #3bb9ee;
+  --color-brand-dark: #0b7baa;
+  --color-cta: #13a8e7;
+  --color-charcoal: #1f2329; /* darkest / primary background */
+  --color-offwhite: #ffffff;
+  --color-white: #ffffff;
+  --color-softgrey: #d9d9d9; /* text secondary */
+  --color-medgrey: #707986; /* text tertiary */
+  --color-ink: #13a8e7; /* text / links / active state accent */
+  --color-ink-secondary: #0c6d96; /* button hover */
+  --color-ctafill: #13a8e7; /* button primary fill — charcoal text passes AA */
+
+  /* Semantic surfaces — from default.tokens.json */
+  --color-bg: #1f2329; /* background primary */
+  --color-surface: #323944; /* cards & panels */
+  --color-surface-2: #2a2f36; /* background tertiary */
+  --color-border: #3a424c;
+  --color-border-strong: #4b545f;
+  --color-heading: #ffffff; /* text primary */
+  --color-body: #d9d9d9; /* text secondary */
+  --color-muted: #8b93a0; /* text tertiary (lifted for AA on dark) */
+
+  /* Status */
+  --color-success: #28c840;
+  --color-warning: #febc2e;
+  --color-error: #ff5f57;
+
+  /* Design token primitives (space / radius / type / weight) */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 999px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  font-size: 16px; /* MIN_BODY_PX */
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-white);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cta);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "description": "This platform offers an engaging learning experience for aspiring designers, providing essential design principles and rules for creating effective websites and apps.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

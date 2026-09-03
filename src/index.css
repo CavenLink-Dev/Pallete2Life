@@ -123,3 +123,29 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Learn page dark theme ─────────────────────────────────────────────────── */
+/* Scoped under .learn-theme so it doesn't affect the rest of the site.        */
+
+@theme {
+  --color-learn-bg: #1f2329;
+  --color-learn-surface: #323944;
+  --color-learn-surface-2: #2a2f36;
+  --color-learn-border: #3a424c;
+  --color-learn-border-strong: #4b545f;
+  --color-learn-heading: #ffffff;
+  --color-learn-body: #d9d9d9;
+  --color-learn-muted: #8b93a0;
+  --color-learn-ink: #13a8e7;
+}
+
+.learn-theme {
+  background-color: var(--color-learn-bg);
+  color: var(--color-learn-body);
+  min-height: 100%;
+}
+
+.learn-theme ::selection {
+  background: var(--color-learn-ink);
+  color: #ffffff;
+}
