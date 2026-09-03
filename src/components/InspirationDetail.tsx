@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { type InspirationItem, curatedPaletteAsSwatches } from "../lib/inspirationCatalog"
 import { writeHashPalette } from "../lib/paletteStore"
-import { useRoute } from "../lib/router"
+import { useRoute, useNav } from "../lib/router"
 import { useToast } from "./Toast"
 import { BRAND } from "../lib/color"
 
@@ -91,6 +91,7 @@ export default function InspirationDetail({
   const item = items[currentIndex]
   const { push } = useToast()
   const [, navigate] = useRoute()
+  const nav = useNav()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [fullscreen, setFullscreen] = useState(false)
   const [copiedHex, setCopiedHex] = useState<string | null>(null)
@@ -156,24 +157,33 @@ export default function InspirationDetail({
     >
       {/* ── Top bar ──────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-4 sm:px-6 h-12 flex-shrink-0 border-b border-neutral-800/60">
-        {/* Left: brand + item name */}
+        {/* Left: logo + item name */}
         <div className="flex items-center gap-3 min-w-0">
-          <img src="/logo-64.png" alt="HueSet" className="w-6 h-6 rounded flex-shrink-0" />
-          <span className="text-white/70 text-sm font-medium hidden sm:inline">
-            Hue<span style={{ color: BRAND.cta }}>Set</span>
-          </span>
+          <a
+            href="/"
+            onClick={nav("/")}
+            className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-400 flex-shrink-0"
+            aria-label="HueSet home"
+          >
+            <img src="/logo-64.png" alt="" className="w-6 h-6 object-contain" />
+            <span className="text-white/80 text-sm font-bold hidden sm:inline" style={{ fontFamily: "var(--font-display)" }}>
+              Hue<span style={{ color: BRAND.cta }}>Set</span>
+            </span>
+          </a>
           <span className="w-px h-4 bg-neutral-700 hidden sm:block" />
           <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white/90 ${DOT[item.category] || "bg-neutral-600"}`}>
             {item.category[0]}
           </span>
-          <span className="text-white text-sm font-medium truncate max-w-[200px] sm:max-w-xs">
+          <span className="text-white text-sm font-medium truncate max-w-[180px] sm:max-w-xs">
             {item.displayName}
+          </span>
+          <span className="text-neutral-600 text-xs tabular-nums hidden sm:inline">
+            {currentIndex + 1} / {items.length}
           </span>
         </div>
 
         {/* Right: controls */}
         <div className="flex items-center gap-1">
-          {/* Screen / Full screen toggle */}
           <button
             onClick={() => setFullscreen(f => !f)}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
@@ -183,7 +193,6 @@ export default function InspirationDetail({
             <span className="hidden sm:inline">{fullscreen ? "Screen" : "Full screen"}</span>
           </button>
 
-          {/* Close */}
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
@@ -221,11 +230,7 @@ export default function InspirationDetail({
               key={item.id}
               src={item.imagePath}
               alt={item.displayName}
-              className={`object-contain rounded-lg shadow-2xl shadow-black/60 transition-all duration-300 ${
-                fullscreen
-                  ? "max-w-full max-h-full"
-                  : "max-w-full max-h-full"
-              }`}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl shadow-black/60 transition-all duration-300"
               style={{ maxHeight: fullscreen ? "calc(100vh - 120px)" : "calc(100vh - 180px)" }}
               draggable={false}
             />
@@ -274,12 +279,10 @@ export default function InspirationDetail({
             ))}
           </div>
 
-          {/* Palette name */}
           <span className="text-neutral-500 text-xs hidden sm:inline">
             {item.palette.name}
           </span>
 
-          {/* Spacer */}
           <div className="flex-1" />
 
           {/* Actions */}
@@ -312,11 +315,6 @@ export default function InspirationDetail({
             Use palette
             <span className="ml-0.5">→</span>
           </button>
-
-          {/* Navigation counter */}
-          <span className="text-neutral-600 text-xs tabular-nums pl-2 hidden sm:inline">
-            {currentIndex + 1} / {items.length}
-          </span>
         </div>
       </div>
     </div>

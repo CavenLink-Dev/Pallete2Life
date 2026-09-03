@@ -5,6 +5,7 @@ import {
   type InspirationItem,
 } from "../lib/inspirationCatalog"
 import { BRAND } from "../lib/color"
+import { useNav } from "../lib/router"
 import InspirationDetail from "../components/InspirationDetail"
 
 const FAVORITES_KEY = "hueframe:inspiration-favorites"
@@ -29,6 +30,8 @@ const DOT: Record<InspirationCategory, string> = {
   Component: "bg-emerald-400",
 }
 
+/* ── Icons ──────────────────────────────────────────────────────────── */
+
 function StarIcon({ filled }: { filled: boolean }) {
   return (
     <svg viewBox="0 0 20 20" className="w-4 h-4" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
@@ -38,6 +41,25 @@ function StarIcon({ filled }: { filled: boolean }) {
     </svg>
   )
 }
+
+function BookmarkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+    </svg>
+  )
+}
+
+function UserIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+      <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth={2} fill="none" />
+    </svg>
+  )
+}
+
+/* ── Card ───────────────────────────────────────────────────────────── */
 
 function Card({
   item,
@@ -67,7 +89,6 @@ function Card({
 
       {/* Info row below the card — icon + name + save */}
       <div className="flex items-center gap-2.5 px-1 pt-3 pb-1">
-        {/* Category icon */}
         <span className={`w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white/90 ${DOT[item.category]}`}>
           {item.category[0]}
         </span>
@@ -97,7 +118,10 @@ function Card({
   )
 }
 
+/* ── Page ───────────────────────────────────────────────────────────── */
+
 export default function Examples() {
+  const nav = useNav()
   const [filter, setFilter] = useState<Filter>("all")
   const [search, setSearch] = useState("")
   const [saved, setSaved] = useState<Set<string>>(loadFavorites)
@@ -147,40 +171,105 @@ export default function Examples() {
     { label: "Websites",   value: "Website" },
     { label: "Apps",       value: "App" },
     { label: "Components", value: "Component" },
-    { label: "Saved",      value: "saved" },
   ]
 
   return (
     <div className="min-h-screen bg-neutral-950 pb-16">
-      {/* ── Sticky header ──────────────────────────────────────────────── */}
+      {/* ── Sticky header ──────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800">
-        <div className="max-w-[1400px] mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          {/* Logo + Title */}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
-            <img src="/logo-64.png" alt="HueSet" className="w-7 h-7 rounded-md" />
-            <span className="text-white font-semibold text-base leading-none">
-              Hue<span style={{ color: BRAND.cta }}>Set</span>
-            </span>
-            <span className="w-px h-4 bg-neutral-700 mx-1" />
-            <h1 className="text-white font-semibold text-base leading-none">Inspiration</h1>
+        <div className="max-w-[1400px] mx-auto px-4 py-2.5">
+          <div className="flex items-center gap-4">
+
+            {/* LEFT — Logo + Inspiration */}
+            <div className="flex items-center gap-3 flex-shrink-0">
+              <a
+                href="/"
+                onClick={nav("/")}
+                className="flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
+                aria-label="HueSet home"
+              >
+                <img src="/logo-64.png" alt="" className="w-8 h-8 object-contain" />
+                <span className="text-white font-bold text-[17px] leading-none" style={{ fontFamily: "var(--font-display)" }}>
+                  Hue<span style={{ color: BRAND.cta }}>Set</span>
+                </span>
+              </a>
+              <span className="w-px h-5 bg-neutral-700" />
+              <h1 className="text-white font-semibold text-sm leading-none">Inspiration</h1>
+            </div>
+
+            {/* CENTER — Search + Filters */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {/* Search */}
+              <div className="relative flex-1 max-w-xs">
+                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="search"
+                  placeholder="Search designs…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 transition-colors"
+                />
+              </div>
+
+              {/* Filter pills */}
+              <div className="hidden sm:flex gap-1 overflow-x-auto scrollbar-none">
+                {FILTERS.map(f => {
+                  const cnt = counts[f.value as keyof typeof counts]
+                  const isActive = filter === f.value
+                  return (
+                    <button
+                      key={f.value}
+                      onClick={() => setFilter(f.value)}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                        isActive
+                          ? "bg-white text-neutral-900"
+                          : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                      }`}
+                    >
+                      {f.label}
+                      <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>
+                        {cnt}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* RIGHT — Saved + Profile */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setFilter("saved")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                  filter === "saved"
+                    ? "bg-white text-neutral-900"
+                    : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                }`}
+              >
+                <BookmarkIcon />
+                <span className="hidden sm:inline">Saved</span>
+                {saved.size > 0 && (
+                  <span className={`text-xs tabular-nums ${filter === "saved" ? "text-neutral-500" : "text-neutral-500"}`}>
+                    {saved.size}
+                  </span>
+                )}
+              </button>
+
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                aria-label="Profile"
+              >
+                <UserIcon />
+                <span className="hidden sm:inline">Profile</span>
+              </button>
+            </div>
+
           </div>
 
-          {/* Search */}
-          <div className="relative flex-1 max-w-xs">
-            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="search"
-              placeholder="Search designs…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 transition-colors"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+          {/* Mobile filter row — shown below on small screens */}
+          <div className="flex sm:hidden gap-1 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
             {FILTERS.map(f => {
               const cnt = counts[f.value as keyof typeof counts]
               const isActive = filter === f.value
@@ -205,7 +294,7 @@ export default function Examples() {
         </div>
       </div>
 
-      {/* ── Grid — 3 columns on desktop ────────────────────────────────── */}
+      {/* ── Grid — 3 columns on desktop ────────────────────────────── */}
       <div className="max-w-[1400px] mx-auto px-4 pt-6">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 text-neutral-600">
@@ -230,7 +319,7 @@ export default function Examples() {
         )}
       </div>
 
-      {/* ── Detail viewer ───────────────────────────────────────────────── */}
+      {/* ── Detail viewer ──────────────────────────────────────────── */}
       {activeIndex !== null && items[activeIndex] && (
         <InspirationDetail
           items={items}
