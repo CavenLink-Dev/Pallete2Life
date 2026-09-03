@@ -1,16 +1,11 @@
-import { createSwatch, type Swatch } from "./color"
-import { templateAssets, type TemplateAsset, type TemplateCategory } from "./templateAssets"
+// src/lib/inspirationCatalog.ts
+// Powers the /examples Mobbin-style gallery.
+// 95 real designs exported from template_page/ as WebP thumbnails.
 
-/**
- * A curated colour palette (hex + role names, in the same order the app's
- * `deriveTheme` expects — Background, Surface, Primary, Heading, Body, Border)
- * paired with an existing catalog template so the inspiration gallery can show
- * a real, styled layout rather than a blank grey shell.
- *
- * Palettes are intentionally reused across a handful of templates within the
- * same category (the way Mobbin-style galleries repeat a small set of proven
- * colour stories across many shots) rather than hand-authoring 35 one-off sets.
- */
+import { createSwatch, type Swatch } from "./color"
+
+export type InspirationCategory = "Website" | "App" | "Component"
+
 export type CuratedPalette = {
   id: string
   name: string
@@ -18,232 +13,312 @@ export type CuratedPalette = {
   colours: { hex: string; role: string }[]
 }
 
-export const CURATED_PALETTES: CuratedPalette[] = [
+export type InspirationItem = {
+  id: string
+  displayName: string
+  category: InspirationCategory
+  imagePath: string      // /templates/<id>.webp
+  palette: CuratedPalette
+}
+
+// ── 12 curated palettes ──────────────────────────────────────────────────────
+
+const PALETTES: CuratedPalette[] = [
   {
     id: "ocean-saas",
     name: "Ocean SaaS",
-    description: "A calm, professional palette for software dashboards and B2B landing pages.",
+    description: "Calm blues for productivity apps",
     colours: [
-      { hex: "#F7F9FC", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#0B7BAA", role: "Primary" },
-      { hex: "#1A2332", role: "Heading" },
-      { hex: "#5A6978", role: "Body" },
-      { hex: "#E2E8F0", role: "Border" },
+      { hex: "#f8fafc", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#2563eb", role: "Primary" },
+      { hex: "#1e40af", role: "Heading" },
+      { hex: "#334155", role: "Body" },
+      { hex: "#e2e8f0", role: "Border" },
     ],
   },
   {
     id: "warm-editorial",
     name: "Warm Editorial",
-    description: "Rich, warm tones for content-heavy sites, blogs, and magazine layouts.",
+    description: "Earthy neutrals for content-first brands",
     colours: [
-      { hex: "#FDF8F3", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#C4572A", role: "Primary" },
-      { hex: "#2C1810", role: "Heading" },
-      { hex: "#6B5244", role: "Body" },
-      { hex: "#E8DDD4", role: "Border" },
+      { hex: "#fffbeb", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#d97706", role: "Primary" },
+      { hex: "#92400e", role: "Heading" },
+      { hex: "#44403c", role: "Body" },
+      { hex: "#d6d3d1", role: "Border" },
     ],
   },
   {
     id: "mint-commerce",
     name: "Mint Commerce",
-    description: "Fresh, trustworthy colours for e-commerce product pages and checkout flows.",
+    description: "Fresh greens for e-commerce",
     colours: [
-      { hex: "#F4FAF7", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#0D8A5E", role: "Primary" },
-      { hex: "#1B2E28", role: "Heading" },
-      { hex: "#4A6B5F", role: "Body" },
-      { hex: "#D4E5DD", role: "Border" },
+      { hex: "#f0fdf4", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#059669", role: "Primary" },
+      { hex: "#064e3b", role: "Heading" },
+      { hex: "#374151", role: "Body" },
+      { hex: "#d1fae5", role: "Border" },
     ],
   },
   {
     id: "dark-dashboard",
     name: "Dark Dashboard",
-    description: "A dark theme for analytics dashboards, dev tools, and monitoring interfaces.",
+    description: "High-contrast dark theme for data UIs",
     colours: [
-      { hex: "#0F1419", role: "Background" },
-      { hex: "#1A2332", role: "Surface" },
-      { hex: "#3B9EDB", role: "Primary" },
-      { hex: "#E8EDF2", role: "Heading" },
-      { hex: "#8899AA", role: "Body" },
-      { hex: "#2A3544", role: "Border" },
+      { hex: "#0f0f1a", role: "Background" },
+      { hex: "#1e1e2e", role: "Surface" },
+      { hex: "#6366f1", role: "Primary" },
+      { hex: "#e2e8f0", role: "Heading" },
+      { hex: "#94a3b8", role: "Body" },
+      { hex: "#312e81", role: "Border" },
     ],
   },
   {
     id: "coral-wellness",
     name: "Coral Wellness",
-    description: "Soft, inviting colours for health apps, fitness trackers, and wellbeing platforms.",
+    description: "Warm pinks for health and lifestyle",
     colours: [
-      { hex: "#FFF5F3", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#E06B52", role: "Primary" },
-      { hex: "#2D1F1A", role: "Heading" },
-      { hex: "#7A5E55", role: "Body" },
-      { hex: "#F0DDD8", role: "Border" },
+      { hex: "#fff1f2", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#f43f5e", role: "Primary" },
+      { hex: "#1c0a0e", role: "Heading" },
+      { hex: "#4b5563", role: "Body" },
+      { hex: "#ffe4e6", role: "Border" },
     ],
   },
   {
     id: "indigo-productivity",
     name: "Indigo Productivity",
-    description: "Focused, distraction-free colours for task managers, notes, and productivity tools.",
+    description: "Deep indigo for focus and utility apps",
     colours: [
-      { hex: "#F5F3FF", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#5B4FC7", role: "Primary" },
-      { hex: "#1E1935", role: "Heading" },
-      { hex: "#5C5680", role: "Body" },
-      { hex: "#DDD8F0", role: "Border" },
+      { hex: "#f5f3ff", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#4338ca", role: "Primary" },
+      { hex: "#1e1b4b", role: "Heading" },
+      { hex: "#374151", role: "Body" },
+      { hex: "#e0e7ff", role: "Border" },
     ],
   },
   {
     id: "slate-neutral",
     name: "Slate Neutral",
-    description: "A versatile neutral set for buttons, forms, cards, and navigation components.",
+    description: "Clean greys for developer tools",
     colours: [
-      { hex: "#F8FAFC", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#334155", role: "Primary" },
-      { hex: "#0F172A", role: "Heading" },
-      { hex: "#64748B", role: "Body" },
-      { hex: "#E2E8F0", role: "Border" },
+      { hex: "#f8fafc", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#475569", role: "Primary" },
+      { hex: "#0f172a", role: "Heading" },
+      { hex: "#334155", role: "Body" },
+      { hex: "#e2e8f0", role: "Border" },
     ],
   },
   {
     id: "sunset-gradient",
-    name: "Sunset Gradient",
-    description: "Bold, expressive colours for creative portfolios, landing heroes, and marketing components.",
+    name: "Sunset",
+    description: "Vibrant oranges for creative platforms",
     colours: [
-      { hex: "#FFFAF5", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#E25822", role: "Primary" },
-      { hex: "#1C0F05", role: "Heading" },
-      { hex: "#7A5438", role: "Body" },
-      { hex: "#F0D9C8", role: "Border" },
+      { hex: "#fff7ed", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#ea580c", role: "Primary" },
+      { hex: "#431407", role: "Heading" },
+      { hex: "#44403c", role: "Body" },
+      { hex: "#fed7aa", role: "Border" },
     ],
   },
   {
     id: "forest-ui",
     name: "Forest UI",
-    description: "Earthy greens and warm greys for nature-inspired interfaces and environmental dashboards.",
+    description: "Deep greens for outdoors and nature brands",
     colours: [
-      { hex: "#F5F7F4", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#3A7D44", role: "Primary" },
-      { hex: "#1A2E1C", role: "Heading" },
-      { hex: "#5A7060", role: "Body" },
-      { hex: "#D5E0D7", role: "Border" },
+      { hex: "#f0fdf4", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#166534", role: "Primary" },
+      { hex: "#052e16", role: "Heading" },
+      { hex: "#374151", role: "Body" },
+      { hex: "#dcfce7", role: "Border" },
     ],
   },
   {
     id: "rose-editorial",
-    name: "Rose Studio",
-    description: "Elegant, gallery-adjacent tones for portfolios, boutique brands, and photography sites.",
+    name: "Rose Editorial",
+    description: "Dusty rose for fashion and lifestyle",
     colours: [
-      { hex: "#FBF5F5", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#A8384F", role: "Primary" },
-      { hex: "#241417", role: "Heading" },
-      { hex: "#6B4F53", role: "Body" },
-      { hex: "#EAD9DB", role: "Border" },
+      { hex: "#fdf2f8", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#be185d", role: "Primary" },
+      { hex: "#500724", role: "Heading" },
+      { hex: "#4b5563", role: "Body" },
+      { hex: "#fce7f3", role: "Border" },
     ],
   },
   {
     id: "amber-finance",
     name: "Amber Finance",
-    description: "Confident, high-contrast tones for finance dashboards and banking apps.",
+    description: "Rich amber for fintech and banking",
     colours: [
-      { hex: "#FFFBF2", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#B8720A", role: "Primary" },
-      { hex: "#1F1710", role: "Heading" },
-      { hex: "#6B5B45", role: "Body" },
-      { hex: "#EDE0C8", role: "Border" },
+      { hex: "#fffbeb", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#b45309", role: "Primary" },
+      { hex: "#1c0a00", role: "Heading" },
+      { hex: "#44403c", role: "Body" },
+      { hex: "#fef3c7", role: "Border" },
     ],
   },
   {
     id: "violet-social",
     name: "Violet Social",
-    description: "Playful, high-energy colours for social apps, community feeds, and messaging.",
+    description: "Bold violet for social and community apps",
     colours: [
-      { hex: "#FAF5FF", role: "Background" },
-      { hex: "#FFFFFF", role: "Surface" },
-      { hex: "#8B3FD9", role: "Primary" },
-      { hex: "#231032", role: "Heading" },
-      { hex: "#6B5980", role: "Body" },
-      { hex: "#E5D5F5", role: "Border" },
+      { hex: "#f5f3ff", role: "Background" },
+      { hex: "#ffffff", role: "Surface" },
+      { hex: "#7c3aed", role: "Primary" },
+      { hex: "#2e1065", role: "Heading" },
+      { hex: "#374151", role: "Body" },
+      { hex: "#ede9fe", role: "Border" },
     ],
   },
 ]
 
-const palettesById = new Map(CURATED_PALETTES.map((palette) => [palette.id, palette]))
+const PALETTE_MAP = new Map(PALETTES.map(p => [p.id, p]))
 
-/** Deterministic pick — same template id always gets the same curated palette. */
-function paletteIndexFor(seed: string, length: number): number {
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
-  return hash % length
+// ── Palette assignment overrides ─────────────────────────────────────────────
+
+const OVERRIDES: Record<string, string> = {
+  app_professional_profile:        "dark-dashboard",
+  app_stride:                      "dark-dashboard",
+  website_maison_noire:            "dark-dashboard",
+  "website-void-gallery":          "dark-dashboard",
+  "website-aethon-orbital":        "dark-dashboard",
+  "website-neural-arc":            "amber-finance",
+  website_orbital:                 "amber-finance",
+  app_artisan_product:             "amber-finance",
+  "website-ando-collective":       "violet-social",
+  "website-kinesis":               "violet-social",
+  app_rootwell_onboarding:         "coral-wellness",
+  app_bloom_onboarding:            "coral-wellness",
+  app_pantry_run_01_welcome:       "mint-commerce",
+  app_pantry_run_02_location:      "mint-commerce",
+  app_pantry_run_03_address:       "mint-commerce",
+  app_pantry_run_04_preferences:   "mint-commerce",
+  app_pantry_run_05_notifications: "mint-commerce",
+  app_pantry_run_06_first_shop:    "mint-commerce",
+  app_cadence_01_welcome:          "indigo-productivity",
+  app_cadence_02_goal:             "indigo-productivity",
+  app_cadence_03_level:            "indigo-productivity",
+  app_cadence_04_availability:     "indigo-productivity",
+  app_cadence_05_permission:       "indigo-productivity",
+  app_cadence_06_plan_ready:       "indigo-productivity",
+  app_semaphore_01_welcome:        "slate-neutral",
+  app_semaphore_02_how_it_works:   "slate-neutral",
+  app_semaphore_03_create_key:     "slate-neutral",
+  app_semaphore_04_recovery:       "slate-neutral",
+  app_semaphore_05_notifications:  "slate-neutral",
+  app_semaphore_06_verify:         "slate-neutral",
+  app_semaphore_07_ready:          "slate-neutral",
+  website_sonora:                  "warm-editorial",
+  website_atelier:                 "warm-editorial",
+  website_aska:                    "warm-editorial",
+  "website-domaine-vaillant":      "warm-editorial",
+  "website-lumiere-fest":          "rose-editorial",
+  "website-terra-cloth":           "forest-ui",
+  app_sneaker_product:             "slate-neutral",
+  app_wavelength_onboarding_1:     "sunset-gradient",
+  app_wavelength_onboarding_2:     "sunset-gradient",
+  app_wavelength_onboarding_3:     "sunset-gradient",
 }
 
-/** A hand-picked palette assignment for templates that deserve a specific look. */
-const PALETTE_OVERRIDES: Record<string, string> = {
-  "builtin-website-dashboard-minimal": "dark-dashboard",
-  "builtin-website-dashboard-data-focused": "dark-dashboard",
-  "builtin-application-dashboard-minimal": "dark-dashboard",
-  "builtin-application-dashboard-data-focused": "dark-dashboard",
-  "builtin-application-finance-minimal": "amber-finance",
-  "builtin-application-finance-data-focused": "amber-finance",
-  "builtin-application-fitness-activity": "coral-wellness",
-  "builtin-application-fitness-progress": "coral-wellness",
-  "builtin-application-social-feed": "violet-social",
-  "builtin-application-social-profile": "violet-social",
-  "builtin-application-messaging-chat": "violet-social",
-  "builtin-application-messaging-conversation": "violet-social",
-  "builtin-application-task-manager-list": "indigo-productivity",
-  "builtin-application-task-manager-kanban": "indigo-productivity",
-  "builtin-website-portfolio-minimal": "rose-editorial",
-  "builtin-website-portfolio-editorial": "rose-editorial",
-  "builtin-website-blog-editorial": "warm-editorial",
-  "builtin-website-blog-minimal": "warm-editorial",
-  "builtin-website-ecommerce-minimal": "mint-commerce",
-  "builtin-website-ecommerce-premium": "mint-commerce",
+function hashIndex(id: string, len: number): number {
+  let h = 0
+  for (const c of id) h = (((h << 5) - h) + c.charCodeAt(0)) | 0
+  return Math.abs(h) % len
 }
 
-export function curatedPaletteForTemplate(asset: TemplateAsset): CuratedPalette {
-  const overrideId = PALETTE_OVERRIDES[asset.id]
-  if (overrideId) {
-    const overridden = palettesById.get(overrideId)
-    if (overridden) return overridden
+function paletteFor(id: string): CuratedPalette {
+  const key = OVERRIDES[id]
+  if (key) {
+    const p = PALETTE_MAP.get(key)
+    if (p) return p
   }
-  const index = paletteIndexFor(asset.id, CURATED_PALETTES.length)
-  return CURATED_PALETTES[index]
+  return PALETTES[hashIndex(id, PALETTES.length)]
 }
 
+// ── Display name generation ───────────────────────────────────────────────────
+
+function cap(s: string): string {
+  return s.replace(/\b([a-z])/g, c => c.toUpperCase())
+}
+
+function toDisplayName(stem: string): string {
+  const s = stem.replace(/^(website|app|component)[_-]/, "")
+  // "cadence_01_welcome" → "Cadence — Welcome"
+  const m = s.match(/^([a-z][a-z_]*)_(\d+)_(.+)$/)
+  if (m) return `${cap(m[1].replace(/_/g, " "))} — ${cap(m[3].replace(/[_-]/g, " "))}`
+  return cap(s.replace(/[_-]/g, " "))
+}
+
+function categoryFor(stem: string): InspirationCategory {
+  if (stem.startsWith("website")) return "Website"
+  if (stem.startsWith("app")) return "App"
+  return "Component"
+}
+
+// ── 95 template stems ─────────────────────────────────────────────────────────
+
+const STEMS: string[] = [
+  "app_artisan_product", "app_bloom_onboarding", "app_cadence_01_welcome",
+  "app_cadence_02_goal", "app_cadence_03_level", "app_cadence_04_availability",
+  "app_cadence_05_permission", "app_cadence_06_plan_ready", "app_capsule",
+  "app_empty_state", "app_error_state", "app_notification_center",
+  "app_pantry_run_01_welcome", "app_pantry_run_02_location", "app_pantry_run_03_address",
+  "app_pantry_run_04_preferences", "app_pantry_run_05_notifications", "app_pantry_run_06_first_shop",
+  "app_professional_profile", "app_rootwell_onboarding", "app_search_experience",
+  "app_semaphore_01_welcome", "app_semaphore_02_how_it_works", "app_semaphore_03_create_key",
+  "app_semaphore_04_recovery", "app_semaphore_05_notifications", "app_semaphore_06_verify",
+  "app_semaphore_07_ready", "app_settings_clean", "app_settings_premium",
+  "app_sneaker_product", "app_stride", "app_wavelength_onboarding_1",
+  "app_wavelength_onboarding_2", "app_wavelength_onboarding_3",
+  "component_activity_feed", "component_audio_player", "component_bar_1",
+  "component_bar_2", "component_bar_3", "component_bottom_bar",
+  "component_card", "component_card_data_display", "component_checkout_card",
+  "component_confirmation_states", "component_contextual_toolbar", "component_core_states",
+  "component_feedback_overlay", "component_form_inputs", "component_modal",
+  "component_modal_card", "component_nav_pill", "component_navigation_set",
+  "component_paywall", "component_pill", "component_pricing_cards",
+  "component_progress_tracker", "component_review_card", "component_sidebar_drawer",
+  "component_stat_card_1", "component_stat_card_2", "component_stat_card_3",
+  "component_stat_card_4", "component_tooltip_card", "component_top_tabs",
+  "website_aska", "website_atelier", "website_bramble_field", "website_cadence_landing",
+  "website_cinder_salt", "website_foundry_health", "website_halyard_landing",
+  "website_kinetic", "website_kite_coral", "website_lexicon_landing",
+  "website_maison_noire", "website_meridian", "website_northwater",
+  "website_orbital", "website_rivulet_landing", "website_semaphore_landing",
+  "website_signal_loop", "website_sonora", "website_static_field",
+  "website_studio_zero", "website_third_rail", "website_vellum",
+  "website-aethon-orbital", "website-ando-collective", "website-domaine-vaillant",
+  "website-kinesis", "website-lumiere-fest", "website-neural-arc",
+  "website-terra-cloth", "website-void-gallery",
+]
+
+export const INSPIRATION_ITEMS: InspirationItem[] = STEMS.map(id => ({
+  id,
+  displayName: toDisplayName(id),
+  category: categoryFor(id),
+  imagePath: `/templates/${id}.webp`,
+  palette: paletteFor(id),
+}))
+
+export const inspirationItemById = new Map(INSPIRATION_ITEMS.map(i => [i.id, i]))
+
+export function inspirationItemsByCategory(
+  cat: InspirationCategory | "all",
+): InspirationItem[] {
+  return cat === "all" ? INSPIRATION_ITEMS : INSPIRATION_ITEMS.filter(i => i.category === cat)
+}
+
+/** Convert a curated palette to Swatch[] for writeHashPalette */
 export function curatedPaletteAsSwatches(palette: CuratedPalette): Swatch[] {
-  return palette.colours.map((c) => ({ ...createSwatch(c.hex, 0, false), name: c.role }))
-}
-
-/** One browsable inspiration entry: a real catalog template + a curated palette. */
-export type InspirationItem = {
-  id: string
-  template: TemplateAsset
-  palette: CuratedPalette
-  category: TemplateCategory
-}
-
-export const INSPIRATION_ITEMS: InspirationItem[] = templateAssets
-  .filter((asset) => asset.collection === "Built-In")
-  .map((asset) => ({
-    id: asset.id,
-    template: asset,
-    palette: curatedPaletteForTemplate(asset),
-    category: asset.category,
-  }))
-
-export const inspirationItemById = new Map(INSPIRATION_ITEMS.map((item) => [item.id, item]))
-
-export function inspirationItemsByCategory(category: TemplateCategory | "all"): InspirationItem[] {
-  if (category === "all") return INSPIRATION_ITEMS
-  return INSPIRATION_ITEMS.filter((item) => item.category === category)
+  return palette.colours.map((c, i) => ({ ...createSwatch(c.hex, i, false), name: c.role }))
 }

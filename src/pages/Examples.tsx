@@ -1,276 +1,232 @@
-import { useMemo, useState } from "react"
-import { BRAND } from "../lib/color"
-import { useNav } from "../lib/router"
-import { INSPIRATION_ITEMS, inspirationItemById, type InspirationItem } from "../lib/inspirationCatalog"
-import type { TemplateCategory } from "../lib/templateAssets"
-import PublicHeader from "../components/PublicHeader"
-import PublicFooter from "../components/PublicFooter"
-import InspirationThumbnail from "../components/InspirationThumbnail"
+import { useState, useMemo } from "react"
+import {
+  INSPIRATION_ITEMS,
+  type InspirationCategory,
+  type InspirationItem,
+} from "../lib/inspirationCatalog"
 import InspirationDetail from "../components/InspirationDetail"
 
-const BRAND_INK = "#0A6288"
 const FAVORITES_KEY = "hueframe:inspiration-favorites"
 
-type Filter = "all" | TemplateCategory | "saved"
-
-const CATEGORIES: { id: Filter; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "Website", label: "Websites" },
-  { id: "Application", label: "Apps" },
-  { id: "Components", label: "Components" },
-  { id: "saved", label: "Saved" },
-]
-
-function loadFavorites(): string[] {
+function loadFavorites(): Set<string> {
   try {
-    const value = JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]")
-    return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
   } catch {
-    return []
+    return new Set()
   }
 }
+function saveFavorites(s: Set<string>) {
+  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...s])) } catch {}
+}
 
-function saveFavorites(ids: string[]) {
-  try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids)) } catch { /* storage unavailable */ }
+type Filter = "all" | InspirationCategory | "saved"
+
+const DOT: Record<InspirationCategory, string> = {
+  Website: "bg-blue-400",
+  App: "bg-violet-400",
+  Component: "bg-emerald-400",
+}
+
+function StarIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className="w-4 h-4" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round"
+        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+      />
+    </svg>
+  )
+}
+
+function Card({
+  item,
+  saved,
+  onSave,
+  onClick,
+}: {
+  item: InspirationItem
+  saved: boolean
+  onSave: (id: string) => void
+  onClick: () => void
+}) {
+  return (
+    <div
+      className="group relative cursor-pointer rounded-xl overflow-hidden bg-white border border-neutral-200/60 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="aspect-[4/3] overflow-hidden bg-neutral-100">
+        <img
+          src={item.imagePath}
+          alt={item.displayName}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.04]"
+        />
+      </div>
+
+      {/* Label */}
+      <div className="flex items-center justify-between px-3 py-2.5 bg-white">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${DOT[item.category]}`} />
+          <span className="text-[13px] font-medium text-neutral-800 truncate leading-none">
+            {item.displayName}
+          </span>
+        </div>
+        <button
+          aria-label={saved ? "Remove from saved" : "Save"}
+          onClick={e => { e.stopPropagation(); onSave(item.id) }}
+          className={`flex-shrink-0 p-1.5 rounded-lg transition-all ${
+            saved
+              ? "text-amber-500"
+              : "text-neutral-300 opacity-0 group-hover:opacity-100 hover:text-amber-400"
+          }`}
+        >
+          <StarIcon filled={saved} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function Examples() {
-  const nav = useNav()
   const [filter, setFilter] = useState<Filter>("all")
-  const [query, setQuery] = useState("")
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => loadFavorites())
+  const [search, setSearch] = useState("")
+  const [saved, setSaved] = useState<Set<string>>(loadFavorites)
+  const [active, setActive] = useState<InspirationItem | null>(null)
 
   const toggleSave = (id: string) => {
-    setFavoriteIds((current) => {
-      const next = current.includes(id) ? current.filter((item) => item !== id) : [id, ...current]
+    setSaved(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
       saveFavorites(next)
       return next
     })
   }
 
-  const filtered = useMemo(() => {
-    const base: InspirationItem[] =
-      filter === "all" ? INSPIRATION_ITEMS
-      : filter === "saved" ? favoriteIds.flatMap((id) => { const item = inspirationItemById.get(id); return item ? [item] : [] })
-      : INSPIRATION_ITEMS.filter((item) => item.category === filter)
+  const counts = useMemo(
+    () => ({
+      all:       INSPIRATION_ITEMS.length,
+      Website:   INSPIRATION_ITEMS.filter(i => i.category === "Website").length,
+      App:       INSPIRATION_ITEMS.filter(i => i.category === "App").length,
+      Component: INSPIRATION_ITEMS.filter(i => i.category === "Component").length,
+      saved:     saved.size,
+    }),
+    [saved],
+  )
 
-    const search = query.trim().toLowerCase()
-    if (!search) return base
-    return base.filter((item) =>
-      `${item.template.name} ${item.template.type} ${item.template.variant} ${item.palette.name}`.toLowerCase().includes(search),
-    )
-  }, [filter, favoriteIds, query])
+  const items = useMemo(() => {
+    let list =
+      filter === "saved"
+        ? INSPIRATION_ITEMS.filter(i => saved.has(i.id))
+        : filter === "all"
+        ? INSPIRATION_ITEMS
+        : INSPIRATION_ITEMS.filter(i => i.category === (filter as InspirationCategory))
 
-  const activeItem = activeId ? inspirationItemById.get(activeId) ?? null : null
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(
+        i =>
+          i.displayName.toLowerCase().includes(q) ||
+          i.category.toLowerCase().includes(q),
+      )
+    }
+    return list
+  }, [filter, search, saved])
+
+  const FILTERS: { label: string; value: Filter }[] = [
+    { label: "All",        value: "all" },
+    { label: "Websites",   value: "Website" },
+    { label: "Apps",       value: "App" },
+    { label: "Components", value: "Component" },
+    { label: "Saved",      value: "saved" },
+  ]
 
   return (
-    <div className="flex min-h-full flex-col bg-offwhite">
-      <PublicHeader />
-      <main id="main-content" className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-14 sm:py-20">
-        {/* Hero */}
-        <div>
-          <h1
-            className="text-[32px] font-bold text-charcoal sm:text-[42px]"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Inspiration
-          </h1>
-          <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-charcoal/65">
-            Browse real websites, apps, and components styled with curated colour palettes.
-            Open one to see it in full, save it for later, or copy the palette straight into
-            your own project.
-          </p>
-        </div>
+    <div className="min-h-screen bg-neutral-950 pb-16">
+      {/* ── Sticky header ──────────────────────────────────────────────── */}
+      <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+          {/* Title */}
+          <div className="flex-shrink-0">
+            <h1 className="text-white font-semibold text-base leading-none">Inspiration</h1>
+            <p className="text-neutral-500 text-xs mt-0.5">95 real designs · apply any palette</p>
+          </div>
 
-        {/* Filter + search */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Filter by category">
-            {CATEGORIES.map((cat) => {
-              const on = filter === cat.id
-              const count = cat.id === "all" ? INSPIRATION_ITEMS.length
-                : cat.id === "saved" ? favoriteIds.length
-                : INSPIRATION_ITEMS.filter((item) => item.category === cat.id).length
+          {/* Search */}
+          <div className="relative flex-1 max-w-xs">
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="search"
+              placeholder="Search designs…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-neutral-900 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 transition-colors"
+            />
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-none">
+            {FILTERS.map(f => {
+              const cnt = counts[f.value as keyof typeof counts]
+              const active = filter === f.value
               return (
                 <button
-                  key={cat.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => setFilter(cat.id)}
-                  className="min-h-11 rounded-lg border px-4 py-2 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-                  style={
-                    on
-                      ? { background: BRAND_INK, color: "#fff", borderColor: BRAND_INK }
-                      : { background: "#fff", color: BRAND.charcoal, borderColor: BRAND.softgrey }
-                  }
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    active
+                      ? "bg-white text-neutral-900"
+                      : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                  }`}
                 >
-                  {cat.label} <span className={on ? "opacity-80" : "opacity-50"}>({count})</span>
+                  {f.label}
+                  <span className={active ? "text-neutral-400" : "text-neutral-600"}>
+                    {cnt}
+                  </span>
                 </button>
               )
             })}
           </div>
-
-          <div className="relative w-full sm:w-64">
-            <SearchIcon />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search inspiration"
-              aria-label="Search inspiration"
-              className="h-11 w-full rounded-lg border border-softgrey bg-white pl-9 pr-3 text-[13px] text-charcoal outline-none transition-shadow placeholder:text-charcoal/45 focus:border-brand focus:ring-2 focus:ring-brand/15"
-            />
-          </div>
         </div>
+      </div>
 
-        {/* Gallery grid */}
-        {filtered.length > 0 ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((item) => (
-              <InspirationCard
-                key={item.id}
-                item={item}
-                saved={favoriteIds.includes(item.id)}
-                onOpen={() => setActiveId(item.id)}
-                onToggleSave={() => toggleSave(item.id)}
-              />
-            ))}
+      {/* ── Grid ───────────────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto px-4 pt-6">
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-32 text-neutral-600">
+            <p className="text-base font-medium">No designs found</p>
+            <p className="text-sm mt-1">
+              {filter === "saved" ? "Save a design to see it here" : "Try a different search term"}
+            </p>
           </div>
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-softgrey bg-white text-center">
-            <p className="text-sm font-bold text-charcoal">
-              {filter === "saved" ? "Nothing saved yet" : "No matches"}
-            </p>
-            <p className="mt-1 max-w-sm text-[12px] text-charcoal/50">
-              {filter === "saved"
-                ? "Open an example and hit Save to keep it here for later."
-                : "Try another category or a different search term."}
-            </p>
+          <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+            {items.map(item => (
+              <div key={item.id} className="break-inside-avoid">
+                <Card
+                  item={item}
+                  saved={saved.has(item.id)}
+                  onSave={toggleSave}
+                  onClick={() => setActive(item)}
+                />
+              </div>
+            ))}
           </div>
         )}
+      </div>
 
-        {/* CTA */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-softgrey bg-white px-6 py-8 text-center">
-          <h2
-            className="text-[20px] font-bold text-charcoal sm:text-[24px]"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            Build your own
-          </h2>
-          <p className="max-w-md text-[15px] text-charcoal/60">
-            These examples are starting points. Open Quick Design to create a palette that fits your project.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <a
-              href="/quick-design"
-              onClick={nav("/quick-design")}
-              className="inline-flex min-h-11 items-center rounded-lg px-5 py-2.5 text-[13px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2"
-              style={{ background: "#0A6288" }}
-            >
-              Open Quick Design
-            </a>
-            <a
-              href="/learn"
-              onClick={nav("/learn")}
-              className="inline-flex min-h-11 items-center rounded-lg border border-softgrey bg-white px-5 py-2.5 text-[13px] font-semibold text-charcoal transition-colors hover:bg-offwhite focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta"
-            >
-              Learn about colour
-            </a>
-          </div>
-        </div>
-      </main>
-      <PublicFooter />
-
-      {activeItem && (
+      {/* ── Detail modal ────────────────────────────────────────────────── */}
+      {active && (
         <InspirationDetail
-          item={activeItem}
-          saved={favoriteIds.includes(activeItem.id)}
+          item={active}
+          saved={saved.has(active.id)}
           onToggleSave={toggleSave}
-          onClose={() => setActiveId(null)}
+          onClose={() => setActive(null)}
         />
       )}
     </div>
   )
 }
-
-/* ---------- Gallery card ---------- */
-
-function InspirationCard({
-  item,
-  saved,
-  onOpen,
-  onToggleSave,
-}: {
-  item: InspirationItem
-  saved: boolean
-  onOpen: () => void
-  onToggleSave: () => void
-}) {
-  return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-softgrey bg-white transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-charcoal/25 hover:shadow-md">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="block aspect-[4/3] w-full overflow-hidden border-b border-softgrey text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-cta"
-        aria-label={`Open ${item.template.name}`}
-      >
-        <InspirationThumbnail item={item} />
-      </button>
-
-      <button
-        type="button"
-        onClick={onToggleSave}
-        className="absolute right-2 top-2 grid h-11 w-11 place-items-center rounded-[7px] border border-black/10 bg-white/90 text-charcoal/50 opacity-0 shadow-sm backdrop-blur transition-opacity hover:text-charcoal focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cta focus-visible:ring-offset-2 group-hover:opacity-100"
-        style={saved ? { opacity: 1, color: BRAND_INK } : undefined}
-        aria-label={saved ? `Remove ${item.template.name} from saved` : `Save ${item.template.name}`}
-        aria-pressed={saved}
-        title={saved ? "Remove from saved" : "Save"}
-      >
-        <StarIcon filled={saved} />
-      </button>
-
-      <button type="button" onClick={onOpen} className="flex flex-1 flex-col gap-3 px-4 pb-4 pt-3 text-left focus-visible:outline-none">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-charcoal/40">
-            {item.template.category}
-          </span>
-          <h3
-            className="mt-0.5 text-[16px] font-bold text-charcoal"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            {item.template.name}
-          </h3>
-          <p className="mt-1 text-[13px] leading-relaxed text-charcoal/60">
-            {item.palette.name} — {item.palette.description}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5">
-          {item.palette.colours.map((c) => (
-            <div
-              key={c.role}
-              className="group/swatch relative flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-black/8"
-              style={{ background: c.hex }}
-              title={`${c.role}: ${c.hex}`}
-            >
-              <span className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-charcoal/90 px-1.5 py-0.5 text-[9px] font-semibold text-white opacity-0 transition-opacity group-hover/swatch:opacity-100">
-                {c.role}
-              </span>
-            </div>
-          ))}
-        </div>
-      </button>
-    </div>
-  )
-}
-
-const SearchIcon = () => (
-  <svg className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/35" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-    <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
-  </svg>
-)
-const StarIcon = ({ filled }: { filled: boolean }) => (
-  <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="m12 2.7 2.8 5.7 6.3.9-4.5 4.4 1.1 6.3-5.7-3-5.7 3 1.1-6.3-4.5-4.4 6.3-.9Z" />
-  </svg>
-)
