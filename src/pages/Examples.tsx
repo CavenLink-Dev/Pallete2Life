@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useRef, useEffect } from "react"
 import {
   INSPIRATION_ITEMS,
+  SUBCATEGORIES,
   type InspirationCategory,
   type InspirationItem,
 } from "../lib/inspirationCatalog"
@@ -59,6 +60,14 @@ function UserIcon() {
   )
 }
 
+function ChevronDown({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
 /* ── Card ───────────────────────────────────────────────────────────── */
 
 function Card({
@@ -98,7 +107,7 @@ function Card({
             {item.displayName}
           </p>
           <p className="text-[11px] text-neutral-500 truncate leading-tight mt-0.5">
-            {item.category} · {item.palette.name}
+            {item.subcategory} · {item.palette.name}
           </p>
         </div>
 
@@ -118,14 +127,107 @@ function Card({
   )
 }
 
+/* ── Category filter with subcategory dropdown ────────────────────────── */
+
+function CategoryFilterButton({
+  category,
+  label,
+  count,
+  isActive,
+  activeSubcategory,
+  onSelectCategory,
+  onSelectSubcategory,
+}: {
+  category: InspirationCategory
+  label: string
+  count: number
+  isActive: boolean
+  activeSubcategory: string | null
+  onSelectCategory: () => void
+  onSelectSubcategory: (sub: string | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    window.addEventListener("mousedown", onClick)
+    window.addEventListener("keydown", onKey)
+    return () => {
+      window.removeEventListener("mousedown", onClick)
+      window.removeEventListener("keydown", onKey)
+    }
+  }, [open])
+
+  const subs = SUBCATEGORIES[category]
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => {
+          if (!isActive) {
+            onSelectCategory()
+            setOpen(true)
+          } else {
+            setOpen(o => !o)
+          }
+        }}
+        className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+          isActive
+            ? "bg-white text-neutral-900"
+            : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+        }`}
+      >
+        {label}
+        <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>{count}</span>
+        <ChevronDown open={open && isActive} />
+      </button>
+
+      {open && isActive && (
+        <div className="absolute left-0 top-full mt-2 z-20 min-w-[180px] rounded-xl bg-neutral-900 border border-neutral-700 shadow-2xl shadow-black/50 py-1.5 overflow-hidden">
+          <button
+            onClick={() => { onSelectSubcategory(null); setOpen(false) }}
+            className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
+              activeSubcategory === null
+                ? "text-white bg-neutral-800"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+            }`}
+          >
+            All {label}
+          </button>
+          <div className="h-px bg-neutral-800 my-1" />
+          {subs.map(sub => (
+            <button
+              key={sub}
+              onClick={() => { onSelectSubcategory(sub); setOpen(false) }}
+              className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
+                activeSubcategory === sub
+                  ? "text-white bg-neutral-800"
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+              }`}
+            >
+              {sub}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Page ───────────────────────────────────────────────────────────── */
 
 export default function Examples() {
   const nav = useNav()
   const [filter, setFilter] = useState<Filter>("all")
+  const [subcategory, setSubcategory] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [saved, setSaved] = useState<Set<string>>(loadFavorites)
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   const toggleSave = (id: string) => {
     setSaved(prev => {
@@ -133,6 +235,18 @@ export default function Examples() {
       next.has(id) ? next.delete(id) : next.add(id)
       saveFavorites(next)
       return next
+    })
+  }
+
+  const selectCategory = (cat: Filter) => {
+    setFilter(prev => {
+      // Toggle off if clicking the already-active filter (except "all")
+      if (prev === cat && cat !== "all") {
+        setSubcategory(null)
+        return "all"
+      }
+      setSubcategory(null)
+      return cat
     })
   }
 
@@ -155,19 +269,31 @@ export default function Examples() {
         ? INSPIRATION_ITEMS
         : INSPIRATION_ITEMS.filter(i => i.category === (filter as InspirationCategory))
 
+    if (subcategory && (filter === "Website" || filter === "App" || filter === "Component")) {
+      list = list.filter(i => i.subcategory === subcategory)
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(
         i =>
           i.displayName.toLowerCase().includes(q) ||
-          i.category.toLowerCase().includes(q),
+          i.category.toLowerCase().includes(q) ||
+          i.subcategory.toLowerCase().includes(q),
       )
     }
     return list
-  }, [filter, search, saved])
+  }, [filter, subcategory, search, saved])
 
-  const FILTERS: { label: string; value: Filter }[] = [
-    { label: "All",        value: "all" },
+  // Keep the open detail modal pointed at the same design even if the
+  // background list is re-filtered — never let it silently jump to
+  // whatever now sits at the old numeric index.
+  const activeIndex = activeId ? items.findIndex(i => i.id === activeId) : -1
+  useEffect(() => {
+    if (activeId && activeIndex === -1) setActiveId(null)
+  }, [activeId, activeIndex])
+
+  const CATS: { label: string; value: InspirationCategory }[] = [
     { label: "Websites",   value: "Website" },
     { label: "Apps",       value: "App" },
     { label: "Components", value: "Component" },
@@ -213,45 +339,50 @@ export default function Examples() {
                 />
               </div>
 
-              {/* Filter pills */}
-              <div className="hidden sm:flex gap-1 overflow-x-auto scrollbar-none">
-                {FILTERS.map(f => {
-                  const cnt = counts[f.value as keyof typeof counts]
-                  const isActive = filter === f.value
-                  return (
-                    <button
-                      key={f.value}
-                      onClick={() => setFilter(f.value)}
-                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                        isActive
-                          ? "bg-white text-neutral-900"
-                          : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-                      }`}
-                    >
-                      {f.label}
-                      <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>
-                        {cnt}
-                      </span>
-                    </button>
-                  )
-                })}
+              {/* Filter pills — All + category dropdowns */}
+              <div className="hidden sm:flex items-center gap-1 overflow-x-auto scrollbar-none">
+                <button
+                  onClick={() => selectCategory("all")}
+                  className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                    filter === "all"
+                      ? "bg-white text-neutral-900"
+                      : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                  }`}
+                >
+                  All
+                  <span className={filter === "all" ? "text-neutral-400" : "text-neutral-600"}>{counts.all}</span>
+                </button>
+
+                {CATS.map(c => (
+                  <CategoryFilterButton
+                    key={c.value}
+                    category={c.value}
+                    label={c.label}
+                    count={counts[c.value]}
+                    isActive={filter === c.value}
+                    activeSubcategory={filter === c.value ? subcategory : null}
+                    onSelectCategory={() => selectCategory(c.value)}
+                    onSelectSubcategory={setSubcategory}
+                  />
+                ))}
               </div>
             </div>
 
             {/* RIGHT — Saved + Profile */}
             <div className="flex items-center gap-1 flex-shrink-0">
               <button
-                onClick={() => setFilter("saved")}
+                onClick={() => selectCategory("saved")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   filter === "saved"
                     ? "bg-white text-neutral-900"
                     : "text-neutral-400 hover:text-white hover:bg-neutral-800"
                 }`}
+                aria-pressed={filter === "saved"}
               >
                 <BookmarkIcon />
                 <span className="hidden sm:inline">Saved</span>
                 {saved.size > 0 && (
-                  <span className={`text-xs tabular-nums ${filter === "saved" ? "text-neutral-500" : "text-neutral-500"}`}>
+                  <span className="text-xs tabular-nums text-neutral-500">
                     {saved.size}
                   </span>
                 )}
@@ -268,29 +399,80 @@ export default function Examples() {
 
           </div>
 
+          {/* Active subcategory chip — visible summary of the drilldown */}
+          {subcategory && (filter === "Website" || filter === "App" || filter === "Component") && (
+            <div className="hidden sm:flex items-center gap-2 mt-2">
+              <span className="text-neutral-500 text-xs">Filtered by:</span>
+              <button
+                onClick={() => setSubcategory(null)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-neutral-800 text-white hover:bg-neutral-700 transition-colors"
+              >
+                {subcategory}
+                <span className="text-neutral-500">×</span>
+              </button>
+            </div>
+          )}
+
           {/* Mobile filter row — shown below on small screens */}
           <div className="flex sm:hidden gap-1 mt-2 overflow-x-auto pb-0.5 scrollbar-none">
-            {FILTERS.map(f => {
-              const cnt = counts[f.value as keyof typeof counts]
-              const isActive = filter === f.value
+            <button
+              onClick={() => selectCategory("all")}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                filter === "all"
+                  ? "bg-white text-neutral-900"
+                  : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+              }`}
+            >
+              All
+              <span className={filter === "all" ? "text-neutral-400" : "text-neutral-600"}>{counts.all}</span>
+            </button>
+            {CATS.map(c => {
+              const isActive = filter === c.value
               return (
                 <button
-                  key={f.value}
-                  onClick={() => setFilter(f.value)}
+                  key={c.value}
+                  onClick={() => selectCategory(c.value)}
                   className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? "bg-white text-neutral-900"
                       : "text-neutral-400 hover:text-white hover:bg-neutral-800"
                   }`}
                 >
-                  {f.label}
-                  <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>
-                    {cnt}
-                  </span>
+                  {c.label}
+                  <span className={isActive ? "text-neutral-400" : "text-neutral-600"}>{counts[c.value]}</span>
                 </button>
               )
             })}
           </div>
+
+          {/* Mobile subcategory row */}
+          {(filter === "Website" || filter === "App" || filter === "Component") && (
+            <div className="flex sm:hidden gap-1 mt-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+              <button
+                onClick={() => setSubcategory(null)}
+                className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${
+                  subcategory === null
+                    ? "bg-neutral-700 text-white"
+                    : "text-neutral-500 hover:text-white"
+                }`}
+              >
+                All
+              </button>
+              {SUBCATEGORIES[filter].map(sub => (
+                <button
+                  key={sub}
+                  onClick={() => setSubcategory(sub)}
+                  className={`flex-shrink-0 px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors ${
+                    subcategory === sub
+                      ? "bg-neutral-700 text-white"
+                      : "text-neutral-500 hover:text-white"
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -305,13 +487,13 @@ export default function Examples() {
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
-            {items.map((item, idx) => (
+            {items.map(item => (
               <div key={item.id} className="break-inside-avoid">
                 <Card
                   item={item}
                   saved={saved.has(item.id)}
                   onSave={toggleSave}
-                  onClick={() => setActiveIndex(idx)}
+                  onClick={() => setActiveId(item.id)}
                 />
               </div>
             ))}
@@ -320,14 +502,14 @@ export default function Examples() {
       </div>
 
       {/* ── Detail viewer ──────────────────────────────────────────── */}
-      {activeIndex !== null && items[activeIndex] && (
+      {activeIndex !== -1 && items[activeIndex] && (
         <InspirationDetail
           items={items}
           currentIndex={activeIndex}
-          onNavigate={setActiveIndex}
+          onNavigate={idx => setActiveId(items[idx]?.id ?? null)}
           saved={saved.has(items[activeIndex].id)}
           onToggleSave={toggleSave}
-          onClose={() => setActiveIndex(null)}
+          onClose={() => setActiveId(null)}
         />
       )}
     </div>

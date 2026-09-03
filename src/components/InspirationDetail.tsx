@@ -174,10 +174,10 @@ export default function InspirationDetail({
           <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white/90 ${DOT[item.category] || "bg-neutral-600"}`}>
             {item.category[0]}
           </span>
-          <span className="text-white text-sm font-medium truncate max-w-[180px] sm:max-w-xs">
+          <span className="text-white text-sm font-medium truncate max-w-[140px] sm:max-w-xs">
             {item.displayName}
           </span>
-          <span className="text-neutral-600 text-xs tabular-nums hidden sm:inline">
+          <span className="text-neutral-600 text-xs tabular-nums flex-shrink-0">
             {currentIndex + 1} / {items.length}
           </span>
         </div>
@@ -280,7 +280,7 @@ export default function InspirationDetail({
           </div>
 
           <span className="text-neutral-500 text-xs hidden sm:inline">
-            {item.palette.name}
+            {item.subcategory} · {item.palette.name}
           </span>
 
           <div className="flex-1" />

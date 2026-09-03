@@ -17,8 +17,19 @@ export type InspirationItem = {
   id: string
   displayName: string
   category: InspirationCategory
+  subcategory: string
   imagePath: string      // /templates/<id>.webp
   palette: CuratedPalette
+}
+
+// ── Subcategories per top-level category ─────────────────────────────────────
+// Mirrors the project brief's page/component types so the top-nav dropdown
+// has a stable, curated list rather than free-text derived from filenames.
+
+export const SUBCATEGORIES: Record<InspirationCategory, string[]> = {
+  Website: ["Landing", "SaaS", "E-commerce", "Sign-in", "Paywall", "Editorial"],
+  App: ["Onboarding", "Profile", "Settings", "Product", "Empty & Error States", "Notifications"],
+  Component: ["Cards", "Forms", "Navigation", "Typography", "Buttons & Pills", "Overlays"],
 }
 
 // ── 12 curated palettes ──────────────────────────────────────────────────────
@@ -245,6 +256,86 @@ function paletteFor(id: string): CuratedPalette {
   return PALETTES[hashIndex(id, PALETTES.length)]
 }
 
+// ── Subcategory assignment ────────────────────────────────────────────────────
+// Explicit per-stem mapping so subcategories are accurate rather than guessed.
+
+const SUBCATEGORY_OVERRIDES: Record<string, string> = {
+  // Website — Landing
+  website_bramble_field: "Landing", website_cadence_landing: "Landing",
+  website_halyard_landing: "Landing", website_kinetic: "Landing",
+  website_kite_coral: "Landing", website_lexicon_landing: "Landing",
+  website_rivulet_landing: "Landing", website_semaphore_landing: "Landing",
+  website_signal_loop: "Landing", website_static_field: "Landing",
+  website_studio_zero: "Landing", website_third_rail: "Landing",
+  website_vellum: "Landing", "website-lumiere-fest": "Landing",
+  // Website — SaaS
+  website_meridian: "SaaS", website_northwater: "SaaS",
+  website_orbital: "SaaS", "website-neural-arc": "SaaS",
+  "website-aethon-orbital": "SaaS", website_foundry_health: "SaaS",
+  // Website — E-commerce
+  website_cinder_salt: "E-commerce", "website-terra-cloth": "E-commerce",
+  "website-domaine-vaillant": "E-commerce", website_sonora: "E-commerce",
+  // Website — Sign-in
+  website_maison_noire: "Sign-in", "website-void-gallery": "Sign-in",
+  // Website — Paywall
+  "website-kinesis": "Paywall",
+  // Website — Editorial
+  website_aska: "Editorial", website_atelier: "Editorial",
+  "website-ando-collective": "Editorial",
+
+  // App — Onboarding
+  app_bloom_onboarding: "Onboarding", app_rootwell_onboarding: "Onboarding",
+  app_pantry_run_01_welcome: "Onboarding", app_pantry_run_02_location: "Onboarding",
+  app_pantry_run_03_address: "Onboarding", app_pantry_run_04_preferences: "Onboarding",
+  app_pantry_run_05_notifications: "Onboarding", app_pantry_run_06_first_shop: "Onboarding",
+  app_cadence_01_welcome: "Onboarding", app_cadence_02_goal: "Onboarding",
+  app_cadence_03_level: "Onboarding", app_cadence_04_availability: "Onboarding",
+  app_cadence_05_permission: "Onboarding", app_cadence_06_plan_ready: "Onboarding",
+  app_semaphore_01_welcome: "Onboarding", app_semaphore_02_how_it_works: "Onboarding",
+  app_semaphore_03_create_key: "Onboarding", app_semaphore_04_recovery: "Onboarding",
+  app_semaphore_05_notifications: "Onboarding", app_semaphore_06_verify: "Onboarding",
+  app_semaphore_07_ready: "Onboarding", app_wavelength_onboarding_1: "Onboarding",
+  app_wavelength_onboarding_2: "Onboarding", app_wavelength_onboarding_3: "Onboarding",
+  // App — Profile
+  app_professional_profile: "Profile", app_capsule: "Profile",
+  // App — Settings
+  app_settings_clean: "Settings", app_settings_premium: "Settings",
+  // App — Product
+  app_artisan_product: "Product", app_sneaker_product: "Product",
+  app_search_experience: "Product", app_stride: "Product",
+  // App — Empty & Error States
+  app_empty_state: "Empty & Error States", app_error_state: "Empty & Error States",
+  // App — Notifications
+  app_notification_center: "Notifications",
+
+  // Component — Cards
+  component_card: "Cards", component_card_data_display: "Cards",
+  component_checkout_card: "Cards", component_modal_card: "Cards",
+  component_pricing_cards: "Cards", component_review_card: "Cards",
+  component_stat_card_1: "Cards", component_stat_card_2: "Cards",
+  component_stat_card_3: "Cards", component_stat_card_4: "Cards",
+  component_tooltip_card: "Cards",
+  // Component — Forms
+  component_form_inputs: "Forms", component_progress_tracker: "Forms",
+  // Component — Navigation
+  component_bottom_bar: "Navigation", component_nav_pill: "Navigation",
+  component_navigation_set: "Navigation", component_sidebar_drawer: "Navigation",
+  component_top_tabs: "Navigation", component_contextual_toolbar: "Navigation",
+  // Component — Typography
+  component_activity_feed: "Typography", component_core_states: "Typography",
+  component_confirmation_states: "Typography",
+  // Component — Buttons & Pills
+  component_bar_1: "Buttons & Pills", component_bar_2: "Buttons & Pills",
+  component_bar_3: "Buttons & Pills", component_pill: "Buttons & Pills",
+  // Component — Overlays
+  component_modal: "Overlays", component_paywall: "Overlays",
+  component_feedback_overlay: "Overlays", component_audio_player: "Overlays",
+}
+
+function subcategoryFor(id: string, category: InspirationCategory): string {
+  return SUBCATEGORY_OVERRIDES[id] ?? SUBCATEGORIES[category][0]
+}
+
 // ── Display name generation ───────────────────────────────────────────────────
 
 function cap(s: string): string {
@@ -302,13 +393,17 @@ const STEMS: string[] = [
   "website-terra-cloth", "website-void-gallery",
 ]
 
-export const INSPIRATION_ITEMS: InspirationItem[] = STEMS.map(id => ({
-  id,
-  displayName: toDisplayName(id),
-  category: categoryFor(id),
-  imagePath: `/templates/${id}.webp`,
-  palette: paletteFor(id),
-}))
+export const INSPIRATION_ITEMS: InspirationItem[] = STEMS.map(id => {
+  const category = categoryFor(id)
+  return {
+    id,
+    displayName: toDisplayName(id),
+    category,
+    subcategory: subcategoryFor(id, category),
+    imagePath: `/templates/${id}.webp`,
+    palette: paletteFor(id),
+  }
+})
 
 export const inspirationItemById = new Map(INSPIRATION_ITEMS.map(i => [i.id, i]))
 
