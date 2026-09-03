@@ -114,6 +114,13 @@ export const pages: Record<string, Page> = {
         text:
           "A course that reliably produces great, working digital products cannot stop at visual design. It teaches you to move through the whole product-delivery loop: understand a problem, structure information, design responsive interfaces, implement reusable components, meet accessibility requirements, prototype behaviour, measure performance, test systematically, deploy safely, and maintain what you ship.",
       },
+      {
+        k: "callout",
+        tone: "note",
+        title: "Independent educational content",
+        text:
+          "HueSet is an independent educational product. It is not affiliated with or endorsed by Apple, Google, Figma, Microsoft, W3C, or GOV.UK. Product and organisation names identify the platforms, standards, and official sources discussed. These lessons use original explanations and link to official material without reproducing platform logos, screenshots, interface kits, or documentation.",
+      },
       { k: "h2", text: "What a finished product must pass" },
       {
         k: "p",
@@ -535,13 +542,50 @@ export const pages: Record<string, Page> = {
     readings: [
       { label: "Apple Human Interface Guidelines", href: "https://developer.apple.com/design/human-interface-guidelines/" },
       { label: "Apple Design Resources", href: "https://developer.apple.com/design/resources/" },
+      { label: "Apple accessibility guidance", href: "https://developer.apple.com/design/human-interface-guidelines/accessibility" },
       { label: "Material Design 3", href: "https://m3.material.io/" },
       { label: "Material 3 in Jetpack Compose", href: "https://developer.android.com/develop/ui/compose/designsystems/material3" },
+      { label: "Android adaptive layouts", href: "https://developer.android.com/develop/ui/compose/layouts/adaptive" },
+      { label: "Android accessibility guidance", href: "https://developer.android.com/guide/topics/ui/accessibility" },
       { label: "Fluent 2", href: "https://fluent2.microsoft.design/" },
     ],
     exercise:
       "Create a three-to-five-screen transactional app flow — goal creation, transfer setup or appointment booking — with normal, loading, validation, empty and failure states. Implement the main screen natively.",
     extraBlocks: [
+      { k: "h2", text: "Designing for iOS" },
+      {
+        k: "p",
+        text:
+          "An iOS interface should feel native because its structure, controls, feedback, and accessibility behaviour match the platform, not because it copies the appearance of another app. Start with the task and information hierarchy, then use familiar navigation patterns and system controls where they fit. Respect safe areas, support Dynamic Type, preserve a predictable back path, and make every important control understandable with VoiceOver. Custom styling is useful when it strengthens the product identity without weakening familiar behaviour.",
+      },
+      {
+        k: "checklist",
+        title: "iOS review questions",
+        items: [
+          "Does each screen have one clear purpose and a predictable way to leave it",
+          "Do text and controls remain usable at larger Dynamic Type sizes",
+          "Are controls positioned inside safe areas and clear of system interfaces",
+          "Can VoiceOver announce every control with a useful name, role, value, and state",
+          "Does the design use platform conventions unless a different pattern clearly improves the task",
+        ],
+      },
+      { k: "h2", text: "Designing for Android" },
+      {
+        k: "p",
+        text:
+          "An Android interface must adapt to different window sizes, postures, input methods, and navigation modes. Treat the available window as the design constraint rather than assuming a single phone canvas. Use semantic Material roles consistently, account for system insets, keep touch targets generous, and provide alternatives to gestures that may be difficult to discover or perform. Test the same task on compact and expanded layouts and confirm that TalkBack follows a logical reading and action order.",
+      },
+      {
+        k: "checklist",
+        title: "Android review questions",
+        items: [
+          "Does the layout adapt to compact, medium, and expanded window widths",
+          "Does navigation remain understandable when the available space changes",
+          "Are content and controls clear of status bars, navigation areas, and display cutouts",
+          "Can TalkBack identify and operate each important action in a logical order",
+          "Does every gesture driven action also have a visible or accessible alternative",
+        ],
+      },
       {
         k: "code",
         lang: "swift",
@@ -1381,64 +1425,6 @@ const practicalLessons: PracticalLesson[] = [
     ],
   },
   {
-    id: "ios-design",
-    title: "iOS App Design",
-    icon: "Smartphone",
-    kicker: "App design",
-    lead: "Good iOS design feels native to Apple platforms while giving the product a clear identity through content, colour, type, and purposeful detail.",
-    why: "People bring strong expectations from the system apps they already know. Respecting safe areas, Dynamic Type, standard controls, system navigation, and familiar gestures reduces learning effort and improves compatibility with accessibility features. A custom visual style should support these conventions rather than replace them.",
-    workflow: [
-      ["Model", "Define the main destinations, the navigation stack within each destination, and any focused modal task."],
-      ["Compose", "Begin with system components and semantic text styles, then add product styling where it preserves behaviour."],
-      ["Adapt", "Test portrait, landscape, iPad windows, long content, large text, and safe area changes."],
-      ["Validate", "Use VoiceOver, Full Keyboard Access where relevant, reduced motion, and a real device before release."],
-    ],
-    principles: [
-      "Use a tab bar for top level destinations and a toolbar for actions",
-      "Keep the tab bar stable while people move within a destination",
-      "Respect system safe areas, margins, and display features",
-      "Support Dynamic Type without hiding essential content",
-      "Prefer familiar controls and gestures unless a custom approach clearly improves the task",
-      "Aim for the platform control size guidance and provide comfortable spacing",
-    ],
-    exercise: "Design a three screen booking flow in iPhone and iPad layouts. Use a stable top level destination model, a navigation stack for detail, and a modal confirmation only if the task benefits from focused attention. Test the design at the largest accessibility text size and document any layout adaptation.",
-    evidence: "The task remains understandable across window sizes and text settings, and the interaction model would feel familiar to an experienced iOS user.",
-    readings: [
-      { label: "Apple Human Interface Guidelines", href: "https://developer.apple.com/design/human-interface-guidelines/" },
-      { label: "Apple Layout Guidance", href: "https://developer.apple.com/design/human-interface-guidelines/layout" },
-      { label: "Apple Accessibility Guidance", href: "https://developer.apple.com/design/human-interface-guidelines/accessibility" },
-    ],
-  },
-  {
-    id: "android-design",
-    title: "Android App Design",
-    icon: "Smartphone",
-    kicker: "App design",
-    lead: "Android design must work across compact phones, tablets, foldables, desktop windows, varied input devices, and changing device postures.",
-    why: "Android is not one fixed phone canvas. Current platform guidance treats adaptive design as the default. Layouts should respond at the pane and component level, navigation should change with available space, and content must remain clear around system bars, display cutouts, keyboards, and gesture regions.",
-    workflow: [
-      ["Model", "Define core tasks, destinations, state, and expected Back behaviour before styling screens."],
-      ["Compose", "Use Material components and semantic colour roles as a dependable behavioural foundation."],
-      ["Adapt", "Plan how panes reflow, reveal, resize, or change presentation for each window size."],
-      ["Validate", "Test resizable windows, rotation, large text, TalkBack, keyboard input, gesture navigation, and interruptions."],
-    ],
-    principles: [
-      "Choose layouts from the available window size rather than a device name",
-      "Change navigation presentation when the window expands",
-      "Use WindowInsets so controls are never hidden by system UI",
-      "Provide at least 48 dp touch targets for interactive elements",
-      "Provide an alternative to gesture only actions",
-      "Preserve task state through interruption, sleep, rotation, and return",
-    ],
-    exercise: "Design a list and detail experience for a compact phone, a foldable, and a tablet. Show the compact one pane view, the expanded two pane view, the navigation change, system inset handling, and predictive Back destination. Test the layout with font scaling and keyboard navigation.",
-    evidence: "The same task remains complete and comfortable without stretching a phone layout across larger windows or hiding controls beneath system regions.",
-    readings: [
-      { label: "Android Adaptive Layout Guidance", href: "https://developer.android.com/design/ui/mobile/guides/layout-and-content/adapt-layout" },
-      { label: "Android Layout and Navigation Patterns", href: "https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns" },
-      { label: "Android Accessibility Guidance", href: "https://developer.android.com/design/ui/mobile/guides/foundations/accessibility" },
-    ],
-  },
-  {
     id: "purpose",
     title: "Purpose",
     icon: "Target",
@@ -2241,8 +2227,6 @@ const NAV_TREE: NavGroup[] = [
       { id: "overview", label: "HueLearn" },
       { id: "mod-website", label: "Website" },
       { id: "mod-app", label: "App" },
-      { id: "ios-design", label: "iOS App" },
-      { id: "android-design", label: "Android App" },
       { id: "design-principles", label: "Design Principles" },
     ],
   },
