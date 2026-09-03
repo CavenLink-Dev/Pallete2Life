@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import {
   INSPIRATION_ITEMS,
   SUBCATEGORIES,
@@ -147,33 +148,54 @@ function CategoryFilterButton({
   onSelectSubcategory: (sub: string | null) => void
 }) {
   const [open, setOpen] = useState(false)
-  const wrapRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  const openPanel = () => {
+    const r = btnRef.current?.getBoundingClientRect()
+    if (r) setPos({ top: r.bottom + 8, left: r.left })
+    setOpen(true)
+  }
 
   useEffect(() => {
     if (!open) return
     const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (btnRef.current?.contains(t) || panelRef.current?.contains(t)) return
+      setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+    const onReposition = () => {
+      const r = btnRef.current?.getBoundingClientRect()
+      if (r) setPos({ top: r.bottom + 8, left: r.left })
+    }
     window.addEventListener("mousedown", onClick)
     window.addEventListener("keydown", onKey)
+    window.addEventListener("scroll", onReposition, true)
+    window.addEventListener("resize", onReposition)
     return () => {
       window.removeEventListener("mousedown", onClick)
       window.removeEventListener("keydown", onKey)
+      window.removeEventListener("scroll", onReposition, true)
+      window.removeEventListener("resize", onReposition)
     }
   }, [open])
 
   const subs = SUBCATEGORIES[category]
 
   return (
-    <div ref={wrapRef} className="relative">
+    <>
       <button
+        ref={btnRef}
         onClick={() => {
           if (!isActive) {
             onSelectCategory()
-            setOpen(true)
+            openPanel()
+          } else if (open) {
+            setOpen(false)
           } else {
-            setOpen(o => !o)
+            openPanel()
           }
         }}
         className={`flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
@@ -187,35 +209,41 @@ function CategoryFilterButton({
         <ChevronDown open={open && isActive} />
       </button>
 
-      {open && isActive && (
-        <div className="absolute left-0 top-full mt-2 z-20 min-w-[180px] rounded-xl bg-neutral-900 border border-neutral-700 shadow-2xl shadow-black/50 py-1.5 overflow-hidden">
-          <button
-            onClick={() => { onSelectSubcategory(null); setOpen(false) }}
-            className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
-              activeSubcategory === null
-                ? "text-white bg-neutral-800"
-                : "text-neutral-400 hover:text-white hover:bg-neutral-800"
-            }`}
+      {open && isActive && pos &&
+        createPortal(
+          <div
+            ref={panelRef}
+            style={{ position: "fixed", top: pos.top, left: pos.left }}
+            className="z-50 min-w-[180px] rounded-xl bg-neutral-900 border border-neutral-700 shadow-2xl shadow-black/50 py-1.5 overflow-hidden"
           >
-            All {label}
-          </button>
-          <div className="h-px bg-neutral-800 my-1" />
-          {subs.map(sub => (
             <button
-              key={sub}
-              onClick={() => { onSelectSubcategory(sub); setOpen(false) }}
+              onClick={() => { onSelectSubcategory(null); setOpen(false) }}
               className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
-                activeSubcategory === sub
+                activeSubcategory === null
                   ? "text-white bg-neutral-800"
                   : "text-neutral-400 hover:text-white hover:bg-neutral-800"
               }`}
             >
-              {sub}
+              All {label}
             </button>
-          ))}
-        </div>
-      )}
-    </div>
+            <div className="h-px bg-neutral-800 my-1" />
+            {subs.map(sub => (
+              <button
+                key={sub}
+                onClick={() => { onSelectSubcategory(sub); setOpen(false) }}
+                className={`w-full text-left px-3.5 py-2 text-xs font-medium transition-colors ${
+                  activeSubcategory === sub
+                    ? "text-white bg-neutral-800"
+                    : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                }`}
+              >
+                {sub}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 
