@@ -54,14 +54,14 @@ function Card({
       className="group relative cursor-pointer rounded-xl overflow-hidden bg-white border border-neutral-200/60 shadow-sm hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
       onClick={onClick}
     >
-      {/* Thumbnail */}
-      <div className="aspect-[4/3] overflow-hidden bg-neutral-100">
+      {/* Thumbnail — natural aspect ratio so nothing is cropped away */}
+      <div className="overflow-hidden bg-neutral-100">
         <img
           src={item.imagePath}
           alt={item.displayName}
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.04]"
+          className="w-full h-auto block transition-transform duration-300 group-hover:scale-[1.03]"
         />
       </div>
 
