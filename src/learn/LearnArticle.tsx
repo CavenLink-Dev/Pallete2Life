@@ -6,6 +6,12 @@ import type { Block, Page } from "./content"
 import { pages, BRAND } from "./content"
 import { Icon, Check } from "./LearnUI"
 
+const dashCharacters = /[\u002D\u058A\u05BE\u1400\u1806\u2010-\u2015\u2E17\u2E1A\u2E3A-\u2E3B\u2E40\u301C\u3030\u30A0\uFE31-\uFE32\uFE58\uFE63\uFF0D]/g
+
+function cleanProse(text: string): string {
+  return text.replace(dashCharacters, " ").replace(/ {2,}/g, " ")
+}
+
 // ---- inline formatting: **bold** and \`code\` --------------------------------
 function inline(text: string): ReactNode[] {
   const out: ReactNode[] = []
@@ -14,12 +20,12 @@ function inline(text: string): ReactNode[] {
   let m: RegExpExecArray | null
   let k = 0
   while ((m = re.exec(text))) {
-    if (m.index > last) out.push(text.slice(last, m.index))
+    if (m.index > last) out.push(cleanProse(text.slice(last, m.index)))
     const tok = m[0]
     if (tok.startsWith("**")) {
       out.push(
         <strong key={k++} className="font-semibold text-learn-heading">
-          {tok.slice(2, -2)}
+          {cleanProse(tok.slice(2, -2))}
         </strong>,
       )
     } else {
@@ -34,7 +40,7 @@ function inline(text: string): ReactNode[] {
     }
     last = m.index + tok.length
   }
-  if (last < text.length) out.push(text.slice(last))
+  if (last < text.length) out.push(cleanProse(text.slice(last)))
   return out
 }
 
@@ -59,7 +65,7 @@ function EmphasisDemo() {
             Design decisions that ship
           </h4>
           <p className="mt-3 text-[14px] leading-relaxed text-learn-body">
-            The same content, re-ranked. Only the emphasis of the headline changes — watch how much the hierarchy shifts.
+            The same content, ranked again. Only the emphasis of the headline changes. Watch how much the hierarchy shifts.
           </p>
         </div>
       </div>
@@ -80,7 +86,7 @@ const CONTRAST = [
   { label: "Body on background", fg: "#d9d9d9", bg: "#1f2329", ratio: "11.2:1", pass: "Passes AA & AAA" },
   { label: "White on card", fg: "#ffffff", bg: "#323944", ratio: "11.4:1", pass: "Passes AA & AAA" },
   { label: "Accent on card", fg: "#13a8e7", bg: "#323944", ratio: "4.6:1", pass: "Passes AA" },
-  { label: "Button fill as text", fg: "#0b7baa", bg: "#1f2329", ratio: "2.6:1", pass: "Fails — fill only" },
+  { label: "Button fill as text", fg: "#0b7baa", bg: "#1f2329", ratio: "2.6:1", pass: "Fails, fill only" },
 ]
 
 function ContrastDemo() {
@@ -139,7 +145,7 @@ function BlockView({ block }: { block: Block }) {
           className="mt-14 scroll-mt-20 border-t border-learn-border pt-8 text-[24px] font-bold leading-[1.2] tracking-[-0.01em] text-balance text-learn-heading"
           style={{ fontFamily: "var(--font-display, 'Instrument Sans', system-ui)" }}
         >
-          {block.text}
+          {cleanProse(block.text)}
         </h2>
       )
     case "h3":
@@ -148,7 +154,7 @@ function BlockView({ block }: { block: Block }) {
           className="mt-8 text-[17px] font-semibold leading-snug text-learn-heading"
           style={{ fontFamily: "var(--font-display, 'Instrument Sans', system-ui)" }}
         >
-          {block.text}
+          {cleanProse(block.text)}
         </h3>
       )
     case "ul":
@@ -182,7 +188,7 @@ function BlockView({ block }: { block: Block }) {
             <thead>
               <tr className="bg-learn-surface-2">
                 {block.head.map(h => (
-                  <th key={h} className="border-b border-learn-border px-4 py-2.5 text-left font-semibold text-learn-heading">{h}</th>
+                  <th key={h} className="border-b border-learn-border px-4 py-2.5 text-left font-semibold text-learn-heading">{cleanProse(h)}</th>
                 ))}
               </tr>
             </thead>
@@ -200,7 +206,7 @@ function BlockView({ block }: { block: Block }) {
           </table>
           {block.caption && (
             <figcaption className="border-t border-learn-border bg-learn-surface px-4 py-2.5 text-[12px] font-medium leading-snug tracking-[0.01em] text-learn-muted">
-              {block.caption}
+              {cleanProse(block.caption)}
             </figcaption>
           )}
         </figure>
@@ -221,7 +227,7 @@ function BlockView({ block }: { block: Block }) {
         <div className="my-5 rounded-xl border border-learn-border bg-learn-surface p-5">
           <p className="flex items-center gap-2 font-semibold text-learn-heading">
             <Icon name="ShieldCheck" className="h-4 w-4 text-learn-ink" />
-            {block.title}
+            {cleanProse(block.title)}
           </p>
           <ul className="mt-3 space-y-2">
             {block.items.map((it, i) => (
@@ -246,7 +252,7 @@ function BlockView({ block }: { block: Block }) {
         <div className={`my-6 flex gap-3 rounded-xl border p-5 ${tone.cls}`}>
           <Icon name={tone.icon} className={`mt-0.5 h-5 w-5 shrink-0 ${tone.ic}`} />
           <div>
-            {block.title && <p className="font-semibold text-learn-heading">{block.title}</p>}
+            {block.title && <p className="font-semibold text-learn-heading">{cleanProse(block.title)}</p>}
             <p className="mt-1 text-[15px] leading-relaxed text-learn-body">{inline(block.text)}</p>
           </div>
         </div>
@@ -262,7 +268,7 @@ function BlockView({ block }: { block: Block }) {
                 className="flex items-center gap-2.5 rounded-lg border border-learn-border bg-learn-surface px-3.5 py-2.5 text-[14px] text-learn-body transition-colors hover:border-learn-ink/50 hover:text-learn-ink"
               >
                 <Icon name="BookMarked" className="h-4 w-4 shrink-0 text-learn-ink" />
-                <span className="flex-1">{l.label}</span>
+                <span className="flex-1">{cleanProse(l.label)}</span>
                 <Icon name="ArrowUpRight" className="h-4 w-4 shrink-0 text-learn-muted" />
               </a>
             </li>
@@ -274,7 +280,7 @@ function BlockView({ block }: { block: Block }) {
         <div className="my-6 flex flex-wrap items-center gap-x-1.5 gap-y-2.5">
           {block.steps.map((s, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              <span className="rounded-lg border border-learn-border bg-learn-surface px-3 py-1.5 text-[13px] font-medium text-learn-heading">{s}</span>
+              <span className="rounded-lg border border-learn-border bg-learn-surface px-3 py-1.5 text-[13px] font-medium text-learn-heading">{cleanProse(s)}</span>
               {i < block.steps.length - 1 && <Icon name="ArrowRight" className="h-3.5 w-3.5 text-learn-muted" />}
             </span>
           ))}
@@ -286,7 +292,7 @@ function BlockView({ block }: { block: Block }) {
           {block.items.map(s => (
             <div key={s.label} className="rounded-xl border border-learn-border bg-learn-surface p-4">
               <p className="text-[30px] font-bold leading-none text-learn-ink" style={{ fontFamily: "var(--font-display, 'Instrument Sans', system-ui)" }}>{s.value}</p>
-              <p className="mt-1.5 text-[12.5px] leading-snug text-learn-muted">{s.label}</p>
+              <p className="mt-1.5 text-[12.5px] leading-snug text-learn-muted">{cleanProse(s.label)}</p>
             </div>
           ))}
         </div>
@@ -339,7 +345,7 @@ function Toc({ page }: { page: Page }) {
                   on ? "border-learn-ink font-semibold text-learn-ink" : "border-transparent text-learn-muted hover:text-learn-body"
                 }`}
               >
-                {h.text}
+                {cleanProse(h.text)}
               </a>
             </li>
           )
@@ -373,10 +379,10 @@ export default function LearnArticle({
           className="text-[clamp(2.15rem,4.8vw,3.15rem)] font-bold leading-[1.06] tracking-[-0.02em] text-balance text-learn-heading"
           style={{ fontFamily: "var(--font-display, 'Instrument Sans', system-ui)" }}
         >
-          {page.title}
+          {cleanProse(page.title)}
         </h1>
         <p className="mt-5 max-w-[58ch] text-[18px] font-normal leading-[1.65] text-pretty text-learn-muted">
-          {page.summary}
+          {cleanProse(page.summary)}
         </p>
 
         {page.id === "overview" && (
@@ -407,7 +413,7 @@ export default function LearnArticle({
               <span className="flex items-center gap-1.5 text-[12px] text-learn-muted">
                 <Icon name="ArrowRight" className="h-3.5 w-3.5 rotate-180" /> Previous
               </span>
-              <span className="mt-1 font-semibold text-learn-heading group-hover:text-learn-ink">{prev.title}</span>
+              <span className="mt-1 font-semibold text-learn-heading group-hover:text-learn-ink">{cleanProse(prev.title)}</span>
             </button>
           ) : <span />}
           {next && (
@@ -418,7 +424,7 @@ export default function LearnArticle({
               <span className="flex items-center justify-end gap-1.5 text-[12px] text-learn-muted">
                 Next <Icon name="ArrowRight" className="h-3.5 w-3.5" />
               </span>
-              <span className="mt-1 font-semibold text-learn-heading group-hover:text-learn-ink">{next.title}</span>
+              <span className="mt-1 font-semibold text-learn-heading group-hover:text-learn-ink">{cleanProse(next.title)}</span>
             </button>
           )}
         </nav>
