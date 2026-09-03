@@ -4,6 +4,7 @@ import {
   type InspirationCategory,
   type InspirationItem,
 } from "../lib/inspirationCatalog"
+import { BRAND } from "../lib/color"
 import InspirationDetail from "../components/InspirationDetail"
 
 const FAVORITES_KEY = "hueframe:inspiration-favorites"
@@ -100,7 +101,7 @@ export default function Examples() {
   const [filter, setFilter] = useState<Filter>("all")
   const [search, setSearch] = useState("")
   const [saved, setSaved] = useState<Set<string>>(loadFavorites)
-  const [active, setActive] = useState<InspirationItem | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
   const toggleSave = (id: string) => {
     setSaved(prev => {
@@ -154,10 +155,14 @@ export default function Examples() {
       {/* ── Sticky header ──────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-neutral-950/95 backdrop-blur-md border-b border-neutral-800">
         <div className="max-w-[1400px] mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          {/* Title */}
-          <div className="flex-shrink-0">
+          {/* Logo + Title */}
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <img src="/logo-64.png" alt="HueSet" className="w-7 h-7 rounded-md" />
+            <span className="text-white font-semibold text-base leading-none">
+              Hue<span style={{ color: BRAND.cta }}>Set</span>
+            </span>
+            <span className="w-px h-4 bg-neutral-700 mx-1" />
             <h1 className="text-white font-semibold text-base leading-none">Inspiration</h1>
-            <p className="text-neutral-500 text-xs mt-0.5">95 real designs · apply any palette</p>
           </div>
 
           {/* Search */}
@@ -211,13 +216,13 @@ export default function Examples() {
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-5 space-y-5">
-            {items.map(item => (
+            {items.map((item, idx) => (
               <div key={item.id} className="break-inside-avoid">
                 <Card
                   item={item}
                   saved={saved.has(item.id)}
                   onSave={toggleSave}
-                  onClick={() => setActive(item)}
+                  onClick={() => setActiveIndex(idx)}
                 />
               </div>
             ))}
@@ -225,13 +230,15 @@ export default function Examples() {
         )}
       </div>
 
-      {/* ── Detail modal ────────────────────────────────────────────────── */}
-      {active && (
+      {/* ── Detail viewer ───────────────────────────────────────────────── */}
+      {activeIndex !== null && items[activeIndex] && (
         <InspirationDetail
-          item={active}
-          saved={saved.has(active.id)}
+          items={items}
+          currentIndex={activeIndex}
+          onNavigate={setActiveIndex}
+          saved={saved.has(items[activeIndex].id)}
           onToggleSave={toggleSave}
-          onClose={() => setActive(null)}
+          onClose={() => setActiveIndex(null)}
         />
       )}
     </div>

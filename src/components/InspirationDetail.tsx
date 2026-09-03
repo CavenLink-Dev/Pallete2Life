@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { type InspirationItem, curatedPaletteAsSwatches } from "../lib/inspirationCatalog"
 import { writeHashPalette } from "../lib/paletteStore"
 import { useRoute } from "../lib/router"
 import { useToast } from "./Toast"
+import { BRAND } from "../lib/color"
+
+/* ── Icons ─────────────────────────────────────────────────────────────── */
 
 function CloseIcon() {
   return (
@@ -11,6 +14,23 @@ function CloseIcon() {
     </svg>
   )
 }
+
+function ChevronLeft() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function ChevronRight() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
 function CopyIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -18,6 +38,7 @@ function CopyIcon() {
     </svg>
   )
 }
+
 function StarIcon({ filled }: { filled: boolean }) {
   return (
     <svg viewBox="0 0 20 20" className="w-4 h-4" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.5}>
@@ -28,36 +49,78 @@ function StarIcon({ filled }: { filled: boolean }) {
   )
 }
 
+function MaximizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+    </svg>
+  )
+}
+
+function MinimizeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8 4v4H4M16 4v4h4M8 20v-4H4M16 20v-4h4" />
+    </svg>
+  )
+}
+
 const DOT: Record<string, string> = {
   Website: "bg-blue-400",
   App: "bg-violet-400",
   Component: "bg-emerald-400",
 }
 
+/* ── Component ─────────────────────────────────────────────────────────── */
+
 export default function InspirationDetail({
-  item,
+  items,
+  currentIndex,
+  onNavigate,
   saved,
   onToggleSave,
   onClose,
 }: {
-  item: InspirationItem
+  items: InspirationItem[]
+  currentIndex: number
+  onNavigate: (index: number) => void
   saved: boolean
   onToggleSave: (id: string) => void
   onClose: () => void
 }) {
+  const item = items[currentIndex]
   const { push } = useToast()
   const [, navigate] = useRoute()
   const overlayRef = useRef<HTMLDivElement>(null)
+  const [fullscreen, setFullscreen] = useState(false)
   const [copiedHex, setCopiedHex] = useState<string | null>(null)
 
-  // Escape + body scroll lock
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < items.length - 1
+
+  const goPrev = useCallback(() => {
+    if (hasPrev) onNavigate(currentIndex - 1)
+  }, [hasPrev, currentIndex, onNavigate])
+
+  const goNext = useCallback(() => {
+    if (hasNext) onNavigate(currentIndex + 1)
+  }, [hasNext, currentIndex, onNavigate])
+
+  // Keyboard: Escape, ArrowLeft, ArrowRight + body scroll lock
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+      if (e.key === "ArrowLeft") goPrev()
+      if (e.key === "ArrowRight") goNext()
+    }
     window.addEventListener("keydown", onKey)
-    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev }
-  }, [onClose])
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose, goPrev, goNext])
 
   const copyHex = async (hex: string) => {
     try {
@@ -88,83 +151,141 @@ export default function InspirationDetail({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/85 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-50 flex flex-col bg-neutral-950/95 backdrop-blur-sm"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div
-        className="relative w-full sm:max-w-4xl max-h-[96svh] sm:max-h-[92vh] bg-neutral-950 rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col shadow-2xl ring-1 ring-white/10"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header — close button only, minimal */}
-        <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Category icon */}
-            <span className={`w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center text-xs font-bold text-white/90 ${DOT[item.category] || "bg-neutral-600"}`}>
-              {item.category[0]}
-            </span>
-            <div className="min-w-0">
-              <h2 className="text-white font-semibold text-sm leading-tight truncate">{item.displayName}</h2>
-              <p className="text-neutral-500 text-xs mt-0.5 truncate">
-                {item.category} · {item.palette.name}
-              </p>
-            </div>
-          </div>
+      {/* ── Top bar ──────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 sm:px-6 h-12 flex-shrink-0 border-b border-neutral-800/60">
+        {/* Left: brand + item name */}
+        <div className="flex items-center gap-3 min-w-0">
+          <img src="/logo-64.png" alt="HueSet" className="w-6 h-6 rounded flex-shrink-0" />
+          <span className="text-white/70 text-sm font-medium hidden sm:inline">
+            Hue<span style={{ color: BRAND.cta }}>Set</span>
+          </span>
+          <span className="w-px h-4 bg-neutral-700 hidden sm:block" />
+          <span className={`w-6 h-6 rounded flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white/90 ${DOT[item.category] || "bg-neutral-600"}`}>
+            {item.category[0]}
+          </span>
+          <span className="text-white text-sm font-medium truncate max-w-[200px] sm:max-w-xs">
+            {item.displayName}
+          </span>
+        </div>
+
+        {/* Right: controls */}
+        <div className="flex items-center gap-1">
+          {/* Screen / Full screen toggle */}
+          <button
+            onClick={() => setFullscreen(f => !f)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+            title={fullscreen ? "Exit full screen" : "Full screen"}
+          >
+            {fullscreen ? <MinimizeIcon /> : <MaximizeIcon />}
+            <span className="hidden sm:inline">{fullscreen ? "Screen" : "Full screen"}</span>
+          </button>
+
+          {/* Close */}
           <button
             onClick={onClose}
-            className="ml-4 flex-shrink-0 p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+            className="p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
             aria-label="Close"
           >
             <CloseIcon />
           </button>
         </div>
+      </div>
 
-        {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1 px-5 pb-4">
-          {/* Dark card with inset screenshot — Mobbin style */}
-          <div className="rounded-2xl bg-neutral-800/70 p-4 sm:p-6">
-            <div className="overflow-hidden rounded-xl shadow-lg shadow-black/40">
-              <img
-                src={item.imagePath}
-                alt={item.displayName}
-                className="w-full h-auto block"
-              />
-            </div>
-          </div>
+      {/* ── Main area: screenshot + nav arrows ───────────────────────── */}
+      <div className="flex-1 flex items-center justify-center relative overflow-hidden min-h-0">
+        {/* Left arrow */}
+        <button
+          onClick={goPrev}
+          disabled={!hasPrev}
+          className={`absolute left-2 sm:left-4 z-10 p-2.5 rounded-full transition-all ${
+            hasPrev
+              ? "bg-neutral-800/80 text-white hover:bg-neutral-700 shadow-lg"
+              : "bg-neutral-800/30 text-neutral-700 cursor-default"
+          }`}
+          aria-label="Previous design"
+        >
+          <ChevronLeft />
+        </button>
 
-          {/* Palette section */}
-          <div className="mt-5">
-            <p className="text-neutral-500 text-[11px] font-medium uppercase tracking-widest mb-3">
-              {item.palette.name} — {item.palette.description}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {item.palette.colours.map(c => (
-                <button
-                  key={c.role}
-                  onClick={() => copyHex(c.hex)}
-                  title={`Copy ${c.hex}`}
-                  className="group flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-neutral-800/80 hover:bg-neutral-700 transition-colors"
-                >
-                  <span
-                    className="w-4 h-4 rounded-sm flex-shrink-0 border border-white/10"
-                    style={{ background: c.hex }}
-                  />
-                  <span className="text-xs leading-none">
-                    <span className="text-neutral-300 font-medium">{c.role}</span>
-                    <span className="text-neutral-500 font-mono ml-1.5">
-                      {copiedHex === c.hex ? "Copied!" : c.hex}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
+        {/* Screenshot — contained, no scroll */}
+        <div className={`flex items-center justify-center transition-all duration-300 ${
+          fullscreen
+            ? "w-full h-full p-2"
+            : "w-full max-w-5xl h-full p-4 sm:p-8"
+        }`}>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              key={item.id}
+              src={item.imagePath}
+              alt={item.displayName}
+              className={`object-contain rounded-lg shadow-2xl shadow-black/60 transition-all duration-300 ${
+                fullscreen
+                  ? "max-w-full max-h-full"
+                  : "max-w-full max-h-full"
+              }`}
+              style={{ maxHeight: fullscreen ? "calc(100vh - 120px)" : "calc(100vh - 180px)" }}
+              draggable={false}
+            />
           </div>
         </div>
 
-        {/* Action bar */}
-        <div className="flex items-center gap-2 px-5 py-3.5 border-t border-neutral-800 flex-shrink-0 bg-neutral-950">
+        {/* Right arrow */}
+        <button
+          onClick={goNext}
+          disabled={!hasNext}
+          className={`absolute right-2 sm:right-4 z-10 p-2.5 rounded-full transition-all ${
+            hasNext
+              ? "bg-neutral-800/80 text-white hover:bg-neutral-700 shadow-lg"
+              : "bg-neutral-800/30 text-neutral-700 cursor-default"
+          }`}
+          aria-label="Next design"
+        >
+          <ChevronRight />
+        </button>
+      </div>
+
+      {/* ── Bottom bar ───────────────────────────────────────────────── */}
+      <div className={`flex-shrink-0 border-t border-neutral-800/60 bg-neutral-950/90 backdrop-blur-sm transition-all ${
+        fullscreen ? "px-4 py-2" : "px-4 sm:px-6 py-3"
+      }`}>
+        <div className="max-w-5xl mx-auto flex items-center gap-3 flex-wrap">
+          {/* Palette swatches — compact inline */}
+          <div className="flex items-center gap-1 mr-2">
+            {item.palette.colours.map(c => (
+              <button
+                key={c.role}
+                onClick={() => copyHex(c.hex)}
+                title={`${c.role}: ${c.hex}`}
+                className="group relative"
+              >
+                <span
+                  className="block w-6 h-6 rounded-md border border-white/10 transition-transform hover:scale-110"
+                  style={{ background: c.hex }}
+                />
+                {copiedHex === c.hex && (
+                  <span className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 bg-white text-neutral-900 text-[10px] font-medium rounded whitespace-nowrap">
+                    Copied
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Palette name */}
+          <span className="text-neutral-500 text-xs hidden sm:inline">
+            {item.palette.name}
+          </span>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Actions */}
           <button
             onClick={() => onToggleSave(item.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
               saved
                 ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
                 : "border-neutral-700 text-neutral-300 hover:bg-neutral-800"
@@ -176,18 +297,26 @@ export default function InspirationDetail({
 
           <button
             onClick={copyCSS}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-neutral-700 text-neutral-300 hover:bg-neutral-800 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-neutral-700 text-neutral-300 hover:bg-neutral-800 transition-colors"
           >
             <CopyIcon />
-            Copy palette
+            <span className="hidden sm:inline">Copy palette</span>
+            <span className="sm:hidden">Copy</span>
           </button>
 
           <button
             onClick={usePalette}
-            className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-neutral-900 hover:bg-neutral-100 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: BRAND.cta }}
           >
-            Use palette →
+            Use palette
+            <span className="ml-0.5">→</span>
           </button>
+
+          {/* Navigation counter */}
+          <span className="text-neutral-600 text-xs tabular-nums pl-2 hidden sm:inline">
+            {currentIndex + 1} / {items.length}
+          </span>
         </div>
       </div>
     </div>
