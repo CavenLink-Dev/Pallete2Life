@@ -131,6 +131,143 @@ function ContrastDemo() {
   )
 }
 
+function ExpandableFrame({
+  icon,
+  label,
+  title,
+  children,
+}: {
+  icon: string
+  label: string
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <details className="group my-5 overflow-hidden rounded-xl border border-learn-border bg-learn-surface">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-5 py-4 text-left marker:hidden focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-learn-ink">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-learn-ink/10 text-learn-ink">
+          <Icon name={icon} className="h-4.5 w-4.5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-mono text-[10px] uppercase tracking-[0.14em] text-learn-muted">
+            {cleanProse(label)}
+          </span>
+          <span className="mt-0.5 block text-[15px] font-semibold text-learn-heading">
+            {cleanProse(title)}
+          </span>
+        </span>
+        <Icon
+          name="ChevronDown"
+          className="h-4 w-4 shrink-0 text-learn-muted transition-transform duration-200 group-open:rotate-180"
+        />
+      </summary>
+      <div className="border-t border-learn-border px-5 py-5">{children}</div>
+    </details>
+  )
+}
+
+function VisualPractice({ block }: { block: Extract<Block, { k: "practice" }> }) {
+  const [twist, setTwist] = useState(0)
+
+  return (
+    <ExpandableFrame icon="Sparkles" label="Visual task" title={block.title}>
+      <p className="text-[15px] leading-relaxed text-learn-body">{inline(block.prompt)}</p>
+
+      <div className="mt-5 grid gap-2 sm:grid-cols-2">
+        {block.steps.map((step, index) => (
+          <div key={step} className="flex min-h-24 gap-3 rounded-lg border border-learn-border bg-learn-surface-2/60 p-4">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-learn-ink text-[11px] font-bold text-white">
+              {index + 1}
+            </span>
+            <p className="text-[13.5px] leading-relaxed text-learn-body">{inline(step)}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 rounded-lg border border-learn-ink/25 bg-learn-ink/10 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-learn-muted">Creative constraint</p>
+            <p className="mt-1 text-[14px] font-semibold leading-relaxed text-learn-heading" aria-live="polite">
+              {inline(block.twists[twist])}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setTwist(current => (current + 1) % block.twists.length)}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-learn-ink/35 bg-learn-surface px-3 text-[12px] font-semibold text-learn-ink transition-colors hover:bg-learn-ink/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-learn-ink"
+          >
+            <Icon name="Sparkles" className="h-3.5 w-3.5" />
+            New constraint
+          </button>
+        </div>
+      </div>
+
+      <p className="mt-4 text-[13.5px] leading-relaxed text-learn-muted">
+        <strong className="font-semibold text-learn-heading">A strong result:</strong> {inline(block.evidence)}
+      </p>
+    </ExpandableFrame>
+  )
+}
+
+function Quiz({ block }: { block: Extract<Block, { k: "quiz" }> }) {
+  const [selected, setSelected] = useState<number | null>(null)
+  const correct = selected === block.answer
+
+  return (
+    <ExpandableFrame icon="ClipboardCheck" label="Quick quiz" title={block.question}>
+      <div className="grid gap-2" role="group" aria-label={cleanProse(block.question)}>
+        {block.options.map((option, index) => {
+          const chosen = selected === index
+          const isAnswer = index === block.answer
+          const stateClass =
+            selected === null
+              ? "border-learn-border hover:border-learn-ink/50 hover:bg-learn-surface-2"
+              : isAnswer
+                ? "border-learn-ink bg-learn-ink/10"
+                : chosen
+                  ? "border-[#d56b6b] bg-[#d56b6b]/10"
+                  : "border-learn-border opacity-65"
+
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setSelected(index)}
+              className={`flex w-full items-start gap-3 rounded-lg border p-3.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-learn-ink ${stateClass}`}
+            >
+              <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[10px] font-bold ${
+                selected !== null && isAnswer
+                  ? "border-learn-ink bg-learn-ink text-white"
+                  : "border-learn-border-strong text-learn-muted"
+              }`}>
+                {selected !== null && isAnswer ? <Check className="h-3 w-3" /> : String.fromCharCode(65 + index)}
+              </span>
+              <span className="text-[14px] leading-relaxed text-learn-body">{inline(option)}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {selected !== null && (
+        <div
+          className={`mt-4 flex gap-3 rounded-lg border p-4 ${
+            correct ? "border-learn-ink/25 bg-learn-ink/10" : "border-[#d56b6b]/35 bg-[#d56b6b]/10"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <Icon name={correct ? "CircleCheck" : "TriangleAlert"} className={`mt-0.5 h-4.5 w-4.5 shrink-0 ${correct ? "text-learn-ink" : "text-[#b74747]"}`} />
+          <div>
+            <p className="text-[14px] font-semibold text-learn-heading">{correct ? "Correct" : "Try another answer"}</p>
+            <p className="mt-1 text-[13.5px] leading-relaxed text-learn-body">{inline(block.explanation)}</p>
+          </div>
+        </div>
+      )}
+    </ExpandableFrame>
+  )
+}
+
 // ---- block renderer -------------------------------------------------------
 function BlockView({ block }: { block: Block }) {
   switch (block.k) {
@@ -297,6 +434,26 @@ function BlockView({ block }: { block: Block }) {
           ))}
         </div>
       )
+    case "details":
+      return (
+        <ExpandableFrame icon="BookMarked" label="Extra information" title={block.title}>
+          <p className="text-[15px] leading-relaxed text-learn-body">{inline(block.text)}</p>
+          {block.items && (
+            <ul className="mt-4 space-y-2">
+              {block.items.map(item => (
+                <li key={item} className="flex gap-2.5 text-[14px] leading-relaxed text-learn-body">
+                  <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-learn-ink" />
+                  <span>{inline(item)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </ExpandableFrame>
+      )
+    case "practice":
+      return <VisualPractice block={block} />
+    case "quiz":
+      return <Quiz block={block} />
     case "interactive":
       return block.kind === "emphasis" ? <EmphasisDemo /> : <ContrastDemo />
     default:
@@ -399,7 +556,7 @@ export default function LearnArticle({
 
         <div className="mt-8">
           {page.blocks.map((b, i) => (
-            <BlockView key={i} block={b} />
+            <BlockView key={`${page.id}-${i}`} block={b} />
           ))}
         </div>
 

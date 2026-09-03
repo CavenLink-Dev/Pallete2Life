@@ -33,6 +33,9 @@ export type Block =
   | { k: "links"; items: { label: string; href: string }[] }
   | { k: "flow"; steps: string[] }
   | { k: "stat"; items: { value: string; label: string }[] }
+  | { k: "details"; title: string; text: string; items?: string[] }
+  | { k: "practice"; title: string; prompt: string; steps: string[]; twists: string[]; evidence: string }
+  | { k: "quiz"; question: string; options: string[]; answer: number; explanation: string }
   | { k: "interactive"; kind: "emphasis" | "contrast" };
 
 export type Page = {
@@ -84,7 +87,47 @@ function modulePage(cfg: {
       { k: "p", text: cfg.tools },
       { k: "links", items: cfg.readings },
       { k: "h2", text: "Exercise & deliverable" },
-      { k: "p", text: cfg.exercise },
+      {
+        k: "practice",
+        title: "Open the studio challenge",
+        prompt: cfg.exercise,
+        steps: [
+          "Make a quick first version without polishing it",
+          "Create a second version that changes one important decision",
+          "Place both versions side by side and explain the effect of the change",
+          "Use the quality checks below to choose what should move forward",
+        ],
+        twists: [
+          "Double the amount of content and keep the hierarchy clear",
+          "Complete the task using only a keyboard or switch style input",
+          "Test the idea on the narrowest useful screen",
+          "Remove decorative colour and preserve meaning through structure",
+        ],
+        evidence: cfg.capstone,
+      },
+      {
+        k: "quiz",
+        question: `What is the strongest way to assess work in ${cfg.title}?`,
+        options: [
+          "Choose the version that looks most polished in a single screenshot",
+          "Confirm that the intended task works and use evidence from testing and quality checks",
+          "Count how many components, colours, and effects appear in the final design",
+        ],
+        answer: 1,
+        explanation:
+          "Visual polish matters, but professional design is judged by whether the intended task works under realistic conditions and whether the result meets its quality criteria.",
+      },
+      {
+        k: "details",
+        title: "More questions for critique",
+        text: "Use these prompts when the first solution appears finished. They uncover assumptions that a polished screen can hide.",
+        items: [
+          "What evidence supports the most important decision",
+          "Who may struggle with this version and why",
+          "What happens with longer content, slower loading, or an interrupted task",
+          "Which decision should be tested before more time is spent on polish",
+        ],
+      },
       ...(cfg.extraBlocks ?? []),
       { k: "h2", text: "Quality checklists" },
       { k: "checklist", title: "Accessibility", items: cfg.a11y },
@@ -1374,6 +1417,15 @@ type PracticalLesson = {
 };
 
 function practicalLesson(cfg: PracticalLesson): Page {
+  const correctAnswer = cfg.principles[0];
+  const distractors = [
+    "Choose the most distinctive visual option and validate it only after launch",
+    "Copy a familiar solution without checking whether its purpose and context match",
+  ];
+  const answer = cfg.id.length % 3;
+  const options = [...distractors];
+  options.splice(answer, 0, correctAnswer);
+
   return {
     id: cfg.id,
     icon: cfg.icon,
@@ -1388,8 +1440,42 @@ function practicalLesson(cfg: PracticalLesson): Page {
       { k: "h2", text: "Principles to remember" },
       { k: "checklist", title: "Review your work", items: cfg.principles },
       { k: "h2", text: "Practice lesson" },
-      { k: "p", text: cfg.exercise },
-      { k: "callout", tone: "brand", title: "Evidence of a strong result", text: cfg.evidence },
+      {
+        k: "practice",
+        title: "Open the visual challenge",
+        prompt: cfg.exercise,
+        steps: [
+          "Create a fast first version using realistic content",
+          "Change one important variable and make a second version",
+          "Compare both versions at the same size and in the same context",
+          "Write one sentence explaining which version works better and why",
+        ],
+        twists: [
+          "Try it with twice as much content",
+          "Try it without relying on colour",
+          "Try it at two hundred percent zoom",
+          "Ask another person what they notice first",
+        ],
+        evidence: cfg.evidence,
+      },
+      {
+        k: "quiz",
+        question: `Which approach best supports strong ${cfg.title.toLowerCase()} work?`,
+        options,
+        answer,
+        explanation: `The strongest answer applies the lesson as a decision rule rather than a decoration. ${cfg.evidence}`,
+      },
+      {
+        k: "details",
+        title: "Go deeper",
+        text: "Use these questions during critique or after testing to turn the lesson into a repeatable working habit.",
+        items: [
+          "What user need or constraint does this decision support",
+          "What evidence could prove the decision wrong",
+          "What changes when content, device size, or input method changes",
+          "How will another designer or developer understand the decision later",
+        ],
+      },
       { k: "h2", text: "Reliable references" },
       { k: "links", items: cfg.readings },
     ],
